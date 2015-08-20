@@ -49,7 +49,9 @@ int RIPublisher::pubService(const uuid_t& reg,uint32_t version,const Service& sv
 		snprintf(ver,sizeof(ver),"%i",version);
 		if( -1 == zstr_sendm(m_actor,ver) )
 			break;
-		if( -1 == zstr_send(m_actor,svc.id.c_str()) )
+		if( -1 == zstr_sendm(m_actor,svc.id.c_str()) )
+			break;
+		if( -1 == zstr_send(m_actor,svc.address.c_str()) )
 			break;
 
 		return 0;

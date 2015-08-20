@@ -15,6 +15,7 @@ public:
 class Service {
 public:
 	uuid_t					id;
+	std::string				address;
 };
 
 class Payload {
