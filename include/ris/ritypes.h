@@ -12,10 +12,20 @@ public:
 	std::string				address;
 };
 
+class RegionRt : public Region {
+public:
+	ri_time_t				timeval;
+};
+
 class Service {
 public:
 	uuid_t					id;
 	std::string				address;
+};
+
+class ServiceRt : public Service {
+public:
+	ri_time_t				timeval;
 };
 
 class Payload {
@@ -23,7 +33,11 @@ public:
 	uuid_t					id;
 };
 
+class PayloadRt : public Payload {
+public:
+	ri_time_t				timeval;
+};
+
 
 ri_time_t ri_time_now();
 
-ri_time_t ri_time_elapsed(ri_time_t last);
