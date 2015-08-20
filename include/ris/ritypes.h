@@ -3,6 +3,7 @@
 #include <string>
 
 typedef std::string			uuid_t;
+typedef uint64_t			ri_time_t;		// msec
 
 class Region {
 public:
@@ -22,3 +23,6 @@ public:
 };
 
 
+ri_time_t ri_time_now();
+
+ri_time_t ri_time_elapsed(ri_time_t last);

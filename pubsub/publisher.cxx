@@ -157,27 +157,16 @@ static int pub_actor_broadcast_self_down(zsock_t* sock,const Region& region) {
 }
 
 
-static int calc_timeout(const timespec* last) {
+static int calc_timeout(ri_time_t last) {
 	static const uint64_t BROADCAST_SELF_TIMEOUT	= 5000;
 
-	uint64_t diff = 0;
-	struct timespec now;
-	clock_gettime(CLOCK_MONOTONIC,&now);
+	const ri_time_t now = ri_time_now();
+	assert( now >= last );
 
-	if( now.tv_nsec < last->tv_nsec ) {
-		diff = (now.tv_nsec + 1000000000 - last->tv_nsec) / 1000000;
-		now.tv_sec -= 1;
-	} else {
-		diff = (now.tv_nsec - last->tv_nsec) / 1000000;
-	}
-
-	assert( now.tv_sec >= last->tv_sec );
-	diff += (now.tv_sec - last->tv_sec) * 1000; 
-
-	if( diff >= BROADCAST_SELF_TIMEOUT ) {
+	if( now - last >= BROADCAST_SELF_TIMEOUT ) {
 		return 0;
 	} else {
-		return BROADCAST_SELF_TIMEOUT - diff;
+		return (int)(BROADCAST_SELF_TIMEOUT + last - now);
 	}
 }
 
@@ -196,25 +185,23 @@ static void pub_actor_routine(zsock_t* pipe,void* args) {
 	}
 
 	pub_actor_broadcast_self(pub,region);
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC,&ts);
+	ri_time_t last = ri_time_now();
 
 	zpoller_t* poller = zpoller_new(pipe);
 
 	void* reader = nullptr;
 	int timeout;
 	while(true) {
-		timeout = calc_timeout(&ts);
+		timeout = calc_timeout(last);
 		if( timeout == 0 ) {
 			pub_actor_broadcast_self(pub,region);
-			clock_gettime(CLOCK_MONOTONIC,&ts);
-			timeout = calc_timeout(&ts);
+			last = ri_time_now();
 		}
 		reader = zpoller_wait(poller,timeout);
 		if( reader == nullptr ) {
 			if( zpoller_expired(poller) ) {
 				pub_actor_broadcast_self(pub,region);
-				clock_gettime(CLOCK_MONOTONIC,&ts);
+				last = ri_time_now();
 			} else if( zpoller_terminated(poller) ) {
 				// log it
 				break;
@@ -222,7 +209,7 @@ static void pub_actor_routine(zsock_t* pipe,void* args) {
 				// log it
 			}
 		} else {
-			assert(reader == pub );
+			assert(reader == pipe);
 
 			zmsg_t* msg = zmsg_recv(pipe);
 			if( zmsg_size(msg) == 1 ) {
