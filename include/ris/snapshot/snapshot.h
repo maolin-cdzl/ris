@@ -45,8 +45,11 @@ protected:
 
 class SnapshotItem : public SnapshotValues {
 public:
-	SnapshotItem(const std::string& id);
+	SnapshotItem(const std::string& type,const std::string& id);
 
+	inline std::string type() const {
+		return m_type;
+	}
 	inline std::string id() const {
 		return m_id;
 	}
@@ -59,6 +62,7 @@ private:
 	SnapshotItem(const SnapshotItem&);
 	SnapshotItem& operator = (const SnapshotItem&);
 
+	const std::string			m_type;
 	const std::string			m_id;
 };
 

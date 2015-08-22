@@ -17,7 +17,8 @@ class Region {
 public:
 	uuid_t					id;
 	std::string				idc;
-	std::string				address;
+	std::string				msg_url;
+	std::string				snapshot_url;
 };
 
 class RegionRt : public Region {
@@ -37,7 +38,9 @@ public:
 class Service {
 public:
 	uuid_t					id;
-	std::string				address;
+	std::string				url;
+
+	std::shared_ptr<SnapshotItem> toSnapshot();
 };
 
 class ServiceRt : public Service {
@@ -53,12 +56,13 @@ public:
 	{
 	}
 
-	std::shared_ptr<SnapshotItem> toSnapshot();
 };
 
 class Payload {
 public:
 	uuid_t					id;
+
+	std::shared_ptr<SnapshotItem> toSnapshot();
 };
 
 class PayloadRt : public Payload {
@@ -74,7 +78,6 @@ public:
 	{
 	}
 
-	std::shared_ptr<SnapshotItem> toSnapshot();
 };
 
 

@@ -51,7 +51,8 @@ int SnapshotValues::parseValues(zmsg_t* msg) {
  * class SnapshotItem
  ***********************/
 
-SnapshotItem::SnapshotItem(const std::string& id) :
+SnapshotItem::SnapshotItem(const std::string& type,const std::string& id) :
+	m_type(type),
 	m_id(id)
 {
 }
@@ -59,6 +60,7 @@ SnapshotItem::SnapshotItem(const std::string& id) :
 int SnapshotItem::send(zsock_t* sock) {
 	zmsg_t* msg = zmsg_new();
 	zmsg_addstr(msg,"ssit");
+	zmsg_addstr(msg,m_type.c_str());
 	zmsg_addstr(msg,m_id.c_str());
 
 	package(msg);
@@ -80,6 +82,7 @@ std::shared_ptr<SnapshotItem> SnapshotItem::parse(zmsg_t* msg) {
 	assert( msg );
 	std::shared_ptr<SnapshotItem> item;
 	char* magic = nullptr;
+	char* type = nullptr;
 	char* id = nullptr;
 
 	do {
@@ -88,10 +91,16 @@ std::shared_ptr<SnapshotItem> SnapshotItem::parse(zmsg_t* msg) {
 			break;
 		if( 0 != strcmp(magic,"$ssit") )
 			break;
+
+		type = zmsg_popstr(msg);
+		if( nullptr == id )
+			break;
+
 		id = zmsg_popstr(msg);
 		if( nullptr == id )
 			break;
-		item = std::shared_ptr<SnapshotItem>(new SnapshotItem(id));
+
+		item = std::shared_ptr<SnapshotItem>(new SnapshotItem(type,id));
 		if( -1 == item->parseValues(msg) ) {
 			item.reset();
 		}
@@ -99,6 +108,8 @@ std::shared_ptr<SnapshotItem> SnapshotItem::parse(zmsg_t* msg) {
 
 	if( magic )
 		free(magic);
+	if( type )
+		free(type);
 	if( id )
 		free(id);
 	return item;
