@@ -46,7 +46,7 @@ int RIPublisher::pubService(const uuid_t& reg,uint32_t version,const Service& sv
 		if( -1 == zstr_sendm(m_actor,reg.c_str()) )
 			break;
 		char ver[32];
-		snprintf(ver,sizeof(ver),"%i",version);
+		snprintf(ver,sizeof(ver),"%u",version);
 		if( -1 == zstr_sendm(m_actor,ver) )
 			break;
 		if( -1 == zstr_sendm(m_actor,svc.id.c_str()) )
@@ -67,7 +67,7 @@ int RIPublisher::pubRemoveService(const uuid_t& reg,uint32_t version,const uuid_
 		if( -1 == zstr_sendm(m_actor,reg.c_str()) )
 			break;
 		char ver[32];
-		snprintf(ver,sizeof(ver),"%i",version);
+		snprintf(ver,sizeof(ver),"%u",version);
 		if( -1 == zstr_sendm(m_actor,ver) )
 			break;
 		if( -1 == zstr_send(m_actor,svc.c_str()) )
@@ -86,7 +86,7 @@ int RIPublisher::pubPayload(const uuid_t& reg,uint32_t version,const Payload& pl
 		if( -1 == zstr_sendm(m_actor,reg.c_str()) )
 			break;
 		char ver[32];
-		snprintf(ver,sizeof(ver),"%i",version);
+		snprintf(ver,sizeof(ver),"%u",version);
 		if( -1 == zstr_sendm(m_actor,ver) )
 			break;
 		if( -1 == zstr_send(m_actor,pl.id.c_str()) )
@@ -105,7 +105,7 @@ int RIPublisher::pubRemovePayload(const uuid_t& reg,uint32_t version,const uuid_
 		if( -1 == zstr_sendm(m_actor,reg.c_str()) )
 			break;
 		char ver[32];
-		snprintf(ver,sizeof(ver),"%i",version);
+		snprintf(ver,sizeof(ver),"%u",version);
 		if( -1 == zstr_sendm(m_actor,ver) )
 			break;
 		if( -1 == zstr_send(m_actor,pl.c_str()) )
