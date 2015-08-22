@@ -4,7 +4,6 @@
 
 class ISnapshotBuilder {
 public:
-	virtual int buildStart(std::shared_ptr<Snapshot>& snapshot) = 0;
-	virtual int buildFinish(std::shared_ptr<Snapshot>& snapshot) = 0;
+	virtual int build(std::shared_ptr<Snapshot>& snapshot) = 0;
 };
 
