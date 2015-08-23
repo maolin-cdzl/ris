@@ -18,7 +18,6 @@ public:
 
 	void addValue(const std::string& name,const std::string& val);
 
-	int package(zmsg_t* msg);
 
 	inline snapshot_item_value_container_t& container() {
 		return m_values;
@@ -38,6 +37,7 @@ public:
 		return m_values.end();
 	}
 protected:
+	int packageExtends(zmsg_t* msg);
 	int parseValues(zmsg_t* msg);
 protected:
 	snapshot_item_value_container_t		m_values;
@@ -54,7 +54,7 @@ public:
 		return m_id;
 	}
 
-	int send(zsock_t* sock);
+	int package(zmsg_t* msg);
 
 	static bool is(zmsg_t* msg);
 	static std::shared_ptr<SnapshotItem> parse(zmsg_t* msg);
@@ -80,8 +80,8 @@ public:
 	void addItem(const std::shared_ptr<SnapshotItem>& item);
 	std::shared_ptr<SnapshotItem> popItem();
 
-	int send(zsock_t* sock);
-	int sendBorder(zsock_t* sock);
+	int package(zmsg_t* msg);
+	int packageBorder(zmsg_t* msg);
 
 	static bool is(zmsg_t* msg);
 	static bool isBorder(zmsg_t* msg);
@@ -102,8 +102,8 @@ public:
 	void addPartition(const std::shared_ptr<SnapshotPartition>& part);
 	std::shared_ptr<SnapshotPartition> popPartition();
 
-	int send(zsock_t* sock);
-	int sendBorder(zsock_t* sock);
+	int package(zmsg_t* msg);
+	int packageBorder(zmsg_t* msg);
 
 	static bool is(zmsg_t* msg);
 	static bool isBorder(zmsg_t* msg);

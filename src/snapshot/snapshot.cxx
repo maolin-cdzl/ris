@@ -13,7 +13,7 @@ void SnapshotValues::addValue(const std::string& name,const std::string& val) {
 	m_values.push_back(std::make_pair(name,val));
 }
 
-int SnapshotValues::package(zmsg_t* msg) {
+int SnapshotValues::packageExtends(zmsg_t* msg) {
 	assert(msg);
 	for(auto it=m_values.begin(); it != m_values.end(); ++it) {
 		if( -1 == zmsg_addstr(msg,it->first.c_str()) )
@@ -57,15 +57,13 @@ SnapshotItem::SnapshotItem(const std::string& type,const std::string& id) :
 {
 }
 
-int SnapshotItem::send(zsock_t* sock) {
-	zmsg_t* msg = zmsg_new();
+int SnapshotItem::package(zmsg_t* msg) {
+	assert(msg);
 	zmsg_addstr(msg,"ssit");
 	zmsg_addstr(msg,m_type.c_str());
 	zmsg_addstr(msg,m_id.c_str());
 
-	package(msg);
-	
-	return zmsg_send(&msg,sock);
+	return packageExtends(msg);
 }
 
 bool SnapshotItem::is(zmsg_t* msg) {
@@ -141,9 +139,8 @@ std::shared_ptr<SnapshotItem> SnapshotPartition::popItem() {
 	}
 }
 
-int SnapshotPartition::send(zsock_t* sock) {
-	assert(sock);
-	zmsg_t* msg = zmsg_new();
+int SnapshotPartition::package(zmsg_t* msg) {
+	assert(msg);
 
 	zmsg_addstr(msg,"$sspt");
 	zmsg_addstr(msg,m_id.c_str());
@@ -155,14 +152,11 @@ int SnapshotPartition::send(zsock_t* sock) {
 	snprintf(count,sizeof(count),"%u",(uint32_t)m_items.size());
 	zmsg_addstr(msg,count);
 
-	package(msg);
-
-	return zmsg_send(&msg,sock);
+	return packageExtends(msg);
 }
 
-int SnapshotPartition::sendBorder(zsock_t* sock) {
-	assert(sock);
-	zmsg_t* msg = zmsg_new();
+int SnapshotPartition::packageBorder(zmsg_t* msg) {
+	assert(msg);
 
 	zmsg_addstr(msg,"$ssbopt");
 	zmsg_addstr(msg,m_id.c_str());
@@ -170,7 +164,7 @@ int SnapshotPartition::sendBorder(zsock_t* sock) {
 	snprintf(ver,sizeof(ver),"%u",m_version);
 	zmsg_addstr(msg,ver);
 
-	return zmsg_send(&msg,sock);
+	return 0;
 }
 
 bool SnapshotPartition::is(zmsg_t* msg) {
@@ -256,27 +250,21 @@ std::shared_ptr<SnapshotPartition> Snapshot::popPartition() {
 	}
 }
 
-int Snapshot::send(zsock_t* sock) {
-	assert(sock);
-	zmsg_t* msg = zmsg_new();
+int Snapshot::package(zmsg_t* msg) {
+	assert(msg);
 
 	zmsg_addstr(msg,"$ss");
 	char count[32];
 	snprintf(count,sizeof(count),"%u",(uint32_t)m_partitions.size());
 	zmsg_addstr(msg,count);
 
-	package(msg);
-
-	return zmsg_send(&msg,sock);
+	return packageExtends(msg);
 }
 
-int Snapshot::sendBorder(zsock_t* sock) {
-	assert(sock);
-	zmsg_t* msg = zmsg_new();
-
+int Snapshot::packageBorder(zmsg_t* msg) {
+	assert(msg);
 	zmsg_addstr(msg,"$boss");
-
-	return zmsg_send(&msg,sock);
+	return 0;
 }
 
 bool Snapshot::is(zmsg_t* msg) {
