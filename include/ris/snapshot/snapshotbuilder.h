@@ -4,6 +4,7 @@
 
 class ISnapshotBuilder {
 public:
+	virtual void buildError(int err,const std::string& what) = 0;
 	virtual int build(std::shared_ptr<Snapshot>& snapshot) = 0;
 };
 
