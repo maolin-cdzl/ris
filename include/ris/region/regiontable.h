@@ -21,7 +21,11 @@ public:
 	RIRegionTable(const Region& reg);
 	virtual ~RIRegionTable();
 
-	void setObserver(const std::shared_ptr<IRIObserver>& ob);
+	inline const RegionRt& region() const {
+		return m_region;
+	}
+
+	void setObserver(IRIObserver* ob);
 	void unsetObserver();
 
 	uint32_t newService(const Service& svc);
@@ -35,7 +39,7 @@ public:
 	virtual std::shared_ptr<Snapshot> buildSnapshot();
 private:
 	RegionRt						m_region;
-	std::shared_ptr<IRIObserver>	m_observer;
+	IRIObserver*					m_observer;
 
 	service_list_t		m_services;
 	service_index_t		m_services_idx;

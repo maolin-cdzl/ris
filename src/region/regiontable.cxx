@@ -9,12 +9,12 @@ RIRegionTable::RIRegionTable(const Region& reg) :
 RIRegionTable::~RIRegionTable() {
 }
 
-void RIRegionTable::setObserver(const std::shared_ptr<IRIObserver>& ob) {
+void RIRegionTable::setObserver(IRIObserver* ob) {
 	m_observer = ob;
 }
 
 void RIRegionTable::unsetObserver() {
-	m_observer.reset();
+	m_observer = nullptr;
 }
 
 uint32_t RIRegionTable::newService(const Service& svc) {
@@ -25,7 +25,7 @@ uint32_t RIRegionTable::newService(const Service& svc) {
 		m_services_idx.insert( std::make_pair(svc.id,it) );
 
 		if( m_observer != nullptr ) {
-			m_observer->onNewService(m_region.id,m_region.version,svc);
+			m_observer->onNewService(m_region,svc);
 		}
 	}
 	return m_region.version;
@@ -41,7 +41,7 @@ uint32_t RIRegionTable::delService(const uuid_t& svc) {
 		++m_region.version;
 
 		if( m_observer != nullptr ) {
-			m_observer->onDelService(m_region.id,m_region.version,svc);
+			m_observer->onDelService(m_region,svc);
 		}
 	}
 	return m_region.version;
@@ -56,7 +56,7 @@ uint32_t RIRegionTable::newPayload(const Payload& pl) {
 
 
 		if( m_observer != nullptr ) {
-			m_observer->onNewPayload(m_region.id,m_region.version,pl);
+			m_observer->onNewPayload(m_region,pl);
 		}
 	}
 	return m_region.version;
@@ -72,7 +72,7 @@ uint32_t RIRegionTable::delPayload(const uuid_t& pl) {
 		++m_region.version;
 
 		if( m_observer != nullptr ) {
-			m_observer->onDelPayload(m_region.id,m_region.version,pl);
+			m_observer->onDelPayload(m_region,pl);
 		}
 	}
 	return m_region.version;

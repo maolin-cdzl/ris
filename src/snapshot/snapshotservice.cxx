@@ -1,17 +1,34 @@
 #include "ris/snapshot/snapshotservice.h"
 
 
-SnapshotService::SnapshotService(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcExpress,const std::string& workerExpress,size_t capacity) :
-	m_snapshotable(snapshotable),
-	m_svc_express(svcExpress),
-	m_worker_express(workerExpress),
-	m_capacity(capacity),
+SnapshotService::SnapshotService(zloop_t* loop) :
+	m_loop(loop),
+	m_capacity(4),
 	m_sock(nullptr)
 {
 }
 
 
 SnapshotService::~SnapshotService() {
+	stop();
+}
+
+int SnapshotService::start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity) {
+	m_snapshotable = snapshotable;
+	m_svc_address = svcAddress;
+	m_worker_address = workerAddress;
+	m_capacity = capacity;
+
+	return startLoop(m_loop);
+}
+
+int SnapshotService::stop() {
+	if( m_sock ) {
+		stopLoop(m_loop);
+		return 0;
+	} else {
+		return -1;
+	}
 }
 
 int SnapshotService::startLoop(zloop_t* loop) {
@@ -22,7 +39,7 @@ int SnapshotService::startLoop(zloop_t* loop) {
 		}
 
 		m_sock = zsock_new(ZMQ_REP);
-		if( -1 == zsock_bind(m_sock,"%s",m_svc_express.c_str()) ) {
+		if( -1 == zsock_bind(m_sock,"%s",m_svc_address.c_str()) ) {
 			break;
 		}
 
@@ -64,7 +81,7 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 		if( zframe_streq(fr,"$ssreq") ) {
 			if( m_workers.size() >= m_capacity )
 				break;
-			std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_express));
+			std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
 			auto snapshot = m_snapshotable->buildSnapshot();
 			if( 0 == worker->start(snapshot) ) {
 				auto endpoint = worker->endpoint();

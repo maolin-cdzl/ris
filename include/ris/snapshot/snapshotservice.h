@@ -7,14 +7,16 @@
 
 class SnapshotService : public ILoopable {
 public:
-	SnapshotService(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcExpress,const std::string& workerExpress,size_t capacity=4);
+	SnapshotService(zloop_t* loop);
 
 	virtual ~SnapshotService();
 
+	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity=4);
+	int stop();
+private:
 	virtual int startLoop(zloop_t* loop);
 	virtual void stopLoop(zloop_t* loop);
 
-private:
 	static int mainReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 	static int workerReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 
@@ -24,10 +26,11 @@ private:
 
 	std::shared_ptr<SnapshotServiceWorker> findWorker(zsock_t* sock);
 private:
+	zloop_t*						m_loop;
 	std::shared_ptr<ISnapshotable>	m_snapshotable;
-	const std::string				m_svc_express;
-	const std::string				m_worker_express;
-	const size_t					m_capacity;
+	std::string						m_svc_address;
+	std::string						m_worker_address;
+	size_t							m_capacity;
 
 	zsock_t*						m_sock;
 	std::list<std::shared_ptr<SnapshotServiceWorker>>			m_workers;
