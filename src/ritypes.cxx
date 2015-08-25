@@ -12,30 +12,117 @@ ri_time_t ri_time_now() {
 }
 
 
-std::shared_ptr<SnapshotPartition> RegionRt::toSnapshot() {
+std::shared_ptr<SnapshotPartition> RegionRt::toSnapshot() const {
 	std::shared_ptr<SnapshotPartition> part(new SnapshotPartition(id,version));
 	
 	part->addValue("idc",idc);
-	if( ! msg_url.empty() ) {
-		part->addValue("msgurl",msg_url);
+	if( ! msg_address.empty() ) {
+		part->addValue("msgaddr",msg_address);
 	}
-	if( ! snapshot_url.empty() ) {
-		part->addValue("ssurl",snapshot_url);
+	if( ! snapshot_address.empty() ) {
+		part->addValue("ssaddr",snapshot_address);
 	}
 	
 	return std::move(part);
 }
 
-std::shared_ptr<SnapshotItem> Service::toSnapshot() {
+zmsg_t* RegionRt::toPublish() const {
+	char ver[32];
+	zmsg_t* msg = zmsg_new();
+	snprintf(ver,sizeof(ver),"%u",version);
+
+	zmsg_addstr(msg,"#reg");
+	zmsg_addstr(msg,id.c_str());
+	zmsg_addstr(msg,ver);
+	zmsg_addstr(msg,idc.c_str());
+	if( msg_address.empty() ) {
+		zmsg_addstr(msg,"none");
+	} else {
+		zmsg_addstr(msg,msg_address.c_str());
+	}
+	if( snapshot_address.empty() ) {
+		zmsg_addstr(msg,"none");
+	} else {
+		zmsg_addstr(msg,snapshot_address.c_str());
+	}
+
+	return msg;
+}
+
+zmsg_t* RegionRt::toPublishDel(const uuid_t& id) {
+	zmsg_t* msg = zmsg_new();
+	zmsg_addstr(msg,"delreg");
+	zmsg_addstr(msg,id.c_str());
+
+	return msg;
+}
+
+
+std::shared_ptr<SnapshotItem> Service::toSnapshot() const {
 	std::shared_ptr<SnapshotItem> item { new SnapshotItem("svc",id) };
 
-	item->addValue("url",url);
+	item->addValue("addr",address);
 
 	return std::move(item);
 }
 
-std::shared_ptr<SnapshotItem> Payload::toSnapshot() {
+zmsg_t* Service::toPublish(const RegionRt& region) const {
+	char ver[32];
+	zmsg_t* msg = zmsg_new();
+	snprintf(ver,sizeof(ver),"%u",region.version);
+
+	zmsg_addstr(msg,"#svc");
+	zmsg_addstr(msg,region.id.c_str());
+	zmsg_addstr(msg,ver);
+	zmsg_addstr(msg,id.c_str());
+	zmsg_addstr(msg,address.c_str());
+	
+	return msg;
+}
+
+zmsg_t* Service::toPublishDel(const RegionRt& region,const uuid_t& id) {
+	char ver[32];
+	zmsg_t* msg = zmsg_new();
+	snprintf(ver,sizeof(ver),"%u",region.version);
+
+	zmsg_addstr(msg,"delsvc");
+	zmsg_addstr(msg,region.id.c_str());
+	zmsg_addstr(msg,ver);
+	zmsg_addstr(msg,id.c_str());
+
+	return msg;
+}
+
+
+std::shared_ptr<SnapshotItem> Payload::toSnapshot() const {
 	std::shared_ptr<SnapshotItem> item { new SnapshotItem("pld",id) };
 
 	return std::move(item);
 }
+
+zmsg_t* Payload::toPublish(const RegionRt& region) const {
+	char ver[32];
+	zmsg_t* msg = zmsg_new();
+	snprintf(ver,sizeof(ver),"%u",region.version);
+
+	zmsg_addstr(msg,"#pld");
+	zmsg_addstr(msg,region.id.c_str());
+	zmsg_addstr(msg,ver);
+	zmsg_addstr(msg,id.c_str());
+	
+	return msg;
+}
+
+zmsg_t* Payload::toPublishDel(const RegionRt& region,const uuid_t& id) {
+	char ver[32];
+	zmsg_t* msg = zmsg_new();
+	snprintf(ver,sizeof(ver),"%u",region.version);
+
+	zmsg_addstr(msg,"delpld");
+	zmsg_addstr(msg,region.id.c_str());
+	zmsg_addstr(msg,ver);
+	zmsg_addstr(msg,id.c_str());
+
+	return msg;
+}
+

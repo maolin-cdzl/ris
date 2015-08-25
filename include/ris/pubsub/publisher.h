@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <list>
 #include <czmq.h>
 
 #include "ris/ritypes.h"
@@ -8,19 +8,24 @@
 class RIPublisher {
 public:
 	RIPublisher();
-	virtual ~RIPublisher();
+	~RIPublisher();
 
-	int start(const Region& region,const std::vector<std::string>& brokers);
+	int start(const std::list<std::string>& brokers);
 	int shutdown();
 
 
-	int pubService(const uuid_t& reg,uint32_t version,const Service& svc);
-	int pubRemoveService(const uuid_t& reg,uint32_t version,const uuid_t& svc);
-	int pubPayload(const uuid_t& reg,uint32_t version,const Payload& pl);
-	int pubRemovePayload(const uuid_t& reg,uint32_t version,const uuid_t& pl);
+	int pubRegion(const RegionRt& region);
+	int pubRemoveRegion(const uuid_t& reg);
+
+	int pubService(const RegionRt& region,const Service& svc);
+	int pubRemoveService(const RegionRt& region,const uuid_t& svc);
+
+	int pubPayload(const RegionRt& region,const Payload& pl);
+	int pubRemovePayload(const RegionRt& region,const uuid_t& pl);
 	
 private:
-	zactor_t*					m_actor;
+	std::list<std::string>		m_brokers;
+	zsock_t*					m_pub;
 
 private:
 	RIPublisher(const RIPublisher&) = delete;

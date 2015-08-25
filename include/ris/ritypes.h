@@ -17,8 +17,8 @@ class Region {
 public:
 	uuid_t					id;
 	std::string				idc;
-	std::string				msg_url;
-	std::string				snapshot_url;
+	std::string				msg_address;
+	std::string				snapshot_address;
 };
 
 class RegionRt : public Region {
@@ -32,15 +32,20 @@ public:
 	{
 	}
 
-	std::shared_ptr<SnapshotPartition> toSnapshot();
+	std::shared_ptr<SnapshotPartition> toSnapshot() const;
+	zmsg_t* toPublish() const;
+	static zmsg_t* toPublishDel(const uuid_t& id);
 };
 
 class Service {
 public:
 	uuid_t					id;
-	std::string				url;
+	std::string				address;
 
-	std::shared_ptr<SnapshotItem> toSnapshot();
+	std::shared_ptr<SnapshotItem> toSnapshot() const;
+	zmsg_t* toPublish(const RegionRt& region) const;
+
+	static zmsg_t* toPublishDel(const RegionRt& region,const uuid_t& id);
 };
 
 class ServiceRt : public Service {
@@ -62,7 +67,9 @@ class Payload {
 public:
 	uuid_t					id;
 
-	std::shared_ptr<SnapshotItem> toSnapshot();
+	std::shared_ptr<SnapshotItem> toSnapshot() const;
+	zmsg_t* toPublish(const RegionRt& region) const;
+	static zmsg_t* toPublishDel(const RegionRt& region,const uuid_t& id);
 };
 
 class PayloadRt : public Payload {
