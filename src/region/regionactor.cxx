@@ -55,6 +55,7 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 		const libconfig::Setting& region = cfg.lookup("region");
 		regid = region["id"].c_str();
 		idc = region["idc"].c_str();
+		m_region_address = region["localaddress"].c_str();
 		msgaddr = region["msgaddress"].c_str();
 	} catch( const libconfig::SettingNotFoundException& e ) {
 		LOG(FATAL) << "Can not found Region setting: " << e.what();
@@ -105,27 +106,35 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 	return 0;
 }
 
-
-void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
+void RIRegionActor::run(zsock_t* pipe) {
 	int result = -1;
-	RIRegionActor* self = (RIRegionActor*)args;
 	zloop_t* loop = zloop_new();
-	
+	zsock_t* rep = zsock_new(ZMQ_REP);
+
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
-		self->m_table = std::shared_ptr<RIRegionTable>( new RIRegionTable(self->m_region) );
-		self->m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(loop) );
-		self->m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(loop) );
+		m_table = std::shared_ptr<RIRegionTable>( new RIRegionTable(m_region) );
+		m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(loop) );
+		m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(loop) );
 
 		result = -1;
 		do {
-			if( -1 == self->m_pub->start(self->m_table,self->m_brokers) )
+			if( -1 == zsock_bind(rep,"%s",m_region_address.c_str()) ) {
+				LOG(ERROR) << "can not bind Rep on: " << m_region_address;
 				break;
-			if( -1 == self->m_ssvc->start(self->m_table,self->m_region.snapshot_address,self->m_snapshot_worker_address) )
+			}
+			if( -1 == m_pub->start(m_table,m_brokers) )
+				break;
+			if( -1 == m_ssvc->start(m_table,m_region.snapshot_address,m_snapshot_worker_address) )
 				break;
 
-			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,self) ) {
-				LOG(ERROR) << "Register zloop reader error";
+			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,this) ) {
+				LOG(ERROR) << "Register pipe reader error";
+				break;
+			}
+
+			if( -1 == zloop_reader(loop,rep,repReadableAdapter,this) ) {
+				LOG(ERROR) << "Register rep reader error";
 				break;
 			}
 			result = 0;
@@ -138,15 +147,15 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 		} else {
 			LOG(INFO) << "RIRegionActor initialize done";
 			zsock_signal(pipe,0);
-			self->m_running = true;
+			m_running = true;
 		}
 		
 
-		while( self->m_running ) {
+		while( m_running ) {
 			result = zloop_start(loop);
 			if( result == 0 ) {
 				LOG(INFO) << "RIRegionActor interrupted";
-				self->m_running = false;
+				m_running = false;
 				break;
 			}
 		}
@@ -154,13 +163,21 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 	} while(0);
 
 	zloop_reader_end(loop,pipe);
-	self->m_pub.reset();
-	self->m_ssvc.reset();
-	self->m_table.reset();
+	m_pub.reset();
+	m_ssvc.reset();
+	m_table.reset();
 	if( loop ) {
 		zloop_destroy(&loop);
 	}
+	if( rep ) {
+		zsock_destroy(&rep);
+	}
 	LOG(INFO) << "RIRegionActor shutdown";
+}
+
+void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
+	RIRegionActor* self = (RIRegionActor*)args;
+	self->run(pipe);
 }
 
 int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
@@ -168,8 +185,44 @@ int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) 
 	return self->onPipeReadable(reader);
 }
 
+int RIRegionActor::repReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	return self->onRepReadable(reader);
+}
+
 int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	zmsg_t* msg = zmsg_recv(pipe);
+	int result = 0;
+
+	do {
+		if( nullptr == msg ) {
+			LOG(WARNING) << "RIRegionActor recv empty message";
+			break;
+		} else {
+
+		zframe_t* fr = zmsg_first(msg);
+		if( zmsg_size(msg) == 1 && zframe_streq( fr, "$TERM")) {
+			LOG(INFO) << m_region.id << " terminated"; 
+			m_running = false;
+			result = -1;
+		} else {
+			char* str = zframe_strdup(fr);
+			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
+			free(str);
+		}
+		}
+			break;
+
+	} while( 0 );
+
+	if( msg ) {
+		zmsg_destroy(&msg);
+	}
+	return result;
+}
+
+int RIRegionActor::onRepReadable(zsock_t* sock) {
+	zmsg_t* msg = zmsg_recv(sock);
 	char* str = nullptr;
 	int result = 0;
 
@@ -180,15 +233,9 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 		}
 
 		zframe_t* fr = zmsg_first(msg);
-		if( zmsg_size(msg) == 1 ) {
-			if( zframe_streq( fr, "$TERM") ) {
-				LOG(INFO) << m_region.id << " terminated"; 
-				m_running = false;
-				result = -1;
-			} else {
-				str = zframe_strdup(fr);
-				LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
-			}
+		if( zmsg_size(msg) <= 1 ) {
+			str = zframe_strdup(fr);
+			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
 			break;
 		}
 
