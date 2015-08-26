@@ -21,26 +21,32 @@ target_include_directories(snapshot
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_library(region SHARED
+add_library(regionactor STATIC
 	src/zmqhelper.c
 	src/ritypes.cxx
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
-	src/region/regiondll.cxx
 	include/ris/region/publisher.h
 	include/ris/region/regionactor.h
 	include/ris/region/regiontable.h
-	include/ris/region/regiondll.h
 )
 
-target_include_directories(region
+target_include_directories(regionactor
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_compile_definitions(region PRIVATE LIBREGION_BUILDING)
 
-target_link_libraries(region PUBLIC
+
+add_library(regionapi SHARED
+	regionapi/regionapi.h
+	regionapi/regionapi.cxx
+)
+
+target_compile_definitions(regionapi PRIVATE REGIONAPI_BUILDING)
+
+target_link_libraries(regionapi PUBLIC
+	regionactor
 	snapshot
 	czmq
 	zmq

@@ -1,5 +1,5 @@
 #include <unistd.h>
-#include "ris/region/regiondll.h"
+#include "../regionapi/regionapi.h"
 
 int main(int argc,char* argv[]) {
 	int result = region_start(CONFI_FILE,1);

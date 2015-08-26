@@ -25,13 +25,17 @@ public:
 		return m_region;
 	}
 
+	inline uint32_t version() const {
+		return m_region.version;
+	}
+
 	void setObserver(IRIObserver* ob);
 	void unsetObserver();
 
-	uint32_t newService(const Service& svc);
-	uint32_t delService(const uuid_t& svc);
-	uint32_t newPayload(const Payload& pl);
-	uint32_t delPayload(const uuid_t& pl);
+	int newService(const Service& svc);
+	int delService(const uuid_t& svc);
+	int newPayload(const Payload& pl);
+	int delPayload(const uuid_t& pl);
 
 	service_list_t update_timeouted_service(ri_time_t timeout);
 	payload_list_t update_timeouted_payload(ri_time_t timeout);

@@ -222,21 +222,19 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 int RIRegionActor::onRepReadable(zsock_t* sock) {
-	char* str = nullptr;
-	int result = 0;
-
 	zmsg_t* msg = zmsg_recv(sock);
 	if( nullptr == msg ) {
 		LOG(WARNING) << "RIRegionActor recv empty message";
 		return 0;
 	}
+	char* str = nullptr;
+	int result = 0;
+
 	do {
 		zframe_t* fr = zmsg_first(msg);
 		if( zmsg_size(msg) <= 1 ) {
 			str = zframe_strdup(fr);
 			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
-
-			zstr_send(sock,"bad");
 			break;
 		}
 
@@ -245,15 +243,11 @@ int RIRegionActor::onRepReadable(zsock_t* sock) {
 			str = zframe_strdup(fr);
 			Payload pl;
 			pl.id = str;
-			m_table->newPayload(pl);
-
-			zstr_send(sock,"ok");
+			result = m_table->newPayload(pl);
 		} else if( zframe_streq(fr,"#delpld") ) {
 			fr = zmsg_next(msg);
 			str = zframe_strdup(fr);
-			m_table->delPayload(str);
-
-			zstr_send(sock,"ok");
+			result = m_table->delPayload(str);
 		} else if( zframe_streq(fr,"#svc") ) {
 			Service svc;
 			fr = zmsg_next(msg);
@@ -268,35 +262,34 @@ int RIRegionActor::onRepReadable(zsock_t* sock) {
 				svc.address = str;
 				free(str);
 				str = nullptr;
-				m_table->newService(svc);
-
-				zstr_send(sock,"ok");
+				result = m_table->newService(svc);
 			} else {
 				LOG(WARNING) << "RIRegionActor recv bad message for new service";
-				zstr_send(sock,"bad");
 			}
 
 		} else if( zframe_streq(fr,"#delsvc") ) {
 			fr = zmsg_next(msg);
 			str = zframe_strdup(fr);
-			m_table->delService(str);
-
-			zstr_send(sock,"ok");
+			result = m_table->delService(str);
 		} else {
 			str = zframe_strdup(fr);
 			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
-
-			zstr_send(sock,"bad");
 		}
+
 	} while( 0 );
 
+	if( result == 0 ) {
+		zstr_send(sock,"ok");
+	} else {
+		zstr_send(sock,"bad");
+	}
 	if( str ) {
 		free(str);
 	}
 	if( msg ) {
 		zmsg_destroy(&msg);
 	}
-	return result;
+	return 0;
 }
 
 

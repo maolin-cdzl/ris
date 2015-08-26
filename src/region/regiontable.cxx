@@ -17,7 +17,7 @@ void RIRegionTable::unsetObserver() {
 	m_observer = nullptr;
 }
 
-uint32_t RIRegionTable::newService(const Service& svc) {
+int RIRegionTable::newService(const Service& svc) {
 	if( m_services_idx.end() == m_services_idx.find(svc.id) ) {
 		++m_region.version;
 		ServiceRt svcrt(svc,ri_time_now(),m_region.version);
@@ -27,11 +27,13 @@ uint32_t RIRegionTable::newService(const Service& svc) {
 		if( m_observer != nullptr ) {
 			m_observer->onNewService(m_region,svc);
 		}
+		return 0;
+	} else {
+		return -1;
 	}
-	return m_region.version;
 }
 
-uint32_t RIRegionTable::delService(const uuid_t& svc) {
+int RIRegionTable::delService(const uuid_t& svc) {
 	auto it = m_services_idx.find(svc);
 	if( it != m_services_idx.end() ) {
 		auto itl = it->second;
@@ -43,11 +45,13 @@ uint32_t RIRegionTable::delService(const uuid_t& svc) {
 		if( m_observer != nullptr ) {
 			m_observer->onDelService(m_region,svc);
 		}
+		return 0;
+	} else {
+		return -1;
 	}
-	return m_region.version;
 }
 
-uint32_t RIRegionTable::newPayload(const Payload& pl) {
+int RIRegionTable::newPayload(const Payload& pl) {
 	if( m_payloads_idx.end() == m_payloads_idx.find(pl.id) ) {
 		++m_region.version;
 		PayloadRt plrt(pl,ri_time_now(),m_region.version);
@@ -58,11 +62,13 @@ uint32_t RIRegionTable::newPayload(const Payload& pl) {
 		if( m_observer != nullptr ) {
 			m_observer->onNewPayload(m_region,pl);
 		}
+		return 0;
+	} else {
+		return -1;
 	}
-	return m_region.version;
 }
 
-uint32_t RIRegionTable::delPayload(const uuid_t& pl) {
+int RIRegionTable::delPayload(const uuid_t& pl) {
 	auto it = m_payloads_idx.find(pl);
 	if( it != m_payloads_idx.end() ) {
 		auto itl = it->second;
@@ -74,8 +80,10 @@ uint32_t RIRegionTable::delPayload(const uuid_t& pl) {
 		if( m_observer != nullptr ) {
 			m_observer->onDelPayload(m_region,pl);
 		}
+		return 0;
+	} else {
+		return -1;
 	}
-	return m_region.version;
 }
 
 RIRegionTable::service_list_t RIRegionTable::update_timeouted_service(ri_time_t timeout) {
