@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "ris/region/publisher.h"
 
 
@@ -18,6 +19,8 @@ RIPublisher::~RIPublisher() {
 int RIPublisher::start(const std::shared_ptr<RIRegionTable>& table,const std::list<std::string>& brokers) {
 	int result = -1;
 	assert( ! brokers.empty() );
+
+	LOG(INFO) << "RIPublisher initialize...";
 	do {
 		if( nullptr != m_pub )
 			break;
@@ -29,12 +32,11 @@ int RIPublisher::start(const std::shared_ptr<RIRegionTable>& table,const std::li
 		m_table = table;
 		m_table->setObserver(this);
 
-		pubRegion( m_table->region() );
-
 		result = startLoop(m_loop);
 	} while( 0 );
 
 	if( result == -1 ) {
+		LOG(ERROR) << "RIPublisher initialize error!";
 		stopLoop(m_loop);
 		if( m_pub ) {
 			zsock_destroy(&m_pub);
@@ -44,6 +46,9 @@ int RIPublisher::start(const std::shared_ptr<RIRegionTable>& table,const std::li
 			m_table = nullptr;
 		}
 		m_brokers.clear();
+	} else {
+		LOG(INFO) << "RIPublisher initialize done";
+		pubRegion( m_table->region() );
 	}
 
 	return result;
@@ -68,6 +73,7 @@ int RIPublisher::stop() {
 	if( m_pub ) {
 		zsock_destroy(&m_pub);
 	}
+	LOG(INFO) << "RIPublisher shutdown";
 	return 0;
 }
 
@@ -118,11 +124,13 @@ void RIPublisher::onDelPayload(const RegionRt& reg,const uuid_t& pl) {
 }
 
 int RIPublisher::pubRegion(const RegionRt& region) {
+	LOG(INFO) << "pub region: " << region.id;
 	zmsg_t* msg = region.toPublish();
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubRemoveRegion(const uuid_t& reg) {
+	LOG(INFO) << "pub region offline: " << reg;
 	zmsg_t* msg = RegionRt::toPublishDel(reg);
 	if( -1 != zmsg_send(&msg,m_pub) ) {
 		zsock_flush(m_pub);
@@ -133,21 +141,25 @@ int RIPublisher::pubRemoveRegion(const uuid_t& reg) {
 }
 
 int RIPublisher::pubService(const RegionRt& region,const Service& svc) {
+	LOG(INFO) << "pub service: " << svc.id << " version: " << region.version;
 	zmsg_t* msg = svc.toPublish(region);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubRemoveService(const RegionRt& region,const uuid_t& svc) {
+	LOG(INFO) << "pub service offline: " << svc  << " version: " << region.version;
 	zmsg_t* msg = Service::toPublishDel(region,svc);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubPayload(const RegionRt& region,const Payload& pl) {
+	LOG(INFO) << "pub payload: " << pl.id << " version: " << region.version;
 	zmsg_t* msg = pl.toPublish(region);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubRemovePayload(const RegionRt& region,const uuid_t& pl) {
+	LOG(INFO) << "pub payload offline: " << pl << " version: " << region.version;
 	zmsg_t* msg = Payload::toPublishDel(region,pl);
 	return zmsg_send(&msg,m_pub);
 }
@@ -163,12 +175,13 @@ zsock_t* RIPublisher::connectBrokers() {
 
 		for( auto it = m_brokers.begin(); it != m_brokers.end(); ++it) {
 			if( -1 == zsock_connect(sock,"%s",it->c_str()) ) {
+				LOG(ERROR) << "RIPublisher can not connect: " << *it;
 				zsock_destroy(&sock);
 				break;
 			}
+			LOG(INFO) << "pub connect broker: " << *it;
 		}
 	} while( 0 );
-
 
 	return sock;
 }

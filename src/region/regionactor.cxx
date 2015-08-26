@@ -112,6 +112,7 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 	zloop_t* loop = zloop_new();
 	
 	do {
+		LOG(INFO) << "RIRegionActor initialize...";
 		self->m_table = std::shared_ptr<RIRegionTable>( new RIRegionTable(self->m_region) );
 		self->m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(loop) );
 		self->m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(loop) );
@@ -123,22 +124,28 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 			if( -1 == self->m_ssvc->start(self->m_table,self->m_region.snapshot_address,self->m_snapshot_worker_address) )
 				break;
 
-			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,self) )
+			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,self) ) {
+				LOG(ERROR) << "Register zloop reader error";
 				break;
+			}
 			result = 0;
 		} while( 0 );
 
 		if( -1 == result ) {
+			LOG(ERROR) << "RIRegionActor initialize error!";
 			zsock_signal(pipe,-1);
 			break;
+		} else {
+			LOG(INFO) << "RIRegionActor initialize done";
+			zsock_signal(pipe,0);
+			self->m_running = true;
 		}
-
-		zsock_signal(pipe,0);
 		
 
 		while( self->m_running ) {
 			result = zloop_start(loop);
 			if( result == 0 ) {
+				LOG(INFO) << "RIRegionActor interrupted";
 				self->m_running = false;
 				break;
 			}
@@ -153,6 +160,7 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 	if( loop ) {
 		zloop_destroy(&loop);
 	}
+	LOG(INFO) << "RIRegionActor shutdown";
 }
 
 int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
@@ -163,6 +171,7 @@ int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) 
 int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	zmsg_t* msg = zmsg_recv(pipe);
 	char* str = nullptr;
+	int result = 0;
 
 	do {
 		if( nullptr == msg ) {
@@ -175,6 +184,7 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 			if( zframe_streq( fr, "$TERM") ) {
 				LOG(INFO) << m_region.id << " terminated"; 
 				m_running = false;
+				result = -1;
 			} else {
 				str = zframe_strdup(fr);
 				LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
@@ -227,7 +237,7 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	if( msg ) {
 		zmsg_destroy(&msg);
 	}
-	return 0;
+	return result;
 }
 
 
