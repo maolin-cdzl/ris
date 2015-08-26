@@ -3,8 +3,7 @@
 #include "ris/snapshot/snapshot.h"
 
 
-SnapshotClient::SnapshotClient() :
-	m_sock(nullptr)
+SnapshotClient::SnapshotClient()
 {
 }
 

@@ -51,9 +51,9 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 
 	try {
 		const libconfig::Setting& region = cfg.lookup("region");
-		regid = region["id"];
-		idc = region["idc"];
-		msgaddr = region["msgaddress"];
+		regid = region["id"].c_str();
+		idc = region["idc"].c_str();
+		msgaddr = region["msgaddress"].c_str();
 	} catch( const libconfig::SettingNotFoundException& e ) {
 		LOG(FATAL) << "Can not found Region setting: " << e.what();
 		return -1;
@@ -65,8 +65,8 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 	try {
 		if( cfg.exists("region.snapshot") ) {
 			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
-			ssaddr = snapshot["address"];
-			workeraddr = snapshot["workeraddress"];
+			ssaddr = snapshot["address"].c_str();
+			workeraddr = snapshot["workeraddress"].c_str();
 		}
 	} catch( const libconfig::SettingNotFoundException& e ) {
 		LOG(FATAL) << "Can not found Snapshot setting: " << e.what();

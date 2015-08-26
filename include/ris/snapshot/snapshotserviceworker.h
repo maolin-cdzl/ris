@@ -16,7 +16,7 @@ public:
 		return m_endpoint;
 	}
 
-	int start(std::shared_ptr<Snapshot>& snapshot);
+	int start(const std::shared_ptr<Snapshot>& snapshot);
 	int stop();
 private:
 	static void actorAdapterFn(zsock_t* pipe,void* arg);
@@ -26,8 +26,8 @@ private:
 	int onPipeReadable(zsock_t* pipe);
 	int onPipelineWritable(zsock_t* sock);
 
-	int transSnapshot(std::shared_ptr<Snapshot>& snapshot);
-	int transSnapshotPartition(std::shared_ptr<SnapshotPartition>& part);
+	int transSnapshot(const std::shared_ptr<Snapshot>& snapshot);
+	int transSnapshotPartition(const std::shared_ptr<SnapshotPartition>& part);
 
 private:
 	const std::string						m_express;						

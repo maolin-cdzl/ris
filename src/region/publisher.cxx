@@ -1,4 +1,4 @@
-#include "ris/pubsub/publisher.h"
+#include "ris/region/publisher.h"
 
 
 RIPublisher::RIPublisher(zloop_t* loop) :

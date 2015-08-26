@@ -5,7 +5,7 @@
 #include <string>
 #include <list>
 
-#include "ris/pubsub/publisher.h"
+#include "ris/region/publisher.h"
 #include "ris/region/regiontable.h"
 #include "ris/snapshot/snapshotservice.h"
 

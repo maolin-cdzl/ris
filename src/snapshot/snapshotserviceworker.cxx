@@ -127,7 +127,7 @@ int SnapshotServiceWorker::onPipelineWritable(zsock_t* sock) {
 	}
 }
 
-int SnapshotServiceWorker::transSnapshotPartition(std::shared_ptr<SnapshotPartition>& part) {
+int SnapshotServiceWorker::transSnapshotPartition(const std::shared_ptr<SnapshotPartition>& part) {
 	zmsg_t* msg = nullptr;
 
 	//  part header
@@ -166,7 +166,7 @@ int SnapshotServiceWorker::transSnapshotPartition(std::shared_ptr<SnapshotPartit
 	return -1;
 }
 
-int SnapshotServiceWorker::transSnapshot(std::shared_ptr<Snapshot>& snapshot) {
+int SnapshotServiceWorker::transSnapshot(const std::shared_ptr<Snapshot>& snapshot) {
 	if( snapshot == nullptr || ! m_msgs.empty() ) {
 		return -1;
 	}
