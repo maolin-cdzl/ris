@@ -2,8 +2,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 project(ris)
 
-set(CMAKE_C_FLAGS "-std=c99 -fPIC -fvisibility=hidden ${CMAKE_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-std=c99 -fPIC -g -fvisibility=hidden ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -g -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
 
 add_library(snapshot STATIC
 	src/snapshot/snapshot.cxx
@@ -48,4 +48,4 @@ target_link_libraries(region PUBLIC
 	glog
 )
 
-
+add_subdirectory(test)

@@ -20,7 +20,7 @@ extern "C" {
 #endif
 
 
-LIBREGION_EXPORT int region_actor_start(const char* confile,int standalone);
+LIBREGION_EXPORT int region_start(const char* confile,int standalone);
 
 LIBREGION_EXPORT int region_stop();
 

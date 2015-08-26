@@ -15,6 +15,8 @@ RIRegionActor::~RIRegionActor() {
 int RIRegionActor::start(const std::string& conf) {
 	if( m_actor )
 		return -1;
+
+	LOG(INFO) << "RIRegionActor start from config: " << conf;
 	if( -1 == loadConfig(conf) )
 		return -1;
 

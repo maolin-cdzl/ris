@@ -6,7 +6,7 @@
 int g_standalone = 0;
 static RIRegionActor* g_actor = nullptr;
 
-extern "C" LIBREGION_EXPORT int region_actor_start(const char* confile,int standalone) {
+extern "C" LIBREGION_EXPORT int region_start(const char* confile,int standalone) {
 	if( confile == nullptr )
 		return -1;
 
