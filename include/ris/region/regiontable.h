@@ -29,6 +29,14 @@ public:
 		return m_region.version;
 	}
 
+	inline size_t service_size() const {
+		return m_services.size();
+	}
+
+	inline size_t payload_size() const {
+		return m_payloads.size();
+	}
+
 	void setObserver(IRIObserver* ob);
 	void unsetObserver();
 
@@ -37,8 +45,8 @@ public:
 	int newPayload(const Payload& pl);
 	int delPayload(const uuid_t& pl);
 
-	service_list_t update_timeouted_service(ri_time_t timeout);
-	payload_list_t update_timeouted_payload(ri_time_t timeout);
+	service_list_t update_timeouted_service(ri_time_t timeout,size_t maxcount);
+	payload_list_t update_timeouted_payload(ri_time_t timeout,size_t maxcount);
 
 	virtual std::shared_ptr<Snapshot> buildSnapshot();
 private:

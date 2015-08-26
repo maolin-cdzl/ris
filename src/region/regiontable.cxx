@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "ris/region/regiontable.h"
 
 RIRegionTable::RIRegionTable(const Region& reg) :
@@ -24,6 +25,7 @@ int RIRegionTable::newService(const Service& svc) {
 		auto it = m_services.insert(m_services.end(),svcrt);
 		m_services_idx.insert( std::make_pair(svc.id,it) );
 
+		LOG(INFO) << "new service: " << svc.id << "|" << svc.address << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onNewService(m_region,svc);
 		}
@@ -42,6 +44,7 @@ int RIRegionTable::delService(const uuid_t& svc) {
 
 		++m_region.version;
 
+		LOG(INFO) << "remove service: " << svc  << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onDelService(m_region,svc);
 		}
@@ -58,7 +61,7 @@ int RIRegionTable::newPayload(const Payload& pl) {
 		auto it = m_payloads.insert(m_payloads.end(),plrt);
 		m_payloads_idx.insert( std::make_pair(pl.id,it) );
 
-
+		LOG(INFO) << "new payload: " << pl.id << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onNewPayload(m_region,pl);
 		}
@@ -77,6 +80,7 @@ int RIRegionTable::delPayload(const uuid_t& pl) {
 
 		++m_region.version;
 
+		LOG(INFO) << "remove payload: " << pl << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onDelPayload(m_region,pl);
 		}
@@ -86,13 +90,15 @@ int RIRegionTable::delPayload(const uuid_t& pl) {
 	}
 }
 
-RIRegionTable::service_list_t RIRegionTable::update_timeouted_service(ri_time_t timeout) {
+RIRegionTable::service_list_t RIRegionTable::update_timeouted_service(ri_time_t timeout,size_t maxcount) {
 	service_list_t svcs;
 	const ri_time_t now = ri_time_now();
 	const ri_time_t expired = now - timeout;
+	size_t count = 0;
 
-	for( auto it = m_services.begin(); it != m_services.end(); ) {
+	for( auto it = m_services.begin(); count < maxcount && it != m_services.end(); ++count ) {
 		if( it->timeval <= expired ) {
+			it->timeval = now;
 			auto itv = it;
 			++it;
 
@@ -106,13 +112,15 @@ RIRegionTable::service_list_t RIRegionTable::update_timeouted_service(ri_time_t 
 	return std::move(svcs);
 }
 
-RIRegionTable::payload_list_t RIRegionTable::update_timeouted_payload(ri_time_t timeout) {
+RIRegionTable::payload_list_t RIRegionTable::update_timeouted_payload(ri_time_t timeout,size_t maxcount) {
 	payload_list_t pls;
 	const ri_time_t now = ri_time_now();
 	const ri_time_t expired = now - timeout;
+	size_t count = 0;
 
-	for( auto it = m_payloads.begin(); it != m_payloads.end(); ) {
+	for( auto it = m_payloads.begin(); count < maxcount && it != m_payloads.end(); ++count) {
 		if( it->timeval <= expired ) {
+			it->timeval = now;
 			auto itv = it;
 			++it;
 

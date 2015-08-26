@@ -6,8 +6,15 @@ int main(int argc,char* argv[]) {
 	if( -1 == result )
 		return -1;
 
-	sleep(5);
+	void* s = region_open();
 
+	char id[32];
+	for(size_t i=1; i <= 1000; ++i) {
+		sprintf(id,"%lu",i);
+		region_new_payload(s,id);
+	}
+	region_close(s);
+	sleep(600);
 	region_stop();
 	return 0;
 }

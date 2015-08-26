@@ -141,25 +141,21 @@ int RIPublisher::pubRemoveRegion(const uuid_t& reg) {
 }
 
 int RIPublisher::pubService(const RegionRt& region,const Service& svc) {
-	LOG(INFO) << "pub service: " << svc.id << " version: " << region.version;
 	zmsg_t* msg = svc.toPublish(region);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubRemoveService(const RegionRt& region,const uuid_t& svc) {
-	LOG(INFO) << "pub service offline: " << svc  << " version: " << region.version;
 	zmsg_t* msg = Service::toPublishDel(region,svc);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubPayload(const RegionRt& region,const Payload& pl) {
-	LOG(INFO) << "pub payload: " << pl.id << " version: " << region.version;
 	zmsg_t* msg = pl.toPublish(region);
 	return zmsg_send(&msg,m_pub);
 }
 
 int RIPublisher::pubRemovePayload(const RegionRt& region,const uuid_t& pl) {
-	LOG(INFO) << "pub payload offline: " << pl << " version: " << region.version;
 	zmsg_t* msg = Payload::toPublishDel(region,pl);
 	return zmsg_send(&msg,m_pub);
 }
@@ -200,14 +196,22 @@ int RIPublisher::onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg) {
 int RIPublisher::pubRepeated() {
 	auto region = m_table->region();
 
-	auto svclist = m_table->update_timeouted_service(60000);
+	auto svclist = m_table->update_timeouted_service(60000,1000);
 	for(auto it=svclist.begin(); it != svclist.end(); ++it) {
 		pubService(region,*it);
 	}
 
-	auto pldlist = m_table->update_timeouted_payload(60000);
+	size_t maxcount = m_table->payload_size() / 10;
+	if( maxcount < 100 )
+		maxcount = 100;
+
+	auto pldlist = m_table->update_timeouted_payload(60000,maxcount);
 	for(auto it=pldlist.begin(); it != pldlist.end(); ++it) {
 		pubPayload(region,*it);
+	}
+
+	if( ! svclist.empty() || ! pldlist.empty() ) {
+		LOG(INFO) << "Repeated pub " << svclist.size() << " service and " << pldlist.size() << " payload, version: " << region.version;
 	}
 
 	return 0;
