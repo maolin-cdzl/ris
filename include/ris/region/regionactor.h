@@ -19,9 +19,10 @@ public:
 
 private:
 	int loadConfig(const std::string& conf);
+	int onPipeReadable(zsock_t* pipe);
 
 	static void actorRunner(zsock_t* pipe,void* args);
-	static int onPipeReadable(zloop_t* loop,zsock_t* reader,void* arg);
+	static int pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 private:
 	bool						m_running;
 	zactor_t*					m_actor;

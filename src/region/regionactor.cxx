@@ -1,4 +1,6 @@
 #include "ris/region/regionactor.h"
+#include <glog/logging.h>
+#include <libconfig.h++>
 
 
 RIRegionActor::RIRegionActor() :
@@ -32,6 +34,73 @@ int RIRegionActor::stop() {
 }
 
 int RIRegionActor::loadConfig(const std::string& conf) {
+	libconfig::Config cfg;
+
+	std::string regid,idc,msgaddr,ssaddr,workeraddr;
+	std::list<std::string> brokers;
+
+	try {
+		cfg.readFile(conf.c_str());
+	} catch( const libconfig::FileIOException& e ) {
+		LOG(FATAL) << "RIRegionActor can not open config file: " << conf;
+		return -1;
+	} catch( const libconfig::ParseException& e ) {
+		LOG(FATAL) << "Parse error at " << e.getFile() << ":" << e.getLine() << " - " << e.getError();
+		return -1;
+	}
+
+	try {
+		const libconfig::Setting& region = cfg.lookup("region");
+		regid = region["id"];
+		idc = region["idc"];
+		msgaddr = region["msgaddress"];
+	} catch( const libconfig::SettingNotFoundException& e ) {
+		LOG(FATAL) << "Can not found Region setting: " << e.what();
+		return -1;
+	} catch( const libconfig::SettingTypeException& e ) {
+		LOG(FATAL) << "Error when parse Region: " << e.what();
+		return -1;
+	}
+
+	try {
+		if( cfg.exists("region.snapshot") ) {
+			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
+			ssaddr = snapshot["address"];
+			workeraddr = snapshot["workeraddress"];
+		}
+	} catch( const libconfig::SettingNotFoundException& e ) {
+		LOG(FATAL) << "Can not found Snapshot setting: " << e.what();
+		return -1;
+	} catch( const libconfig::SettingTypeException& e ) {
+		LOG(FATAL) << "Error when parse Snapshot: " << e.what();
+		return -1;
+	}
+
+	try {
+		const libconfig::Setting& broker = cfg.lookup("ribrokers");
+		const int count = broker.getLength();
+		for(int i=0; i < count; ++i) {
+			std::string b = broker[i];
+			brokers.push_back(b);
+		}
+	} catch( const libconfig::SettingNotFoundException& e ) {
+		LOG(FATAL) << "Can not found brokers setting: " << e.what();
+		return -1;
+	} catch( const libconfig::SettingTypeException& e ) {
+		LOG(FATAL) << "Error when parse Snapshot: " << e.what();
+		return -1;
+	}
+
+	m_region.id = regid;
+	m_region.idc = idc;
+	m_region.msg_address = msgaddr;
+	m_brokers = brokers;
+	if( ! ssaddr.empty() ) {
+		m_region.snapshot_address = ssaddr;
+		m_snapshot_worker_address = workeraddr;
+	}
+
+	return 0;
 }
 
 
@@ -52,7 +121,7 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 			if( -1 == self->m_ssvc->start(self->m_table,self->m_region.snapshot_address,self->m_snapshot_worker_address) )
 				break;
 
-			if( -1 == zloop_reader(loop,pipe,onPipeReadable,self) )
+			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,self) )
 				break;
 			result = 0;
 		} while( 0 );
@@ -84,6 +153,79 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 	}
 }
 
-int RIRegionActor::onPipeReadable(zloop_t* loop,zsock_t* reader,void* arg) {
+int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	return self->onPipeReadable(reader);
 }
+
+int RIRegionActor::onPipeReadable(zsock_t* pipe) {
+	zmsg_t* msg = zmsg_recv(pipe);
+	char* str = nullptr;
+
+	do {
+		if( nullptr == msg ) {
+			LOG(WARNING) << "RIRegionActor recv empty message";
+			break;
+		}
+
+		zframe_t* fr = zmsg_first(msg);
+		if( zmsg_size(msg) == 1 ) {
+			if( zframe_streq( fr, "$TERM") ) {
+				LOG(INFO) << m_region.id << " terminated"; 
+				m_running = false;
+			} else {
+				str = zframe_strdup(fr);
+				LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
+			}
+			break;
+		}
+
+		if( zframe_streq(fr,"#pld") ) {
+			fr = zmsg_next(msg);
+			str = zframe_strdup(fr);
+			Payload pl;
+			pl.id = str;
+			m_table->newPayload(pl);
+		} else if( zframe_streq(fr,"#delpld") ) {
+			fr = zmsg_next(msg);
+			str = zframe_strdup(fr);
+			m_table->delPayload(str);
+		} else if( zframe_streq(fr,"#svc") ) {
+			Service svc;
+			fr = zmsg_next(msg);
+			str = zframe_strdup(fr);
+			svc.id = str;
+			free(str);
+			str = nullptr;
+
+			fr = zmsg_next(msg);
+			if( fr ) {
+				str = zframe_strdup(fr);
+				svc.address = str;
+				free(str);
+				str = nullptr;
+				m_table->newService(svc);
+			} else {
+				LOG(WARNING) << "RIRegionActor recv bad message for new service";
+			}
+
+		} else if( zframe_streq(fr,"#delsvc") ) {
+			fr = zmsg_next(msg);
+			str = zframe_strdup(fr);
+			m_table->delService(str);
+		} else {
+			str = zframe_strdup(fr);
+			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
+		}
+	} while( 0 );
+
+	if( str ) {
+		free(str);
+	}
+	if( msg ) {
+		zmsg_destroy(&msg);
+	}
+	return 0;
+}
+
 
