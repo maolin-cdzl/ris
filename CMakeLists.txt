@@ -49,4 +49,8 @@ target_link_libraries(region PUBLIC
 	gflags
 )
 
+
+add_executable(ribroker src/broker/ribroker.cxx)
+target_link_libraries(ribroker PRIVATE zmq gflags)
+
 add_subdirectory(test)
