@@ -17,6 +17,13 @@ public:
 	int start(const std::string& conf);
 	int stop();
 
+	inline const Region& region() const {
+		return m_region;
+	}
+
+	inline const std::string& address() const {
+		return m_region_address;
+	}
 private:
 	int loadConfig(const std::string& conf);
 	void run(zsock_t* pipe);
