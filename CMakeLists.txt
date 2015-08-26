@@ -46,6 +46,7 @@ target_link_libraries(region PUBLIC
 	zmq
 	config++
 	glog
+	gflags
 )
 
 add_subdirectory(test)
