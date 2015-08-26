@@ -27,9 +27,11 @@ add_library(region SHARED
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
+	src/region/regiondll.cxx
 	include/ris/region/publisher.h
 	include/ris/region/regionactor.h
 	include/ris/region/regiontable.h
+	include/ris/region/regiondll.h
 )
 
 target_include_directories(region
