@@ -2,8 +2,8 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 project(ris)
 
-set(CMAKE_C_FLAGS "-std=c99 -fPIC ${CMAKE_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-std=c99 -fPIC -fvisibility=hidden ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
 
 add_library(snapshot STATIC
 	src/snapshot/snapshot.cxx
@@ -38,6 +38,8 @@ target_include_directories(region
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+target_compile_definitions(region PRIVATE LIBREGION_BUILDING)
+
 target_link_libraries(region PUBLIC
 	snapshot
 	czmq
@@ -45,3 +47,5 @@ target_link_libraries(region PUBLIC
 	config++
 	glog
 )
+
+
