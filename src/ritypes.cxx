@@ -57,6 +57,54 @@ zmsg_t* RegionRt::toPublishDel(const uuid_t& id) {
 	return msg;
 }
 
+bool RegionRt::isPublish(zmsg_t* msg) {
+	assert(msg);
+	if( zmsg_size(msg) >= 6 ) {
+		return zframe_streq( zmsg_first(msg),"#reg" );
+	} else {
+		return false;
+	}
+}
+
+std::shared_ptr<RegionRt> RegionRt::fromPublish(zmsg_t* msg) {
+	std::shared_ptr<RegionRt> reg(new RegionRt);
+	char* str = nullptr;
+	assert( isPublish(msg) );
+
+	zframe_t* fr = zmsg_first(msg);
+	fr = zmsg_next(msg);
+	str = zframe_strdup(fr);
+	reg->id = str;
+	free(str);
+
+	fr = zmsg_next(msg);
+	str = zframe_strdup(fr);
+	reg->version = (uint32_t) strtoll(str,nullptr,10);
+	free(str);
+
+	fr = zmsg_next(msg);
+	str = zframe_strdup(fr);
+	reg->idc = str;
+	free(str);
+
+	fr = zmsg_next(msg);
+	str = zframe_strdup(fr);
+	reg->idc = str;
+	free(str);
+
+	return reg;
+}
+
+bool RegionRt::isPublishDel(zmsg_t* msg) {
+}
+
+int RegionRt::fromPublishDel(zmsg_t* msg,std::string& reg) {
+}
+
+/**
+ * class Service 
+ */
+
 
 std::shared_ptr<SnapshotItem> Service::toSnapshot() const {
 	std::shared_ptr<SnapshotItem> item { new SnapshotItem("svc",id) };

@@ -8,6 +8,7 @@ RISubscriber::RISubscriber(zloop_t* loop) :
 }
 
 RISubscriber::~RISubscriber() {
+	stop();
 }
 
 static int connectBrokers(zsock_t* sock,const std::list<std::string>& brokers);
@@ -43,6 +44,12 @@ int RISubscriber::start(const std::list<std::string>& brokers,const std::shared_
 }
 
 int RISubscriber::stop() {
+	if( m_sub == nullptr )
+		return -1;
+
+	zloop_reader_end(m_loop,m_sub);
+	zsock_destroy(&m_sub);
+	return 0;
 }
 
 int RISubscriber::onSubReadable() {

@@ -35,6 +35,12 @@ public:
 	std::shared_ptr<SnapshotPartition> toSnapshot() const;
 	zmsg_t* toPublish() const;
 	static zmsg_t* toPublishDel(const uuid_t& id);
+
+	static bool isPublish(zmsg_t* msg);
+	static std::shared_ptr<RegionRt> fromPublish(zmsg_t* msg);
+
+	static bool isPublishDel(zmsg_t* msg);
+	static int fromPublishDel(zmsg_t* msg,std::string& reg);
 };
 
 class Service {
