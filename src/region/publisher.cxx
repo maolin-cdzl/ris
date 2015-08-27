@@ -1,6 +1,13 @@
 #include <glog/logging.h>
 #include "ris/region/publisher.h"
 
+static const long RI_PUB_REPEAT_SECOND			= 60;
+static const long RI_PUB_REPEAT_MS				= RI_PUB_REPEAT_SECOND * 1000;
+static const long RI_PUB_REPEAT_TIMER			= 20;
+static const long RI_PUB_REPEAT_LOOP_TIMER_COUNT	= RI_PUB_REPEAT_MS / RI_PUB_REPEAT_TIMER;
+
+static const long RI_PUB_REGION_SECOND			= 5;
+static const long RI_PUB_REGION_MS				= RI_PUB_REGION_SECOND * 1000;
 
 RIPublisher::RIPublisher(zloop_t* loop) :
 	m_loop(loop),
@@ -78,10 +85,10 @@ int RIPublisher::stop() {
 }
 
 int RIPublisher::startLoop(zloop_t* loop) {
-	m_tid_reg = zloop_timer(loop,5000,0,onRegionPubTimer,this);
+	m_tid_reg = zloop_timer(loop,RI_PUB_REGION_MS,0,onRegionPubTimer,this);
 	if( -1 == m_tid_reg )
 		return -1;
-	m_tid_repeat = zloop_timer(loop,20,0,onRepeatPubTimer,this);
+	m_tid_repeat = zloop_timer(loop,RI_PUB_REPEAT_TIMER,0,onRepeatPubTimer,this);
 	if( -1 == m_tid_repeat ) {
 		zloop_timer_end(m_loop,m_tid_reg);
 		m_tid_reg = -1;
@@ -196,16 +203,14 @@ int RIPublisher::onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg) {
 int RIPublisher::pubRepeated() {
 	auto region = m_table->region();
 
-	auto svclist = m_table->update_timeouted_service(60000,1000);
+	auto svclist = m_table->update_timeouted_service(RI_PUB_REPEAT_MS,100);
 	for(auto it=svclist.begin(); it != svclist.end(); ++it) {
 		pubService(region,*it);
 	}
 
-	size_t maxcount = m_table->payload_size() / 10;
-	if( maxcount < 100 )
-		maxcount = 100;
+	const size_t maxcount = (m_table->payload_size() / RI_PUB_REPEAT_LOOP_TIMER_COUNT) + 100;
 
-	auto pldlist = m_table->update_timeouted_payload(60000,maxcount);
+	auto pldlist = m_table->update_timeouted_payload(RI_PUB_REPEAT_MS,maxcount);
 	for(auto it=pldlist.begin(); it != pldlist.end(); ++it) {
 		pubPayload(region,*it);
 	}
