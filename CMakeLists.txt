@@ -1,6 +1,8 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 project(ris)
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include(CMakeProtobuf)
 
 
@@ -79,5 +81,7 @@ target_link_libraries(regionapi PUBLIC
 
 add_executable(ribroker src/broker/ribroker.cxx)
 target_link_libraries(ribroker PRIVATE zmq gflags)
+
+add_subdirectory(zmqx)
 
 add_subdirectory(test)
