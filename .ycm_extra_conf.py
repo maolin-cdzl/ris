@@ -49,7 +49,9 @@ flags = [
 '-I',
 './include',
 '-I',
-'-I../zmqx/include',
+'./zmqx/include',
+'-I',
+'buildir/include',
 ]
 
 
