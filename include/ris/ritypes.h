@@ -22,6 +22,10 @@ public:
 	std::string				snapshot_address;
 	ri_time_t				timeval;
 
+	inline Region() :
+		version(0),timeval(0)
+	{
+	}
 public:
 	std::shared_ptr<region::pub::Region> toPublish() const ;
 	void toPublishBase(region::pub::RegionBase* region) const;
@@ -39,7 +43,10 @@ public:
 	std::string				address;
 	ri_time_t				timeval;
 
-	Service() = default;
+	inline Service() :
+		timeval(0)
+	{
+	}
 	inline Service(const std::string& n,const std::string& a,ri_time_t tv=0) :
 		name(n),address(a),timeval(tv)
 	{
@@ -56,7 +63,10 @@ public:
 	uuid_t					id;
 	ri_time_t				timeval;
 
-	Payload() = default;
+	inline Payload() :
+		timeval(0)
+	{
+	}
 	inline Payload(const uuid_t& _id,ri_time_t tv=0) :
 		id(_id),timeval(tv)
 	{

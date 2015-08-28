@@ -1,3 +1,4 @@
+#include <iostream>
 #include "ris/region/regionactor.h"
 #include <glog/logging.h>
 #include <libconfig.h++>
