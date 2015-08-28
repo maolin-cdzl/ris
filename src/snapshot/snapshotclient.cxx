@@ -1,5 +1,4 @@
 #include "ris/snapshot/snapshotclient.h"
-#include "ris/snapshot/snapshot.h"
 #include "ris/snapshot.pb.h"
 #include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
@@ -19,6 +18,7 @@ int SnapshotClient::requestSnapshot(const std::shared_ptr<ISnapshotBuilder>& bui
 	int result = -1;
 	zsock_t* sock = nullptr;
 	zmsg_t* msg = nullptr;
+	m_builder = builder;
 
 	do {
 		sock = zsock_new_req(address.c_str());
@@ -62,7 +62,7 @@ int SnapshotClient::requestSnapshot(const std::shared_ptr<ISnapshotBuilder>& bui
 	if( sock ) {
 		zsock_destroy(&sock);
 	}
-
+	m_builder.reset();
 	return result;
 }
 

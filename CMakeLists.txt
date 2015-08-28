@@ -17,13 +17,11 @@ set(SNAPSHOT_PROTO
 build_pb_cxx_sources(${CMAKE_CURRENT_BINARY_DIR}/include/ris ${CMAKE_CURRENT_BINARY_DIR}/src SNAPSHOT_PROTO_SRCS SNAPSHOT_PROTO_HDRS ${SNAPSHOT_PROTO})
 
 add_library(snapshot STATIC
-	src/snapshot/snapshot.cxx
 	src/snapshot/snapshotservice.cxx
 	src/snapshot/snapshotserviceworker.cxx
 	src/snapshot/snapshotclient.cxx
 	${SNAPSHOT_PROTO_SRCS}
 	include/ris/snapshot/snapshotable.h
-	include/ris/snapshot/snapshot.h
 	include/ris/snapshot/snapshotservice.h
 	include/ris/snapshot/snapshotserviceworker.h
 	include/ris/snapshot/snapshotbuilder.h
