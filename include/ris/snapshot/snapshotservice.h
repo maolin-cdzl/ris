@@ -1,21 +1,20 @@
 #pragma once
 
-#include "ris/loopable.h"
 #include "ris/snapshot/snapshotable.h"
 #include "ris/snapshot/snapshotserviceworker.h"
 
 
-class SnapshotService : public ILoopable {
+class SnapshotService {
 public:
 	SnapshotService(zloop_t* loop);
 
-	virtual ~SnapshotService();
+	~SnapshotService();
 
 	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity=4);
 	int stop();
 private:
-	virtual int startLoop(zloop_t* loop);
-	virtual void stopLoop(zloop_t* loop);
+	int startLoop(zloop_t* loop);
+	void stopLoop(zloop_t* loop);
 
 	static int mainReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 	static int workerReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg);

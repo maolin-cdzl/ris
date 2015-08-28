@@ -8,10 +8,10 @@
 #include "ris/riobserver.h"
 #include "ris/region/regiontable.h"
 
-class RIPublisher : public ILoopable, public IRIObserver {
+class RIPublisher : public IRIObserver {
 public:
 	RIPublisher(zloop_t* loop);
-	~RIPublisher();
+	virtual ~RIPublisher();
 
 	int start(const std::shared_ptr<RIRegionTable>& table, const std::list<std::string>& brokers);
 	int stop();
@@ -26,8 +26,8 @@ public:
 	int pubPayload(const RegionRt& region,const Payload& pl);
 	int pubRemovePayload(const RegionRt& region,const uuid_t& pl);
 private:
-	virtual int startLoop(zloop_t* loop);
-	virtual void stopLoop(zloop_t* loop);
+	int startLoop(zloop_t* loop);
+	void stopLoop(zloop_t* loop);
 
 	virtual void onNewRegion(const Region& reg);
 	virtual void onDelRegion(const uuid_t& reg);

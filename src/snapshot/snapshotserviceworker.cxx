@@ -1,4 +1,4 @@
-#include "ris/ritypes.h"
+
 #include "ris/snapshot/snapshotserviceworker.h"
 
 SnapshotServiceWorker::SnapshotServiceWorker(const std::string& express) :

@@ -34,6 +34,7 @@ add_library(regionactor STATIC
 
 target_include_directories(regionactor
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 
@@ -43,11 +44,16 @@ add_library(regionapi SHARED
 	regionapi/regionapi.cxx
 )
 
+target_include_directories(regionapi
+	PRIVATE $<TARGET_PROPERTY:regionactor,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
 target_compile_definitions(regionapi PRIVATE REGIONAPI_BUILDING)
 
 target_link_libraries(regionapi PUBLIC
 	regionactor
 	snapshot
+	zmqx
 	czmq
 	zmq
 	config++

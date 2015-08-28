@@ -3,15 +3,13 @@
 #include <string>
 #include <czmq.h>
 
+#include "zmqx/zhelper.h"
 #include "ris/snapshot/snapshotable.h"
 
 typedef std::string			uuid_t;
 typedef uint64_t			ri_time_t;		// msec
 
-ri_time_t ri_time_now();
-
-
-
+#define ri_time_now			time_now
 
 class Region {
 public:
