@@ -5,7 +5,7 @@
 
 class SnapshotServiceWorker {
 public:
-	SnapshotServiceWorker(const std::string& express);
+	SnapshotServiceWorker(const std::string& address);
 	~SnapshotServiceWorker();
 
 	inline zactor_t* actor() const {
@@ -27,7 +27,7 @@ private:
 	int onPipelineWritable(zsock_t* sock);
 
 private:
-	const std::string						m_express;						
+	const std::string						m_address;						
 	zactor_t*								m_actor;
 	std::string								m_endpoint;
 

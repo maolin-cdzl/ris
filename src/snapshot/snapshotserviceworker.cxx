@@ -1,8 +1,8 @@
 #include "ris/snapshot/snapshotserviceworker.h"
 #include "zmqx/zprotobuf++.h"
 
-SnapshotServiceWorker::SnapshotServiceWorker(const std::string& express) :
-	m_express(express),
+SnapshotServiceWorker::SnapshotServiceWorker(const std::string& address) :
+	m_address(address),
 	m_actor(nullptr)
 {
 }
@@ -21,10 +21,14 @@ int SnapshotServiceWorker::start(const snapshot_package_t& snapshot) {
 
 	m_snapshot = snapshot;
 	m_actor = zactor_new(actorAdapterFn,this);
-	if( m_actor ) {
-		return 0;
-	} else {
+	if( nullptr == m_actor ) {
 		return -1;
+	}
+	if( 0 != zsock_wait(m_actor) ) {
+		zactor_destroy(&m_actor);
+		return -1;
+	} else {
+		return 0;
 	}
 }
 
@@ -42,8 +46,9 @@ void SnapshotServiceWorker::actorAdapterFn(zsock_t* pipe,void* arg) {
 
 void SnapshotServiceWorker::run(zsock_t* pipe) {
 	zsock_t* sock = createPipelineSock();
+	zsock_signal(pipe,0);
 	if( nullptr == sock ) {
-		zsock_signal(pipe,-1);
+		zsock_signal(pipe,1);
 		return;
 	} else {
 		zsock_signal(pipe,0);
@@ -88,7 +93,7 @@ zsock_t* SnapshotServiceWorker::createPipelineSock() {
 	
 	do {
 		sock = zsock_new(ZMQ_PUSH);
-		if( -1 == zsock_bind(sock,"%s",m_express.c_str()) ) {
+		if( -1 == zsock_bind(sock,"%s",m_address.c_str()) ) {
 			break;
 		}
 		m_endpoint = zsock_endpoint(sock);

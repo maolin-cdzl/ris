@@ -31,7 +31,12 @@ int RIRegionActor::start(const std::string& conf) {
 	m_actor = zactor_new(actorRunner,this);
 	if( nullptr == m_actor )
 		return -1;
-	return 0;
+	if( 0 != zsock_wait(m_actor) ) {
+		zactor_destroy(&m_actor);
+		return -1;
+	} else {
+		return 0;
+	}
 }
 
 int RIRegionActor::stop() {
@@ -135,9 +140,10 @@ void RIRegionActor::run(zsock_t* pipe) {
 			result = 0;
 		} while( 0 );
 
+		zsock_signal(pipe,0);
 		if( -1 == result ) {
 			LOG(ERROR) << "RIRegionActor initialize error!";
-			zsock_signal(pipe,-1);
+			zsock_signal(pipe,1);
 			break;
 		} else {
 			LOG(INFO) << "RIRegionActor initialize done";
