@@ -41,9 +41,9 @@ public:
 	void unsetObserver();
 
 	int addService(const std::string& name,const std::string& address);
-	int delService(const std::string& svc);
-	int newPayload(const uuid_t& pl);
-	int delPayload(const uuid_t& pl);
+	int rmService(const std::string& svc);
+	int addPayload(const uuid_t& pl);
+	int rmPayload(const uuid_t& pl);
 
 	service_list_t update_timeouted_service(ri_time_t timeout,size_t maxcount);
 	payload_list_t update_timeouted_payload(ri_time_t timeout,size_t maxcount);

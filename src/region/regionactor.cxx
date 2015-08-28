@@ -232,12 +232,35 @@ void RIRegionActor::addService(const std::shared_ptr<region::api::AddService>& m
 }
 
 void RIRegionActor::rmService(const std::shared_ptr<region::api::RmService>& msg) {
+	region::api::Result result;
+	if( 0 == m_table->rmService(msg->name()) ) {
+		result.set_result(0);
+	} else {
+		result.set_result(-1);
+	}
+	zpb_send(m_rep,result);
 }
 
 void RIRegionActor::addPayload(const std::shared_ptr<region::api::AddPayload>& msg) {
+	region::api::Result result;
+	if( 0 == m_table->addPayload(msg->uuid()) ) {
+		result.set_result(0);
+	} else {
+		result.set_result(-1);
+	}
+
+	zpb_send(m_rep,result);
 }
 
 void RIRegionActor::rmPayload(const std::shared_ptr<region::api::RmPayload>& msg) {
+	region::api::Result result;
+	if( 0 == m_table->rmPayload(msg->uuid()) ) {
+		result.set_result(0);
+	} else {
+		result.set_result(-1);
+	}
+
+	zpb_send(m_rep,result);
 }
 
 void RIRegionActor::defaultOptAdapter(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
