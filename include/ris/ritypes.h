@@ -55,13 +55,11 @@ public:
 class ServiceRt : public Service {
 public:
 	ri_time_t				timeval;
-	uint32_t				version;
 
 	ServiceRt() = default;
-	inline ServiceRt(const Service& ref,ri_time_t tv=0,uint32_t ver=0) :
+	inline ServiceRt(const Service& ref,ri_time_t tv=0) :
 		Service(ref),
-		timeval(tv),
-		version(ver)
+		timeval(tv)
 	{
 	}
 
@@ -79,13 +77,11 @@ public:
 class PayloadRt : public Payload {
 public:
 	ri_time_t				timeval;
-	uint32_t				version;
 
 	PayloadRt() = default;
-	PayloadRt(const Payload& ref,ri_time_t tv = 0,uint32_t ver = 0) :
+	PayloadRt(const Payload& ref,ri_time_t tv = 0) :
 		Payload(ref),
-		timeval(tv),
-		version(ver)
+		timeval(tv)
 	{
 	}
 

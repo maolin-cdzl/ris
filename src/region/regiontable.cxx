@@ -21,7 +21,7 @@ void RIRegionTable::unsetObserver() {
 int RIRegionTable::newService(const Service& svc) {
 	if( m_services_idx.end() == m_services_idx.find(svc.id) ) {
 		++m_region.version;
-		ServiceRt svcrt(svc,ri_time_now(),m_region.version);
+		ServiceRt svcrt(svc,ri_time_now());
 		auto it = m_services.insert(m_services.end(),svcrt);
 		m_services_idx.insert( std::make_pair(svc.id,it) );
 
@@ -57,7 +57,7 @@ int RIRegionTable::delService(const uuid_t& svc) {
 int RIRegionTable::newPayload(const Payload& pl) {
 	if( m_payloads_idx.end() == m_payloads_idx.find(pl.id) ) {
 		++m_region.version;
-		PayloadRt plrt(pl,ri_time_now(),m_region.version);
+		PayloadRt plrt(pl,ri_time_now());
 		auto it = m_payloads.insert(m_payloads.end(),plrt);
 		m_payloads_idx.insert( std::make_pair(pl.id,it) );
 
