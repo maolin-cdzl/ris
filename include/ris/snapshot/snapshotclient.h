@@ -1,7 +1,7 @@
 #pragma once
 
+#include <czmq.h>
 #include "ris/snapshot/snapshotbuilder.h"
-
 
 class SnapshotClient {
 public:
@@ -12,14 +12,13 @@ public:
 	int requestSnapshot(const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
 
 private:
-	int pullSnapshotHeader(zsock_t* sock);
-	int pullPartitionOrFinish(zsock_t* sock);
-	int pullPartitionBody(zsock_t* sock);
+	int pullSnapshotBegin(zsock_t* sock);
+	int pullRegionOrFinish(zsock_t* sock);
+	int pullRegionBody(zsock_t* sock);
 	int pullSnapshot(zsock_t* sock);
 private:
 	std::shared_ptr<ISnapshotBuilder>		m_builder;
-	std::shared_ptr<Snapshot>				m_snapshot;
-	std::shared_ptr<SnapshotPartition>		m_part;
+	uuid_t									m_last_region;
 };
 
 

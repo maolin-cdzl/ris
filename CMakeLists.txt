@@ -66,7 +66,18 @@ target_include_directories(regionactor
 	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
 )
 
+target_link_libraries(regionactor PUBLIC
+	snapshot
+	zmqx
+	czmq
+	zmq
+	config++
+	glog
+	gflags
+)
 
+
+# regionapi
 
 add_library(regionapi SHARED
 	regionapi/regionapi.h
@@ -79,15 +90,8 @@ target_include_directories(regionapi
 
 target_compile_definitions(regionapi PRIVATE REGIONAPI_BUILDING)
 
-target_link_libraries(regionapi PUBLIC
+target_link_libraries(regionapi LINK_PUBLIC
 	regionactor
-	snapshot
-	zmqx
-	czmq
-	zmq
-	config++
-	glog
-	gflags
 )
 
 

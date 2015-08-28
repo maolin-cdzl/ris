@@ -1,5 +1,5 @@
-
 #include "ris/snapshot/snapshotserviceworker.h"
+#include "zmqx/zprotobuf++.h"
 
 SnapshotServiceWorker::SnapshotServiceWorker(const std::string& express) :
 	m_express(express),
@@ -12,13 +12,14 @@ SnapshotServiceWorker::~SnapshotServiceWorker() {
 }
 
 
-int SnapshotServiceWorker::start(const std::shared_ptr<Snapshot>& snapshot) {
+int SnapshotServiceWorker::start(const snapshot_package_t& snapshot) {
 	if( m_actor != nullptr )
 		return -1;
 
-	if( transSnapshot(snapshot) == -1 )
+	if( snapshot.empty() )
 		return -1;
 
+	m_snapshot = snapshot;
 	m_actor = zactor_new(actorAdapterFn,this);
 	if( m_actor ) {
 		return 0;
@@ -116,105 +117,15 @@ int SnapshotServiceWorker::onPipeReadable(zsock_t* pipe) {
 }
 
 int SnapshotServiceWorker::onPipelineWritable(zsock_t* sock) {
-	if( m_msgs.empty() ) {
+	if( m_snapshot.empty() ) {
 		zsock_flush(sock);
 		zstr_send(m_actor,"ok");
 		return -1;
 	} else {
-		zmsg_t* msg = m_msgs.front();
-		m_msgs.pop_front();
-		return zmsg_send(&msg,sock);
+		auto p = m_snapshot.front();
+		m_snapshot.pop_front();
+		return zpb_send(sock,*p);
 	}
-}
-
-int SnapshotServiceWorker::transSnapshotPartition(const std::shared_ptr<SnapshotPartition>& part) {
-	zmsg_t* msg = nullptr;
-
-	//  part header
-	msg = zmsg_new();
-	if( part->package(msg) == -1 ) {
-		zmsg_destroy(&msg);
-		return -1;
-	}
-	m_msgs.push_back(msg);
-
-	bool good = false;
-	do {
-		auto it = part->popItem();
-		if( it == nullptr ) {
-			good = true;
-			break;
-		}
-
-		msg = zmsg_new();
-		if( it->package(msg) == -1 ) {
-			zmsg_destroy(&msg);
-			break;
-		}
-		m_msgs.push_back(msg);
-	} while(true);
-
-	if( good ) {
-		//  part border 
-		msg = zmsg_new();
-		if( part->packageBorder(msg) == -1 ) {
-			zmsg_destroy(&msg);
-			return -1;
-		}
-		m_msgs.push_back(msg);
-	}
-	return -1;
-}
-
-int SnapshotServiceWorker::transSnapshot(const std::shared_ptr<Snapshot>& snapshot) {
-	if( snapshot == nullptr || ! m_msgs.empty() ) {
-		return -1;
-	}
-	zmsg_t* msg = nullptr;
-	
-	do {
-		// snapshot header
-		msg = zmsg_new();
-		if( snapshot->package(msg) == -1 )
-			break;
-		m_msgs.push_back(msg);
-		msg = nullptr;
-
-		bool good = false;
-		while(1) {
-			auto part = snapshot->popPartition();
-			if( part == nullptr ) {
-				good = true;
-				break;
-			}
-			
-			if( -1 == transSnapshotPartition(part) )
-				break;
-		}
-
-		if( ! good )
-			break;
-
-		// snapshot border
-		msg = zmsg_new();
-		if( snapshot->packageBorder(msg) == -1 )
-			break;
-		m_msgs.push_back(msg);
-		msg = nullptr;
-
-		return 0;
-	} while(0);
-
-	if( msg ) {
-		zmsg_destroy(&msg);
-	}
-
-	while( ! m_msgs.empty() ) {
-		auto msg = m_msgs.front();
-		m_msgs.pop_front();
-		zmsg_destroy(&msg);
-	}
-	return -1;
 }
 
 

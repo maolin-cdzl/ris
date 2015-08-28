@@ -6,6 +6,7 @@
 #include "zmqx/zhelper.h"
 #include "ris/snapshot/snapshotable.h"
 #include "ris/regionpub.pb.h"
+#include "ris/snapshot.pb.h"
 
 typedef std::string			uuid_t;
 typedef uint64_t			ri_time_t;		// msec
@@ -26,10 +27,9 @@ public:
 	void toPublishBase(region::pub::RegionBase* region) const;
 	static std::shared_ptr<region::pub::RmRegion> toPublishRm(const uuid_t& uuid);
 
-	std::shared_ptr<SnapshotPartition> toSnapshot() const;
+	std::shared_ptr<snapshot::RegionBegin> toSnapshotBegin() const;
+	std::shared_ptr<snapshot::RegionEnd> toSnapshotEnd() const;
 
-	static std::shared_ptr<Region> fromPublish(zmsg_t* msg);
-	static int fromPublishDel(zmsg_t* msg,std::string& reg);
 };
 
 
@@ -48,7 +48,7 @@ public:
 	std::shared_ptr<region::pub::Service> toPublish(const Region& region) const;
 	static std::shared_ptr<region::pub::RmService> toPublishRm(const Region& region,const std::string& name);
 
-	std::shared_ptr<SnapshotItem> toSnapshot() const;
+	std::shared_ptr<snapshot::Service> toSnapshot() const;
 };
 
 class Payload {
@@ -66,7 +66,7 @@ public:
 	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const Region& region,const uuid_t& id);
 
 
-	std::shared_ptr<SnapshotItem> toSnapshot() const;
+	std::shared_ptr<snapshot::Payload> toSnapshot() const;
 };
 
 

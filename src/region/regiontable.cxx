@@ -134,22 +134,23 @@ RIRegionTable::payload_list_t RIRegionTable::update_timeouted_payload(ri_time_t 
 	return std::move(pls);
 }
 
-std::shared_ptr<Snapshot> RIRegionTable::buildSnapshot() {
-	std::shared_ptr<Snapshot> ss(new Snapshot());
-	std::shared_ptr<SnapshotPartition> sp(m_region.toSnapshot());
+snapshot_package_t RIRegionTable::buildSnapshot() {
+	snapshot_package_t package;
+	package.push_back(std::shared_ptr<snapshot::SnapshotBegin>(new snapshot::SnapshotBegin()));
+
+	package.push_back(m_region.toSnapshotBegin());
 	
 	for(auto it=m_services.begin(); it != m_services.end(); ++it) {
-		auto v = it->toSnapshot();
-		sp->addItem(v);
+		package.push_back(it->toSnapshot());
 	}
 
 	for(auto it=m_payloads.begin(); it != m_payloads.end(); ++it) {
-		auto v = it->toSnapshot();
-		sp->addItem(v);
+		package.push_back(it->toSnapshot());
 	}
 
-	ss->addPartition(sp);
-	return std::move(ss);
+	package.push_back(m_region.toSnapshotEnd());
+	package.push_back(std::shared_ptr<snapshot::SnapshotEnd>(new snapshot::SnapshotEnd()));
+	return std::move(package);
 }
 
 

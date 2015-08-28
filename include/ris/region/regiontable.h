@@ -48,7 +48,7 @@ public:
 	service_list_t update_timeouted_service(ri_time_t timeout,size_t maxcount);
 	payload_list_t update_timeouted_payload(ri_time_t timeout,size_t maxcount);
 
-	virtual std::shared_ptr<Snapshot> buildSnapshot();
+	virtual snapshot_package_t buildSnapshot();
 private:
 	Region							m_region;
 	IRIObserver*					m_observer;

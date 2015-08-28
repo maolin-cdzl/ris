@@ -1,7 +1,7 @@
 #pragma once
 
 #include <czmq.h>
-#include "ris/snapshot/snapshot.h"
+#include "ris/snapshot/snapshotable.h"
 
 class SnapshotServiceWorker {
 public:
@@ -16,7 +16,7 @@ public:
 		return m_endpoint;
 	}
 
-	int start(const std::shared_ptr<Snapshot>& snapshot);
+	int start(const snapshot_package_t& snapshot);
 	int stop();
 private:
 	static void actorAdapterFn(zsock_t* pipe,void* arg);
@@ -26,13 +26,11 @@ private:
 	int onPipeReadable(zsock_t* pipe);
 	int onPipelineWritable(zsock_t* sock);
 
-	int transSnapshot(const std::shared_ptr<Snapshot>& snapshot);
-	int transSnapshotPartition(const std::shared_ptr<SnapshotPartition>& part);
-
 private:
 	const std::string						m_express;						
 	zactor_t*								m_actor;
 	std::string								m_endpoint;
-	std::list<zmsg_t*>						m_msgs;
+
+	snapshot_package_t						m_snapshot;
 };
 

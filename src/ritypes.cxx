@@ -1,7 +1,7 @@
 #include "ris/ritypes.h"
 
 /**
- * class RegionRt
+ * class Region
  */
 
 std::shared_ptr<region::pub::Region> Region::toPublish() const {
@@ -35,19 +35,28 @@ std::shared_ptr<region::pub::RmRegion> Region::toPublishRm(const uuid_t& uuid) {
 	return msg;
 }
 
-std::shared_ptr<SnapshotPartition> Region::toSnapshot() const {
-	std::shared_ptr<SnapshotPartition> part(new SnapshotPartition(id,version));
-	
-	part->addValue("idc",idc);
+std::shared_ptr<snapshot::RegionBegin> Region::toSnapshotBegin() const {
+	std::shared_ptr<snapshot::RegionBegin> msg(new snapshot::RegionBegin());
+	msg->set_uuid(id);
+	msg->set_version(version);
+	if( ! idc.empty() ) {
+		msg->set_idc(idc);
+	}
 	if( ! msg_address.empty() ) {
-		part->addValue("msgaddr",msg_address);
+		msg->set_msg_address(msg_address);
 	}
 	if( ! snapshot_address.empty() ) {
-		part->addValue("ssaddr",snapshot_address);
+		msg->set_snapshot_address(snapshot_address);
 	}
-	
-	return std::move(part);
+	return msg;
 }
+
+std::shared_ptr<snapshot::RegionEnd> Region::toSnapshotEnd() const {
+	std::shared_ptr<snapshot::RegionEnd> msg(new snapshot::RegionEnd());
+	msg->set_uuid(id);
+	return msg;
+}
+
 
 
 /**
@@ -55,12 +64,12 @@ std::shared_ptr<SnapshotPartition> Region::toSnapshot() const {
  */
 
 
-std::shared_ptr<SnapshotItem> Service::toSnapshot() const {
-	std::shared_ptr<SnapshotItem> item { new SnapshotItem("svc",name) };
+std::shared_ptr<snapshot::Service> Service::toSnapshot() const {
+	std::shared_ptr<snapshot::Service> msg{ new snapshot::Service() };
+	msg->set_name(name);
+	msg->set_address(address);
 
-	item->addValue("addr",address);
-
-	return std::move(item);
+	return msg;
 }
 
 std::shared_ptr<region::pub::Service> Service::toPublish(const Region& region) const {
@@ -108,10 +117,10 @@ std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const Region& regio
 }
 
 
-std::shared_ptr<SnapshotItem> Payload::toSnapshot() const {
-	std::shared_ptr<SnapshotItem> item { new SnapshotItem("pld",id) };
-
-	return std::move(item);
+std::shared_ptr<snapshot::Payload> Payload::toSnapshot() const {
+	std::shared_ptr<snapshot::Payload> msg{ new snapshot::Payload() };
+	msg->set_uuid(id);
+	return msg;
 }
 
 

@@ -1,8 +1,12 @@
 #pragma once
 
-#include "ris/snapshot/snapshot.h"
+#include <list>
+#include <memory>
+#include <google/protobuf/message.h>
+
+typedef std::list<std::shared_ptr<google::protobuf::Message>>	snapshot_package_t;
 
 class ISnapshotable {
 public:
-	virtual std::shared_ptr<Snapshot> buildSnapshot() = 0;
+	virtual snapshot_package_t buildSnapshot() = 0;
 };
