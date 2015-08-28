@@ -34,9 +34,9 @@ REGIONAPI_EXPORT int region_new_payload(void* s,const char* uuid);
 
 REGIONAPI_EXPORT int region_rm_payload(void* s,const char* uuid);
 
-REGIONAPI_EXPORT int region_new_service(void* s,const char* uuid,const char* address);
+REGIONAPI_EXPORT int region_new_service(void* s,const char* name,const char* address);
 
-REGIONAPI_EXPORT int region_rm_service(void* s,const char* uuid);
+REGIONAPI_EXPORT int region_rm_service(void* s,const char* name);
 
 #ifdef __cplusplus
 }

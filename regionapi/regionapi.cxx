@@ -3,6 +3,9 @@
 #include <czmq.h>
 #include <glog/logging.h>
 
+#include "ris/regionapi.pb.h"
+#include "zmqx/zprotobuf++.h"
+
 int g_standalone = 0;
 static RIRegionActor* g_actor = nullptr;
 
@@ -79,93 +82,61 @@ extern "C" REGIONAPI_EXPORT int region_new_payload(void* s,const char* uuid) {
 	assert(s);
 	assert(uuid);
 
-	int result = -1;
-	zsock_t* req = (zsock_t*) s;
-	char* str = nullptr;
-	do {
-		zstr_sendm(req,"#pld");
-		zstr_send(req,uuid);
-
-		str = zstr_recv(req);
-		if( 0 == strcmp(str,"ok") )
-			result = 0;
-	} while(0);
-
-	if( str ) {
-		free(str);
+	region::api::AddPayload msg;
+	msg.set_uuid(uuid);
+	if( 0 == zpb_send(s,msg) ) {
+		region::api::Result result;
+		if( 0 == zpb_recv(result,s) ) {
+			return result.result();
+		}
 	}
-
-	return result;
+	return -1;
 }
 
 extern "C" REGIONAPI_EXPORT int region_rm_payload(void* s,const char* uuid) {
 	assert(s);
 	assert(uuid);
 
-	int result = -1;
-	zsock_t* req = (zsock_t*) s;
-	char* str = nullptr;
-	do {
-		zstr_sendm(req,"#delpld");
-		zstr_send(req,uuid);
-
-		str = zstr_recv(req);
-		if( 0 == strcmp(str,"ok") )
-			result = 0;
-	} while(0);
-
-	if( str ) {
-		free(str);
+	region::api::RmPayload msg;
+	msg.set_uuid(uuid);
+	if( 0 == zpb_send(s,msg) ) {
+		region::api::Result result;
+		if( 0 == zpb_recv(result,s) ) {
+			return result.result();
+		}
 	}
-
-	return result;
+	return -1;
 }
 
-extern "C" REGIONAPI_EXPORT int region_new_service(void* s,const char* uuid,const char* address) {
+extern "C" REGIONAPI_EXPORT int region_new_service(void* s,const char* name,const char* address) {
 	assert(s);
-	assert(uuid);
+	assert(name);
 	assert(address);
 
-	int result = -1;
-	zsock_t* req = (zsock_t*) s;
-	char* str = nullptr;
-	do {
-		zstr_sendm(req,"#svc");
-		zstr_sendm(req,uuid);
-		zstr_send(req,address);
-
-		str = zstr_recv(req);
-		if( 0 == strcmp(str,"ok") )
-			result = 0;
-	} while(0);
-
-	if( str ) {
-		free(str);
+	region::api::AddService msg;
+	msg.set_name(name);
+	msg.set_address(address);
+	if( 0 == zpb_send(s,msg) ) {
+		region::api::Result result;
+		if( 0 == zpb_recv(result,s) ) {
+			return result.result();
+		}
 	}
-
-	return result;
+	return -1;
 }
 
-extern "C" REGIONAPI_EXPORT int region_rm_service(void* s,const char* uuid) {
+extern "C" REGIONAPI_EXPORT int region_rm_service(void* s,const char* name) {
 	assert(s);
-	assert(uuid);
+	assert(name);
 
-	int result = -1;
-	zsock_t* req = (zsock_t*) s;
-	char* str = nullptr;
-	do {
-		zstr_sendm(req,"#delsvc");
-		zstr_send(req,uuid);
-
-		str = zstr_recv(req);
-		if( 0 == strcmp(str,"ok") )
-			result = 0;
-	} while(0);
-
-	if( str ) {
-		free(str);
+	region::api::RmService msg;
+	msg.set_name(name);
+	if( 0 == zpb_send(s,msg) ) {
+		region::api::Result result;
+		if( 0 == zpb_recv(result,s) ) {
+			return result.result();
+		}
 	}
-
-	return result;
+	return -1;
 }
 
