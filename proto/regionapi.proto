@@ -1,0 +1,18 @@
+package region.api;
+
+message AddService {
+	required string			name = 1;
+	optional string			address = 2;
+}
+
+message RmService {
+	required string			name = 1;
+}
+
+message AddPayload {
+	required string			uuid = 1;
+}
+
+message RmPayload {
+	required string			uuid = 1;
+}

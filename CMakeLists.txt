@@ -1,9 +1,13 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 
 project(ris)
+include(CMakeProtobuf)
+
 
 set(CMAKE_C_FLAGS "-std=c99 -fPIC -g -fvisibility=hidden ${CMAKE_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -g -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
+
+set(PROTOBUF_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 
 add_library(snapshot STATIC
 	src/snapshot/snapshot.cxx
@@ -19,22 +23,33 @@ add_library(snapshot STATIC
 
 target_include_directories(snapshot
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
+
+# regionactor
+
+set(REGION_ACTOR_PROTO ${CMAKE_CURRENT_SOURCE_DIR}/proto/regionapi.proto)
+
+build_pb_cxx_sources(${CMAKE_CURRENT_BINARY_DIR}/include/ris ${CMAKE_CURRENT_BINARY_DIR}/src REGION_ACTOR_PROTO_SRCS REGION_ACTOR_PROTO_HDRS ${REGION_ACTOR_PROTO})
+
 add_library(regionactor STATIC
-	src/zmqhelper.c
 	src/ritypes.cxx
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
+	${REGION_ACTOR_PROTO_SRCS}
 	include/ris/region/publisher.h
 	include/ris/region/regionactor.h
 	include/ris/region/regiontable.h
+	${REGION_ACTOR_PROTO_HDRS}
 )
 
 target_include_directories(regionactor
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
 )
 
 

@@ -1,0 +1,39 @@
+package region.pub;
+
+message RegionBase {
+	required string			uuid = 1;
+	required uint32			version = 2;
+}
+
+message Region {
+	required RegionBase		region = 1;
+	optional string			idc = 2;
+	optional string			msg_address = 4;
+	optional string			snapshot_address = 5;
+}
+
+message RmRegion {
+	required string			uuid = 1;
+}
+
+message Service {
+	required RegionBase		region = 1;
+	required string			name = 2;
+	required string			address = 3;
+}
+
+message RmService {
+	required RegionBase		region = 1;
+	required string			name = 2;
+}
+
+message Payload {
+	required RegionBase		region = 1;
+	required string			uuid = 2;
+}
+
+message RmPayload {
+	required RegionBase		region = 1;
+	required string			uuid = 2;
+}
+
