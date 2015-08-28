@@ -1,5 +1,10 @@
 package region.api;
 
+message Result {
+	required int32			result = 1;
+	optional string			what = 2;
+}
+
 message AddService {
 	required string			name = 1;
 	optional string			address = 2;

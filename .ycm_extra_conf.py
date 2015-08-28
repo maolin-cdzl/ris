@@ -48,6 +48,8 @@ flags = [
 '/usr/local/include',
 '-I',
 './include',
+'-I',
+'-I../zmqx/include',
 ]
 
 

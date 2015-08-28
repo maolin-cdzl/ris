@@ -1,11 +1,19 @@
 #include "ris/region/regionactor.h"
 #include <glog/logging.h>
 #include <libconfig.h++>
-
+#include "zmqx/zprotobuf++.h"
 
 RIRegionActor::RIRegionActor() :
-	m_actor(nullptr)
+	m_actor(nullptr),
+	m_loop(nullptr),
+	m_rep(nullptr),
+	m_disp(new Dispatcher())
 {
+	m_disp->set_default(defaultOptAdapter,this);
+	m_disp->register_processer(region::api::AddService::descriptor(),addServiceAdapter,this);
+	m_disp->register_processer(region::api::RmService::descriptor(),rmServiceAdapter,this);
+	m_disp->register_processer(region::api::AddPayload::descriptor(),addPayloadAdapter,this);
+	m_disp->register_processer(region::api::RmPayload::descriptor(),rmPayloadAdapter,this);
 }
 
 RIRegionActor::~RIRegionActor() {
@@ -108,18 +116,20 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 
 void RIRegionActor::run(zsock_t* pipe) {
 	int result = -1;
-	zloop_t* loop = zloop_new();
-	zsock_t* rep = zsock_new(ZMQ_REP);
+	m_loop = zloop_new();
+	m_rep = zsock_new(ZMQ_REP);
 
+	assert(m_loop && m_rep);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
 		m_table = std::shared_ptr<RIRegionTable>( new RIRegionTable(m_region) );
-		m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(loop) );
-		m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(loop) );
+		m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(m_loop) );
+		m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(m_loop) );
+		std::shared_ptr<ZDispatcher> zdisp(new ZDispatcher(m_loop));
 
 		result = -1;
 		do {
-			if( -1 == zsock_bind(rep,"%s",m_region_address.c_str()) ) {
+			if( -1 == zsock_bind(m_rep,"%s",m_region_address.c_str()) ) {
 				LOG(ERROR) << "can not bind Rep on: " << m_region_address;
 				break;
 			}
@@ -128,13 +138,13 @@ void RIRegionActor::run(zsock_t* pipe) {
 			if( -1 == m_ssvc->start(m_table,m_region.snapshot_address,m_snapshot_worker_address) )
 				break;
 
-			if( -1 == zloop_reader(loop,pipe,pipeReadableAdapter,this) ) {
+			if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
 				LOG(ERROR) << "Register pipe reader error";
 				break;
 			}
 
-			if( -1 == zloop_reader(loop,rep,repReadableAdapter,this) ) {
-				LOG(ERROR) << "Register rep reader error";
+			if( -1 == zdisp->start(m_rep,m_disp) ) {
+				LOG(ERROR) << "Start dispatcher error";
 				break;
 			}
 			result = 0;
@@ -152,7 +162,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		
 
 		while( m_running ) {
-			result = zloop_start(loop);
+			result = zloop_start(m_loop);
 			if( result == 0 ) {
 				LOG(INFO) << "RIRegionActor interrupted";
 				m_running = false;
@@ -162,15 +172,16 @@ void RIRegionActor::run(zsock_t* pipe) {
 
 	} while(0);
 
-	zloop_reader_end(loop,pipe);
+	
+	zloop_reader_end(m_loop,pipe);
 	m_pub.reset();
 	m_ssvc.reset();
 	m_table.reset();
-	if( loop ) {
-		zloop_destroy(&loop);
+	if( m_loop ) {
+		zloop_destroy(&m_loop);
 	}
-	if( rep ) {
-		zsock_destroy(&rep);
+	if( m_rep ) {
+		zsock_destroy(&m_rep);
 	}
 	LOG(INFO) << "RIRegionActor shutdown";
 }
@@ -185,10 +196,6 @@ int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) 
 	return self->onPipeReadable(reader);
 }
 
-int RIRegionActor::repReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	return self->onRepReadable(reader);
-}
 
 int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	zmsg_t* msg = zmsg_recv(pipe);
@@ -292,4 +299,56 @@ int RIRegionActor::onRepReadable(zsock_t* sock) {
 	return 0;
 }
 
+
+void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
+	region::api::Result ret;
+	ret.set_result(-1);
+
+	zpb_send(m_rep,ret);
+}
+
+void RIRegionActor::addService(const std::shared_ptr<region::api::AddService>& msg) {
+}
+
+void RIRegionActor::rmService(const std::shared_ptr<region::api::RmService>& msg) {
+}
+
+void RIRegionActor::addPayload(const std::shared_ptr<region::api::AddPayload>& msg) {
+}
+
+void RIRegionActor::rmPayload(const std::shared_ptr<region::api::RmPayload>& msg) {
+}
+
+void RIRegionActor::defaultOptAdapter(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	self->defaultOpt(msg,err);
+}
+
+void RIRegionActor::addServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	auto m = std::dynamic_pointer_cast<region::api::AddService>(msg);
+	assert( m );
+	self->addService(m);
+}
+
+void RIRegionActor::rmServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	auto m = std::dynamic_pointer_cast<region::api::RmService>(msg);
+	assert( m );
+	self->rmService(m);
+}
+
+void RIRegionActor::addPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	auto m = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
+	assert( m );
+	self->addPayload(m);
+}
+
+void RIRegionActor::rmPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
+	RIRegionActor* self = (RIRegionActor*)arg;
+	auto m = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
+	assert( m );
+	self->rmPayload(m);
+}
 
