@@ -35,7 +35,8 @@ int RIPublisher::start(const std::shared_ptr<RIRegionTable>& table,const std::st
 
 		m_pub = zsock_new(ZMQ_PUB);
 		assert(m_pub);
-		if( -1 == zsock_connect(m_pub,"%s",pubaddr.c_str()) ) {
+		if( -1 == zsock_connect(m_pub,pubaddr.c_str()) ) {
+			LOG(ERROR) << "RIPublisher can NOT connect to: " << pubaddr;
 			break;
 		}
 		
