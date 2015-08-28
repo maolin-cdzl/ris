@@ -31,7 +31,6 @@ private:
 	int loadConfig(const std::string& conf);
 	void run(zsock_t* pipe);
 	int onPipeReadable(zsock_t* pipe);
-	int onRepReadable(zsock_t* rep);
 
 	static void actorRunner(zsock_t* pipe,void* args);
 	static int pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
@@ -57,7 +56,7 @@ private:
 	Region						m_region;
 	std::string					m_region_address;
 	std::string					m_snapshot_worker_address;
-	std::list<std::string>		m_brokers;					
+	std::string					m_pub_address;					
 
 	std::shared_ptr<RIRegionTable>		m_table;
 	std::shared_ptr<RIPublisher>		m_pub;

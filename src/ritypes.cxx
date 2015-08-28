@@ -1,7 +1,41 @@
 #include "ris/ritypes.h"
 
+/**
+ * class RegionRt
+ */
 
-std::shared_ptr<SnapshotPartition> RegionRt::toSnapshot() const {
+std::shared_ptr<region::pub::Region> Region::toPublish() const {
+	assert( ! id.empty() );
+	std::shared_ptr<region::pub::Region> msg(new region::pub::Region());
+
+	toPublishBase(msg->mutable_region());
+
+	if( ! idc.empty() ) {
+		msg->set_idc(idc);
+	}
+	if( ! msg_address.empty() ) {
+		msg->set_msg_address(msg_address);
+	}
+	if( ! snapshot_address.empty() ) {
+		msg->set_snapshot_address(snapshot_address);
+	}
+	return msg;
+}
+
+void Region::toPublishBase(region::pub::RegionBase* region) const {
+	assert( ! id.empty() );
+	region->set_uuid( id );
+	region->set_version( version );
+}
+
+std::shared_ptr<region::pub::RmRegion> Region::toPublishRm(const uuid_t& uuid) {
+	assert( ! uuid.empty() );
+	std::shared_ptr<region::pub::RmRegion> msg(new region::pub::RmRegion());
+	msg->set_uuid(uuid);
+	return msg;
+}
+
+std::shared_ptr<SnapshotPartition> Region::toSnapshot() const {
 	std::shared_ptr<SnapshotPartition> part(new SnapshotPartition(id,version));
 	
 	part->addValue("idc",idc);
@@ -15,80 +49,6 @@ std::shared_ptr<SnapshotPartition> RegionRt::toSnapshot() const {
 	return std::move(part);
 }
 
-zmsg_t* RegionRt::toPublish() const {
-	char ver[32];
-	zmsg_t* msg = zmsg_new();
-	snprintf(ver,sizeof(ver),"%u",version);
-
-	zmsg_addstr(msg,"#reg");
-	zmsg_addstr(msg,id.c_str());
-	zmsg_addstr(msg,ver);
-	zmsg_addstr(msg,idc.c_str());
-	if( msg_address.empty() ) {
-		zmsg_addstr(msg,"none");
-	} else {
-		zmsg_addstr(msg,msg_address.c_str());
-	}
-	if( snapshot_address.empty() ) {
-		zmsg_addstr(msg,"none");
-	} else {
-		zmsg_addstr(msg,snapshot_address.c_str());
-	}
-
-	return msg;
-}
-
-zmsg_t* RegionRt::toPublishDel(const uuid_t& id) {
-	zmsg_t* msg = zmsg_new();
-	zmsg_addstr(msg,"delreg");
-	zmsg_addstr(msg,id.c_str());
-
-	return msg;
-}
-
-bool RegionRt::isPublish(zmsg_t* msg) {
-	assert(msg);
-	if( zmsg_size(msg) >= 6 ) {
-		return zframe_streq( zmsg_first(msg),"#reg" );
-	} else {
-		return false;
-	}
-}
-
-std::shared_ptr<RegionRt> RegionRt::fromPublish(zmsg_t* msg) {
-	std::shared_ptr<RegionRt> reg(new RegionRt);
-	char* str = nullptr;
-	assert( isPublish(msg) );
-
-	zframe_t* fr = zmsg_first(msg);
-	fr = zmsg_next(msg);
-	str = zframe_strdup(fr);
-	reg->id = str;
-	free(str);
-
-	fr = zmsg_next(msg);
-	str = zframe_strdup(fr);
-	reg->version = (uint32_t) strtoll(str,nullptr,10);
-	free(str);
-
-	fr = zmsg_next(msg);
-	str = zframe_strdup(fr);
-	reg->idc = str;
-	free(str);
-
-	fr = zmsg_next(msg);
-	str = zframe_strdup(fr);
-	reg->idc = str;
-	free(str);
-
-	return reg;
-}
-
-bool RegionRt::isPublishDel(zmsg_t* msg) {
-}
-
-int RegionRt::fromPublishDel(zmsg_t* msg,std::string& reg) {
-}
 
 /**
  * class Service 
@@ -96,37 +56,54 @@ int RegionRt::fromPublishDel(zmsg_t* msg,std::string& reg) {
 
 
 std::shared_ptr<SnapshotItem> Service::toSnapshot() const {
-	std::shared_ptr<SnapshotItem> item { new SnapshotItem("svc",id) };
+	std::shared_ptr<SnapshotItem> item { new SnapshotItem("svc",name) };
 
 	item->addValue("addr",address);
 
 	return std::move(item);
 }
 
-zmsg_t* Service::toPublish(const RegionRt& region) const {
-	char ver[32];
-	zmsg_t* msg = zmsg_new();
-	snprintf(ver,sizeof(ver),"%u",region.version);
+std::shared_ptr<region::pub::Service> Service::toPublish(const Region& region) const {
+	assert( ! name.empty() );
+	assert( ! address.empty() );
 
-	zmsg_addstr(msg,"#svc");
-	zmsg_addstr(msg,region.id.c_str());
-	zmsg_addstr(msg,ver);
-	zmsg_addstr(msg,id.c_str());
-	zmsg_addstr(msg,address.c_str());
-	
+	std::shared_ptr<region::pub::Service> msg(new region::pub::Service());
+	region.toPublishBase(msg->mutable_region());
+	msg->set_name( name );
+	msg->set_address( address );
 	return msg;
 }
 
-zmsg_t* Service::toPublishDel(const RegionRt& region,const uuid_t& id) {
-	char ver[32];
-	zmsg_t* msg = zmsg_new();
-	snprintf(ver,sizeof(ver),"%u",region.version);
+std::shared_ptr<region::pub::RmService> Service::toPublishRm(const Region& region,const std::string& name) {
+	assert( ! name.empty() );
 
-	zmsg_addstr(msg,"delsvc");
-	zmsg_addstr(msg,region.id.c_str());
-	zmsg_addstr(msg,ver);
-	zmsg_addstr(msg,id.c_str());
+	std::shared_ptr<region::pub::RmService> msg(new region::pub::RmService());
+	region.toPublishBase(msg->mutable_region());
+	msg->set_name(name);
 
+	return msg;
+}
+
+
+/**
+ * class Payload
+ */
+
+std::shared_ptr<region::pub::Payload> Payload::toPublish(const Region& region) const {
+	assert( ! id.empty() );
+	
+	std::shared_ptr<region::pub::Payload> msg(new region::pub::Payload());
+	region.toPublishBase(msg->mutable_region());
+	msg->set_uuid( id );
+	return msg;
+}
+
+std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const Region& region,const uuid_t& id) {
+	assert( ! id.empty() );
+	
+	std::shared_ptr<region::pub::RmPayload> msg(new region::pub::RmPayload());
+	region.toPublishBase(msg->mutable_region());
+	msg->set_uuid( id );
 	return msg;
 }
 
@@ -137,29 +114,4 @@ std::shared_ptr<SnapshotItem> Payload::toSnapshot() const {
 	return std::move(item);
 }
 
-zmsg_t* Payload::toPublish(const RegionRt& region) const {
-	char ver[32];
-	zmsg_t* msg = zmsg_new();
-	snprintf(ver,sizeof(ver),"%u",region.version);
-
-	zmsg_addstr(msg,"#pld");
-	zmsg_addstr(msg,region.id.c_str());
-	zmsg_addstr(msg,ver);
-	zmsg_addstr(msg,id.c_str());
-	
-	return msg;
-}
-
-zmsg_t* Payload::toPublishDel(const RegionRt& region,const uuid_t& id) {
-	char ver[32];
-	zmsg_t* msg = zmsg_new();
-	snprintf(ver,sizeof(ver),"%u",region.version);
-
-	zmsg_addstr(msg,"delpld");
-	zmsg_addstr(msg,region.id.c_str());
-	zmsg_addstr(msg,ver);
-	zmsg_addstr(msg,id.c_str());
-
-	return msg;
-}
 

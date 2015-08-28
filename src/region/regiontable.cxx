@@ -18,14 +18,14 @@ void RIRegionTable::unsetObserver() {
 	m_observer = nullptr;
 }
 
-int RIRegionTable::newService(const Service& svc) {
-	if( m_services_idx.end() == m_services_idx.find(svc.id) ) {
+int RIRegionTable::addService(const std::string& name,const std::string& address) {
+	if( m_services_idx.end() == m_services_idx.find(name) ) {
 		++m_region.version;
-		ServiceRt svcrt(svc,ri_time_now());
-		auto it = m_services.insert(m_services.end(),svcrt);
-		m_services_idx.insert( std::make_pair(svc.id,it) );
+		Service svc(name,address,ri_time_now());
+		auto it = m_services.insert(m_services.end(),svc);
+		m_services_idx.insert( std::make_pair(name,it) );
 
-		LOG(INFO) << "new service: " << svc.id << "|" << svc.address << " version: " << m_region.version;
+		LOG(INFO) << "new service: " << name << "|" << address << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onNewService(m_region,svc);
 		}
@@ -35,7 +35,7 @@ int RIRegionTable::newService(const Service& svc) {
 	}
 }
 
-int RIRegionTable::delService(const uuid_t& svc) {
+int RIRegionTable::delService(const std::string& svc) {
 	auto it = m_services_idx.find(svc);
 	if( it != m_services_idx.end() ) {
 		auto itl = it->second;
@@ -54,16 +54,16 @@ int RIRegionTable::delService(const uuid_t& svc) {
 	}
 }
 
-int RIRegionTable::newPayload(const Payload& pl) {
-	if( m_payloads_idx.end() == m_payloads_idx.find(pl.id) ) {
+int RIRegionTable::newPayload(const uuid_t& pl) {
+	if( m_payloads_idx.end() == m_payloads_idx.find(pl) ) {
 		++m_region.version;
-		PayloadRt plrt(pl,ri_time_now());
-		auto it = m_payloads.insert(m_payloads.end(),plrt);
-		m_payloads_idx.insert( std::make_pair(pl.id,it) );
+		Payload payload(pl,ri_time_now());
+		auto it = m_payloads.insert(m_payloads.end(),payload);
+		m_payloads_idx.insert( std::make_pair(pl,it) );
 
-		LOG(INFO) << "new payload: " << pl.id << " version: " << m_region.version;
+		LOG(INFO) << "new payload: " << pl << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onNewPayload(m_region,pl);
+			m_observer->onNewPayload(m_region,payload);
 		}
 		return 0;
 	} else {

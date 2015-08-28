@@ -46,8 +46,7 @@ int RIRegionActor::stop() {
 int RIRegionActor::loadConfig(const std::string& conf) {
 	libconfig::Config cfg;
 
-	std::string regid,idc,msgaddr,ssaddr,workeraddr;
-	std::list<std::string> brokers;
+	std::string regid,idc,msgaddr,ssaddr,workeraddr,pubaddr;
 
 	try {
 		cfg.readFile(conf.c_str());
@@ -65,6 +64,7 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 		idc = region["idc"].c_str();
 		m_region_address = region["localaddress"].c_str();
 		msgaddr = region["msgaddress"].c_str();
+		pubaddr = region["pubaddress"].c_str();
 	} catch( const libconfig::SettingNotFoundException& e ) {
 		LOG(FATAL) << "Can not found Region setting: " << e.what();
 		return -1;
@@ -87,25 +87,10 @@ int RIRegionActor::loadConfig(const std::string& conf) {
 		return -1;
 	}
 
-	try {
-		const libconfig::Setting& broker = cfg.lookup("ribrokers");
-		const int count = broker.getLength();
-		for(int i=0; i < count; ++i) {
-			std::string b = broker[i];
-			brokers.push_back(b);
-		}
-	} catch( const libconfig::SettingNotFoundException& e ) {
-		LOG(FATAL) << "Can not found brokers setting: " << e.what();
-		return -1;
-	} catch( const libconfig::SettingTypeException& e ) {
-		LOG(FATAL) << "Error when parse Snapshot: " << e.what();
-		return -1;
-	}
-
 	m_region.id = regid;
 	m_region.idc = idc;
 	m_region.msg_address = msgaddr;
-	m_brokers = brokers;
+	m_pub_address = pubaddr;
 	if( ! ssaddr.empty() ) {
 		m_region.snapshot_address = ssaddr;
 		m_snapshot_worker_address = workeraddr;
@@ -133,7 +118,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 				LOG(ERROR) << "can not bind Rep on: " << m_region_address;
 				break;
 			}
-			if( -1 == m_pub->start(m_table,m_brokers) )
+			if( -1 == m_pub->start(m_table,m_pub_address) )
 				break;
 			if( -1 == m_ssvc->start(m_table,m_region.snapshot_address,m_snapshot_worker_address) )
 				break;
@@ -228,77 +213,6 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	return result;
 }
 
-int RIRegionActor::onRepReadable(zsock_t* sock) {
-	zmsg_t* msg = zmsg_recv(sock);
-	if( nullptr == msg ) {
-		LOG(WARNING) << "RIRegionActor recv empty message";
-		return 0;
-	}
-	char* str = nullptr;
-	int result = 0;
-
-	do {
-		zframe_t* fr = zmsg_first(msg);
-		if( zmsg_size(msg) <= 1 ) {
-			str = zframe_strdup(fr);
-			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
-			break;
-		}
-
-		if( zframe_streq(fr,"#pld") ) {
-			fr = zmsg_next(msg);
-			str = zframe_strdup(fr);
-			Payload pl;
-			pl.id = str;
-			result = m_table->newPayload(pl);
-		} else if( zframe_streq(fr,"#delpld") ) {
-			fr = zmsg_next(msg);
-			str = zframe_strdup(fr);
-			result = m_table->delPayload(str);
-		} else if( zframe_streq(fr,"#svc") ) {
-			Service svc;
-			fr = zmsg_next(msg);
-			str = zframe_strdup(fr);
-			svc.id = str;
-			free(str);
-			str = nullptr;
-
-			fr = zmsg_next(msg);
-			if( fr ) {
-				str = zframe_strdup(fr);
-				svc.address = str;
-				free(str);
-				str = nullptr;
-				result = m_table->newService(svc);
-			} else {
-				LOG(WARNING) << "RIRegionActor recv bad message for new service";
-			}
-
-		} else if( zframe_streq(fr,"#delsvc") ) {
-			fr = zmsg_next(msg);
-			str = zframe_strdup(fr);
-			result = m_table->delService(str);
-		} else {
-			str = zframe_strdup(fr);
-			LOG(WARNING) << "RIRegionActor recv unknown message: " << str;
-		}
-
-	} while( 0 );
-
-	if( result == 0 ) {
-		zstr_send(sock,"ok");
-	} else {
-		zstr_send(sock,"bad");
-	}
-	if( str ) {
-		free(str);
-	}
-	if( msg ) {
-		zmsg_destroy(&msg);
-	}
-	return 0;
-}
-
 
 void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
 	region::api::Result ret;
@@ -308,6 +222,13 @@ void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>&
 }
 
 void RIRegionActor::addService(const std::shared_ptr<region::api::AddService>& msg) {
+	region::api::Result result;
+	if( 0 == m_table->addService(msg->name(),msg->address()) ) {
+		result.set_result(0);
+	} else {
+		result.set_result(-1);
+	}
+	zpb_send(m_rep,result);
 }
 
 void RIRegionActor::rmService(const std::shared_ptr<region::api::RmService>& msg) {

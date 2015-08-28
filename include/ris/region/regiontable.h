@@ -9,11 +9,11 @@
 
 class RIRegionTable : public ISnapshotable {
 public:
-	typedef std::list<ServiceRt>							service_list_t;
+	typedef std::list<Service>								service_list_t;
 	typedef typename service_list_t::iterator				service_list_it_t;
 	typedef std::unordered_map<uuid_t,service_list_it_t>	service_index_t;
 
-	typedef std::list<PayloadRt>							payload_list_t;
+	typedef std::list<Payload>								payload_list_t;
 	typedef typename payload_list_t::iterator				payload_list_it_t;
 	typedef std::unordered_map<uuid_t,payload_list_it_t>	payload_index_t;
 
@@ -21,7 +21,7 @@ public:
 	RIRegionTable(const Region& reg);
 	virtual ~RIRegionTable();
 
-	inline const RegionRt& region() const {
+	inline const Region& region() const {
 		return m_region;
 	}
 
@@ -40,9 +40,9 @@ public:
 	void setObserver(IRIObserver* ob);
 	void unsetObserver();
 
-	int newService(const Service& svc);
-	int delService(const uuid_t& svc);
-	int newPayload(const Payload& pl);
+	int addService(const std::string& name,const std::string& address);
+	int delService(const std::string& svc);
+	int newPayload(const uuid_t& pl);
 	int delPayload(const uuid_t& pl);
 
 	service_list_t update_timeouted_service(ri_time_t timeout,size_t maxcount);
@@ -50,7 +50,7 @@ public:
 
 	virtual std::shared_ptr<Snapshot> buildSnapshot();
 private:
-	RegionRt						m_region;
+	Region							m_region;
 	IRIObserver*					m_observer;
 
 	service_list_t		m_services;
