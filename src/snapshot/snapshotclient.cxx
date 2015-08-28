@@ -1,6 +1,6 @@
 #include "ris/snapshot/snapshotclient.h"
-#include "ris/zmqhelper.h"
 #include "ris/snapshot/snapshot.h"
+#include "zmqx/zhelper.h"
 
 
 SnapshotClient::SnapshotClient()
