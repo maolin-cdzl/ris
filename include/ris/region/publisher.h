@@ -4,7 +4,6 @@
 #include <czmq.h>
 
 #include "ris/ritypes.h"
-#include "ris/loopable.h"
 #include "ris/riobserver.h"
 #include "ris/region/regiontable.h"
 
