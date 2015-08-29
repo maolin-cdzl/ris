@@ -31,12 +31,44 @@ void RITrackerTable::onRegion(const Region& reg) {
 }
 
 void RITrackerTable::onRmRegion(const uuid_t& reg) {
-	auto it = m_regions_index.find(reg);
-	if( it != m_regions_index.end() ) {
+	auto riit = m_regions_index.find(reg);
+	if( riit != m_regions_index.end() ) {
 		LOG(INFO) << "Remove region: " << reg;
-		auto iit = it->second;
-		m_regions_index.erase(it);
-		m_regions.erase(iit);
+		auto rcit = riit->second;
+		auto regptr = *rcit;
+		m_regions_index.erase(riit);
+		m_regions.erase(rcit);
+
+		for(auto scit=m_services.begin(); scit != m_services.end(); ) {
+			if( scit->region == regptr ) {
+				auto siit = m_services_index.find(scit->service.name);
+				assert(siit != m_service_index.end());
+				std::list<service_iterator_t>& l = siit->second;
+				for(auto lit = l.begin(); lit != l.end(); ++lit) {
+					if( *lit == scit ) {
+						l.erase(lit);
+						break;
+					}
+				}
+				if( l.empty() ) {
+					m_services_index.erase(siit);
+				}
+				scit = m_services.erase(scit);
+			} else {
+				++scit;
+			}
+		}
+
+		for(auto pcit=m_payloads.begin(); pcit != m_payloads.end(); ) {
+			if( pcit->region == regptr ) {
+				auto piit = m_payloads_index.find(pcit->payload.id);
+				assert(piit != m_payloads_index.end());
+				m_payloads_index.erase(piit);
+				pcit = m_payloads.erase(pcit);
+			} else {
+				++pcit;
+			}
+		}
 	} else {
 		LOG(WARNING) << "Recv pub to remove unexists region: " << reg;
 	}
@@ -138,7 +170,7 @@ void RITrackerTable::onPayload(const uuid_t& reg,uint32_t version,const Payload&
 		} else {
 			// update payload info
 			auto pcit = piit->second;
-			auto regptr = pcit->region.lock();
+			auto regptr = pcit->region;
 			if( regptr != *regit ) {
 				LOG(ERROR) << "Region: " << reg << " replace region: " << regptr->id << " with payload: " << pl.id;
 				pcit->region = *regit;
@@ -161,7 +193,7 @@ void RITrackerTable::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t
 			LOG(WARNING) << "Recv rm payload pub from region: " << reg << " to remove payload: " << pl << ", which we never know it";
 		} else {
 			auto pcit = piit->second;
-			auto regptr = pcit->region.lock();
+			auto regptr = pcit->region;
 			if( regptr == *regit ) {
 				updateRegionVersion(*regit,version);
 
@@ -178,12 +210,121 @@ void RITrackerTable::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t
 }
 
 // method from ISnapshotable
-snapshot_package_t RITrackerTable::buildSnapshot();
+snapshot_package_t RITrackerTable::buildSnapshot() {
+	snapshot_package_t package;
+	package.push_back(std::shared_ptr<snapshot::SnapshotBegin>(new snapshot::SnapshotBegin()));
+
+	std::unordered_map<uuid_t,std::list<Payload>> regionpayloads;
+	std::unordered_map<uuid_t,std::list<Service>> regionservices;
+
+	for(auto it=m_services.begin(); it != m_services.end(); ++it) {
+		regionservices[ it->region->id ].push_back(it->service);
+	}
+	for(auto it=m_payloads.begin(); it != m_payloads.end(); ++it) {
+		regionpayloads[ it->region->id ].push_back(it->payload);
+	}
+
+	for(auto rcit=m_regions.begin(); rcit != m_regions.end(); ++rcit) {
+		package.push_back((*rcit)->toSnapshotBegin());
+
+		const std::list<Service>& svcs = regionservices[ (*rcit)->id ];
+		for(auto it=svcs.begin(); it != svcs.end(); ++it) {
+			package.push_back(it->toSnapshot());
+		}
+
+		const std::list<Payload>& payloads = regionpayloads[ (*rcit)->id ];
+		for(auto it=payloads.begin(); it != payloads.end(); ++it) {
+			package.push_back(it->toSnapshot());
+		}
+		package.push_back((*rcit)->toSnapshotEnd());
+	}
+
+	package.push_back(std::shared_ptr<snapshot::SnapshotEnd>(new snapshot::SnapshotEnd()));
+	return std::move(package);
+}
 
 // method from ISnapshotBuilder
-int RITrackerTable::addRegion(const Region& region);
-int RITrackerTable::addService(const uuid_t& region,const Service& svc);
-int RITrackerTable::addPayload(const uuid_t& region,const Payload& pl);
+int RITrackerTable::addRegion(const Region& region) {
+	onRegion(region);
+	return 0;
+}
+
+int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
+	int result = -1;
+	auto it = m_regions_index.find(reg);
+	if( it != m_regions_index.end() ) {
+		// if region exists
+		auto regit = it->second;
+
+		auto siit = m_services_index.find(svc.name);
+		if( siit == m_services_index.end() ) {
+			// if never have this service before,create new.
+			RegionService rs;
+			rs.region = (*regit);
+			rs.service = svc;
+
+			auto scit = m_services.insert(m_services.end(),rs);
+			std::list<service_iterator_t> l;
+			l.push_back(scit);
+			m_services_index.insert( std::make_pair(svc.name,l) );
+
+			LOG(INFO) << "Add full new service: " << svc.name << " to region: " << reg;
+		} else {
+			std::list<service_iterator_t>& l = siit->second;
+			auto lit = findRegionService(l,reg);
+			if( lit != l.end() ) {
+				// update the service info of this region
+				(*lit)->service = svc;
+			} else {
+				// if this region has no this service yet.
+				RegionService rs;
+				rs.region = (*regit);
+				rs.service = svc;
+				auto scit = m_services.insert(m_services.end(),rs);
+				l.push_back(scit);
+				
+				LOG(INFO) << "Add service: " << svc.name << " to region: " << reg;
+			}
+		}
+		result = 0;
+	} else {
+		LOG(WARNING) << "Add service: " << svc.name << " to unexists region: " << reg;
+	}
+}
+
+int RITrackerTable::addPayload(const uuid_t& reg,const Payload& pl) {
+	int result = -1;
+	auto it = m_regions_index.find(reg);
+	if( it != m_regions_index.end() ) {
+		auto regit = it->second;
+
+		auto piit = m_payloads_index.find(pl.id);
+		if( piit == m_payloads_index.end() ) {
+			// new payload
+			RegionPayload rp;
+			rp.region = *regit;
+			rp.payload = pl;
+
+			auto pcit = m_payloads.insert(m_payloads.end(),rp);
+			m_payloads_index.insert( std::make_pair(pl.id,pcit) );
+
+			LOG(INFO) << "New payload: " << pl.id << " from region: " << reg;
+		} else {
+			// update payload info
+			auto pcit = piit->second;
+			auto regptr = pcit->region;
+			if( regptr != *regit ) {
+				LOG(ERROR) << "Region: " << reg << " replace region: " << regptr->id << " with payload: " << pl.id;
+				pcit->region = *regit;
+			}
+			pcit->payload = pl;
+		}
+		result = 0;
+	} else {
+		LOG(WARNING) << "add payload: " << pl.id << " to unexists region: " << reg;
+	}
+	return result;
+}
 
 
 void RITrackerTable::updateRegionVersion(std::shared_ptr<Region>& region,uint32_t version) {
@@ -195,7 +336,7 @@ void RITrackerTable::updateRegionVersion(std::shared_ptr<Region>& region,uint32_
 
 std::list<RITrackerTable::service_iterator_t>::iterator RITrackerTable::findRegionService(std::list<RITrackerTable::service_iterator_t>& l,const uuid_t& region) {
 	for(auto it = l.begin(); it != l.end(); ) {
-		auto regptr = (*it)->region.lock();
+		auto regptr = (*it)->region;
 		if( regptr == nullptr ) {
 			// if the region already offline,remove service which belong it
 			it = l.erase(it);

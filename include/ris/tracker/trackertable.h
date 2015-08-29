@@ -35,11 +35,11 @@ public:
 
 private:
 	struct RegionService {
-		std::weak_ptr<Region>						region;
+		std::shared_ptr<Region>						region;
 		Service										service;
 	};
 	struct RegionPayload {
-		std::weak_ptr<Region>						region;
+		std::shared_ptr<Region>						region;
 		Payload										payload;
 	};
 
