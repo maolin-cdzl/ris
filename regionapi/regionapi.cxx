@@ -4,6 +4,7 @@
 #include <glog/logging.h>
 
 #include "ris/regionapi.pb.h"
+#include "ris/region/regionctx.h"
 #include "zmqx/zprotobuf++.h"
 
 int g_standalone = 0;
@@ -20,8 +21,12 @@ extern "C" REGIONAPI_EXPORT int region_start(const char* confile,int standalone)
 		zsys_init();
 	}
 
+	auto ctx = loadRegionCtx(confile);
+	if( nullptr == ctx )
+		return -1;
+
 	g_actor = new RIRegionActor();
-	if( -1 == g_actor->start(confile) ) {
+	if( -1 == g_actor->start(ctx) ) {
 		delete g_actor;
 		g_actor = nullptr;
 		return -1;
@@ -58,10 +63,13 @@ extern "C" REGIONAPI_EXPORT void* region_open() {
 	do {
 		if( nullptr == g_actor )
 			break;
+		auto ctx = g_actor->getCtx();
+		if( nullptr == ctx )
+			break;
 		req = zsock_new(ZMQ_REQ);
 		if( nullptr == req )
 			break;
-		if( -1 == zsock_connect(req,"%s",g_actor->address().c_str()) ) {
+		if( -1 == zsock_connect(req,"%s",ctx->api_address.c_str()) ) {
 			zsock_destroy(&req);
 			break;
 		}

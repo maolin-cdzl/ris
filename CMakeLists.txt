@@ -58,26 +58,28 @@ target_link_libraries(snapshot LINK_PUBLIC
 )
 
 
-# regionactor
+# region
 
-add_library(regionactor STATIC
+add_library(region STATIC
 	src/ritypes.cxx
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
+	src/region/regionctx.cxx
 	include/ris/region/publisher.h
 	include/ris/region/regionactor.h
 	include/ris/region/regiontable.h
+	include/ris/region/regionctx.h
 )
 
-target_include_directories(regionactor
+target_include_directories(region
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
 	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
 )
 
-target_link_libraries(regionactor LINK_PUBLIC
+target_link_libraries(region LINK_PUBLIC
 	risproto
 	snapshot
 	zmqx
@@ -97,13 +99,13 @@ add_library(regionapi SHARED
 )
 
 target_include_directories(regionapi
-	PRIVATE $<TARGET_PROPERTY:regionactor,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:region,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_definitions(regionapi PRIVATE REGIONAPI_BUILDING)
 
 target_link_libraries(regionapi LINK_PUBLIC
-	regionactor
+	region
 )
 
 # tracker

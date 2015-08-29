@@ -10,6 +10,7 @@
 #include "ris/snapshot/snapshotservice.h"
 
 #include "ris/regionapi.pb.h"
+#include "ris/region/regionctx.h"
 #include "zmqx/zdispatcher.h"
 
 class RIRegionActor {
@@ -17,18 +18,13 @@ public:
 	RIRegionActor();
 	~RIRegionActor();
 
-	int start(const std::string& conf);
+	int start(const std::shared_ptr<RegionCtx>& ctx);
 	int stop();
 
-	inline const Region& region() const {
-		return m_region;
-	}
-
-	inline const std::string& address() const {
-		return m_region_address;
+	inline std::shared_ptr<RegionCtx> getCtx() {
+		return m_ctx;
 	}
 private:
-	int loadConfig(const std::string& conf);
 	void run(zsock_t* pipe);
 	int onPipeReadable(zsock_t* pipe);
 
@@ -48,10 +44,7 @@ private:
 	zloop_t*					m_loop;
 	zsock_t*					m_rep;
 
-	Region						m_region;
-	std::string					m_region_address;
-	std::string					m_snapshot_worker_address;
-	std::string					m_pub_address;					
+	std::shared_ptr<RegionCtx>			m_ctx;
 
 	std::shared_ptr<RIRegionTable>		m_table;
 	std::shared_ptr<RIPublisher>		m_pub;

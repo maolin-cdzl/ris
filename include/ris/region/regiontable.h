@@ -5,6 +5,7 @@
 #include <memory>
 #include "ris/ritypes.h"
 #include "ris/riobserver.h"
+#include "ris/region/regionctx.h"
 #include "ris/snapshot/snapshotable.h"
 
 class RIRegionTable : public ISnapshotable {
@@ -18,7 +19,7 @@ public:
 	typedef std::unordered_map<uuid_t,payload_list_it_t>	payload_index_t;
 
 public:
-	RIRegionTable(const Region& reg);
+	RIRegionTable(const std::shared_ptr<RegionCtx>& ctx);
 	virtual ~RIRegionTable();
 
 	inline const Region& region() const {

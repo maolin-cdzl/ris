@@ -1,10 +1,15 @@
 #include <glog/logging.h>
 #include "ris/region/regiontable.h"
 
-RIRegionTable::RIRegionTable(const Region& reg) :
-	m_region(reg),
-	m_observer()
+RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx) :
+	m_observer(nullptr)
 {
+	m_region.id = ctx->uuid;
+	m_region.idc = ctx->idc;
+	m_region.msg_address = ctx->bus_address;
+	m_region.snapshot_address = ctx->snapshot_svc_address;
+	m_region.version = 0;
+	m_region.timeval = 0;
 }
 
 RIRegionTable::~RIRegionTable() {

@@ -22,14 +22,11 @@ RIRegionActor::~RIRegionActor() {
 	stop();
 }
 
-int RIRegionActor::start(const std::string& conf) {
+int RIRegionActor::start(const std::shared_ptr<RegionCtx>& ctx) {
 	if( m_actor )
 		return -1;
-
-	LOG(INFO) << "RIRegionActor start from config: " << conf;
-	if( -1 == loadConfig(conf) )
-		return -1;
-
+	
+	m_ctx = ctx;
 	m_actor = zactor_new(actorRunner,this);
 	if( nullptr == m_actor )
 		return -1;
@@ -44,66 +41,11 @@ int RIRegionActor::start(const std::string& conf) {
 int RIRegionActor::stop() {
 	if( m_actor ) {
 		zactor_destroy(&m_actor);
+		m_ctx.reset();
 		return 0;
 	} else {
 		return -1;
 	}
-}
-
-int RIRegionActor::loadConfig(const std::string& conf) {
-	libconfig::Config cfg;
-
-	std::string regid,idc,msgaddr,ssaddr,workeraddr,pubaddr;
-
-	try {
-		cfg.readFile(conf.c_str());
-	} catch( const libconfig::FileIOException& e ) {
-		LOG(FATAL) << "RIRegionActor can not open config file: " << conf;
-		return -1;
-	} catch( const libconfig::ParseException& e ) {
-		LOG(FATAL) << "Parse error at " << e.getFile() << ":" << e.getLine() << " - " << e.getError();
-		return -1;
-	}
-
-	try {
-		const libconfig::Setting& region = cfg.lookup("region");
-		regid = region["id"].c_str();
-		idc = region["idc"].c_str();
-		m_region_address = region["localaddress"].c_str();
-		msgaddr = region["msgaddress"].c_str();
-		pubaddr = region["pubaddress"].c_str();
-	} catch( const libconfig::SettingNotFoundException& e ) {
-		LOG(FATAL) << "Can not found Region setting: " << e.what();
-		return -1;
-	} catch( const libconfig::SettingTypeException& e ) {
-		LOG(FATAL) << "Error when parse Region: " << e.what();
-		return -1;
-	}
-
-	try {
-		if( cfg.exists("region.snapshot") ) {
-			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
-			ssaddr = snapshot["address"].c_str();
-			workeraddr = snapshot["workeraddress"].c_str();
-		}
-	} catch( const libconfig::SettingNotFoundException& e ) {
-		LOG(FATAL) << "Can not found Snapshot setting: " << e.what();
-		return -1;
-	} catch( const libconfig::SettingTypeException& e ) {
-		LOG(FATAL) << "Error when parse Snapshot: " << e.what();
-		return -1;
-	}
-
-	m_region.id = regid;
-	m_region.idc = idc;
-	m_region.msg_address = msgaddr;
-	m_pub_address = pubaddr;
-	if( ! ssaddr.empty() ) {
-		m_region.snapshot_address = ssaddr;
-		m_snapshot_worker_address = workeraddr;
-	}
-
-	return 0;
 }
 
 void RIRegionActor::run(zsock_t* pipe) {
@@ -111,23 +53,25 @@ void RIRegionActor::run(zsock_t* pipe) {
 	m_loop = zloop_new();
 	m_rep = zsock_new(ZMQ_REP);
 
+	assert( m_ctx );
 	assert(m_loop && m_rep);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
-		m_table = std::make_shared<RIRegionTable>( m_region );
+
+		m_table = std::make_shared<RIRegionTable>(m_ctx);
 		m_pub = std::make_shared<RIPublisher>( m_loop );
 		m_ssvc = std::make_shared<SnapshotService>( m_loop );
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 
 		result = -1;
 		do {
-			if( -1 == zsock_bind(m_rep,"%s",m_region_address.c_str()) ) {
-				LOG(ERROR) << "can not bind Rep on: " << m_region_address;
+			if( -1 == zsock_bind(m_rep,"%s",m_ctx->api_address.c_str()) ) {
+				LOG(ERROR) << "can not bind Rep on: " << m_ctx->api_address;
 				break;
 			}
-			if( -1 == m_pub->start(m_table,m_pub_address) )
+			if( -1 == m_pub->start(m_table,m_ctx->pub_address) )
 				break;
-			if( -1 == m_ssvc->start(m_table,m_region.snapshot_address,m_snapshot_worker_address) )
+			if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) )
 				break;
 
 			if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
@@ -202,7 +146,7 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 
 		zframe_t* fr = zmsg_first(msg);
 		if( zmsg_size(msg) == 1 && zframe_streq( fr, "$TERM")) {
-			LOG(INFO) << m_region.id << " terminated"; 
+			LOG(INFO) << m_ctx->uuid << " terminated"; 
 			m_running = false;
 			result = -1;
 		} else {
