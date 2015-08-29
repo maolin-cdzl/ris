@@ -290,6 +290,7 @@ int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
 	} else {
 		LOG(WARNING) << "Add service: " << svc.name << " to unexists region: " << reg;
 	}
+	return result;
 }
 
 int RITrackerTable::addPayload(const uuid_t& reg,const Payload& pl) {
