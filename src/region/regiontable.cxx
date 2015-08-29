@@ -27,7 +27,7 @@ int RIRegionTable::addService(const std::string& name,const std::string& address
 
 		LOG(INFO) << "new service: " << name << "|" << address << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onNewService(m_region,svc);
+			m_observer->onService(m_region.id,m_region.version,svc);
 		}
 		return 0;
 	} else {
@@ -46,7 +46,7 @@ int RIRegionTable::rmService(const std::string& svc) {
 
 		LOG(INFO) << "remove service: " << svc  << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onDelService(m_region,svc);
+			m_observer->onRmService(m_region.id,m_region.version,svc);
 		}
 		return 0;
 	} else {
@@ -63,7 +63,7 @@ int RIRegionTable::addPayload(const uuid_t& pl) {
 
 		LOG(INFO) << "new payload: " << pl << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onNewPayload(m_region,payload);
+			m_observer->onPayload(m_region.id,m_region.version,payload);
 		}
 		return 0;
 	} else {
@@ -82,7 +82,7 @@ int RIRegionTable::rmPayload(const uuid_t& pl) {
 
 		LOG(INFO) << "remove payload: " << pl << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onDelPayload(m_region,pl);
+			m_observer->onPayload(m_region.id,m_region.version,pl);
 		}
 		return 0;
 	} else {

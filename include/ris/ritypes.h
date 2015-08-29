@@ -52,8 +52,8 @@ public:
 	{
 	}
 public:
-	std::shared_ptr<region::pub::Service> toPublish(const Region& region) const;
-	static std::shared_ptr<region::pub::RmService> toPublishRm(const Region& region,const std::string& name);
+	std::shared_ptr<region::pub::Service> toPublish(const uuid_t& region,uint32_t version) const;
+	static std::shared_ptr<region::pub::RmService> toPublishRm(const uuid_t& region,uint32_t version,const std::string& name);
 
 	std::shared_ptr<snapshot::Service> toSnapshot() const;
 };
@@ -72,8 +72,8 @@ public:
 	{
 	}
 public:
-	std::shared_ptr<region::pub::Payload> toPublish(const Region& region) const;
-	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const Region& region,const uuid_t& id);
+	std::shared_ptr<region::pub::Payload> toPublish(const uuid_t& region,uint32_t version) const;
+	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id);
 
 
 	std::shared_ptr<snapshot::Payload> toSnapshot() const;

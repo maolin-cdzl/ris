@@ -110,26 +110,26 @@ void RIPublisher::stopLoop(zloop_t* loop) {
 	}
 }
 
-void RIPublisher::onNewRegion(const Region& reg) {
+void RIPublisher::onRegion(const Region& reg) {
 }
 
-void RIPublisher::onDelRegion(const uuid_t& reg) {
+void RIPublisher::onRmRegion(const uuid_t& reg) {
 }
 
-void RIPublisher::onNewService(const Region& reg,const Service& svc) {
-	pubService(reg,svc);
+void RIPublisher::onService(const uuid_t& reg,uint32_t version,const Service& svc) {
+	pubService(reg,version,svc);
 }
 
-void RIPublisher::onDelService(const Region& reg,const uuid_t& svc) {
-	pubRemoveService(reg,svc);
+void RIPublisher::onRmService(const uuid_t& reg,uint32_t version,const uuid_t& svc) {
+	pubRemoveService(reg,version,svc);
 }
 
-void RIPublisher::onNewPayload(const Region& reg,const Payload& pl) {
-	pubPayload(reg,pl);
+void RIPublisher::onPayload(const uuid_t& reg,uint32_t version,const Payload& pl) {
+	pubPayload(reg,version,pl);
 }
 
-void RIPublisher::onDelPayload(const Region& reg,const uuid_t& pl) {
-	pubRemovePayload(reg,pl);
+void RIPublisher::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t& pl) {
+	pubRemovePayload(reg,version,pl);
 }
 
 int RIPublisher::pubRegion(const Region& region) {
@@ -149,23 +149,23 @@ int RIPublisher::pubRemoveRegion(const uuid_t& reg) {
 	}
 }
 
-int RIPublisher::pubService(const Region& region,const Service& svc) {
-	auto p = svc.toPublish(region);
+int RIPublisher::pubService(const uuid_t& region,uint32_t version,const Service& svc) {
+	auto p = svc.toPublish(region,version);
 	return zpb_send(m_pub,*p);
 }
 
-int RIPublisher::pubRemoveService(const Region& region,const std::string& svc) {
-	auto p = Service::toPublishRm(region,svc);
+int RIPublisher::pubRemoveService(const uuid_t& region,uint32_t version,const std::string& svc) {
+	auto p = Service::toPublishRm(region,version,svc);
 	return zpb_send(m_pub,*p);
 }
 
-int RIPublisher::pubPayload(const Region& region,const Payload& pl) {
-	auto p = pl.toPublish(region);
+int RIPublisher::pubPayload(const uuid_t& region,uint32_t version,const Payload& pl) {
+	auto p = pl.toPublish(region,version);
 	return zpb_send(m_pub,*p);
 }
 
-int RIPublisher::pubRemovePayload(const Region& region,const uuid_t& pl) {
-	auto p = Payload::toPublishRm(region,pl);
+int RIPublisher::pubRemovePayload(const uuid_t& region,uint32_t version,const uuid_t& pl) {
+	auto p = Payload::toPublishRm(region,version,pl);
 	return zpb_send(m_pub,*p);
 }
 
@@ -186,14 +186,14 @@ int RIPublisher::pubRepeated() {
 
 	auto svclist = m_table->update_timeouted_service(RI_PUB_REPEAT_MS,100);
 	for(auto it=svclist.begin(); it != svclist.end(); ++it) {
-		pubService(region,*it);
+		pubService(region.id,region.version,*it);
 	}
 
 	const size_t maxcount = (m_table->payload_size() / RI_PUB_REPEAT_LOOP_TIMER_COUNT) + 100;
 
 	auto pldlist = m_table->update_timeouted_payload(RI_PUB_REPEAT_MS,maxcount);
 	for(auto it=pldlist.begin(); it != pldlist.end(); ++it) {
-		pubPayload(region,*it);
+		pubPayload(region.id,region.version,*it);
 	}
 
 	if( ! svclist.empty() || ! pldlist.empty() ) {

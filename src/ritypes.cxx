@@ -72,22 +72,24 @@ std::shared_ptr<snapshot::Service> Service::toSnapshot() const {
 	return msg;
 }
 
-std::shared_ptr<region::pub::Service> Service::toPublish(const Region& region) const {
+std::shared_ptr<region::pub::Service> Service::toPublish(const uuid_t& region,uint32_t version) const {
 	assert( ! name.empty() );
 	assert( ! address.empty() );
 
 	std::shared_ptr<region::pub::Service> msg(new region::pub::Service());
-	region.toPublishBase(msg->mutable_region());
+	msg->mutable_region()->set_uuid(region);
+	msg->mutable_region()->set_version(version);
 	msg->set_name( name );
 	msg->set_address( address );
 	return msg;
 }
 
-std::shared_ptr<region::pub::RmService> Service::toPublishRm(const Region& region,const std::string& name) {
+std::shared_ptr<region::pub::RmService> Service::toPublishRm(const uuid_t& region,uint32_t version,const std::string& name) {
 	assert( ! name.empty() );
 
 	std::shared_ptr<region::pub::RmService> msg(new region::pub::RmService());
-	region.toPublishBase(msg->mutable_region());
+	msg->mutable_region()->set_uuid(region);
+	msg->mutable_region()->set_version(version);
 	msg->set_name(name);
 
 	return msg;
@@ -98,20 +100,22 @@ std::shared_ptr<region::pub::RmService> Service::toPublishRm(const Region& regio
  * class Payload
  */
 
-std::shared_ptr<region::pub::Payload> Payload::toPublish(const Region& region) const {
+std::shared_ptr<region::pub::Payload> Payload::toPublish(const uuid_t& region,uint32_t version) const {
 	assert( ! id.empty() );
 	
 	std::shared_ptr<region::pub::Payload> msg(new region::pub::Payload());
-	region.toPublishBase(msg->mutable_region());
+	msg->mutable_region()->set_uuid(region);
+	msg->mutable_region()->set_version(version);
 	msg->set_uuid( id );
 	return msg;
 }
 
-std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const Region& region,const uuid_t& id) {
+std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id) {
 	assert( ! id.empty() );
 	
 	std::shared_ptr<region::pub::RmPayload> msg(new region::pub::RmPayload());
-	region.toPublishBase(msg->mutable_region());
+	msg->mutable_region()->set_uuid(region);
+	msg->mutable_region()->set_version(version);
 	msg->set_uuid( id );
 	return msg;
 }
