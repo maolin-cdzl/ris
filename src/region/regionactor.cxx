@@ -222,7 +222,12 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
+void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int /*err*/) {
+	if( msg ) {
+		LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
+	} else {
+		LOG(WARNING) << "RegionActor Recv no protobuf message";
+	}
 	region::api::Result ret;
 	ret.set_result(-1);
 
