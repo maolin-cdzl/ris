@@ -114,10 +114,10 @@ void RIRegionActor::run(zsock_t* pipe) {
 	assert(m_loop && m_rep);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
-		m_table = std::shared_ptr<RIRegionTable>( new RIRegionTable(m_region) );
-		m_pub = std::shared_ptr<RIPublisher>( new RIPublisher(m_loop) );
-		m_ssvc = std::shared_ptr<SnapshotService>( new SnapshotService(m_loop) );
-		std::shared_ptr<ZDispatcher> zdisp(new ZDispatcher(m_loop));
+		m_table = std::make_shared<RIRegionTable>( m_region );
+		m_pub = std::make_shared<RIPublisher>( m_loop );
+		m_ssvc = std::make_shared<SnapshotService>( m_loop );
+		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 
 		result = -1;
 		do {
