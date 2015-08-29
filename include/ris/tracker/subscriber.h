@@ -12,11 +12,16 @@ public:
 	int start(const std::string& address,const std::shared_ptr<IRIObserver>& ob);
 	int stop();
 private:
-	int onSubReadable();
-	static int subReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
+	int startLoop();
+	void stopLoop();
 
-	static void defaultAdapter(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* args);
-	void (*pb_msg_process_fn)(const std::shared_ptr<google::protobuf::Message>& msg,void* args);
+	void defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	void onRegion(const std::shared_ptr<google::protobuf::Message>& msg);
+	void onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg);
+	void onService(const std::shared_ptr<google::protobuf::Message>& msg);
+	void onRmService(const std::shared_ptr<google::protobuf::Message>& msg);
+	void onPayload(const std::shared_ptr<google::protobuf::Message>& msg);
+	void onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg);
 private:
 	zloop_t*							m_loop;
 	zsock_t*							m_sub;

@@ -106,7 +106,33 @@ target_link_libraries(regionapi LINK_PUBLIC
 	regionactor
 )
 
+# tracker
+add_library(tracker STATIC
+	src/tracker/subscriber.cxx
+	include/ris/tracker/subscriber.h
+)
 
+target_include_directories(tracker
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
+	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
+)
+
+target_link_libraries(tracker LINK_PUBLIC
+	risproto
+	snapshot
+	zmqx
+	czmq
+	zmq
+	config++
+	glog
+	gflags
+)
+
+
+
+# broker
 add_executable(ribroker src/broker/ribroker.cxx)
 target_link_libraries(ribroker PRIVATE zmq gflags)
 
