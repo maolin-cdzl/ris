@@ -10,11 +10,12 @@ RIRegionActor::RIRegionActor() :
 	m_rep(nullptr),
 	m_disp(new Dispatcher())
 {
-	m_disp->set_default(defaultOptAdapter,this);
-	m_disp->register_processer(region::api::AddService::descriptor(),addServiceAdapter,this);
-	m_disp->register_processer(region::api::RmService::descriptor(),rmServiceAdapter,this);
-	m_disp->register_processer(region::api::AddPayload::descriptor(),addPayloadAdapter,this);
-	m_disp->register_processer(region::api::RmPayload::descriptor(),rmPayloadAdapter,this);
+	m_disp->set_member_default(&RIRegionActor::defaultOpt,this);
+
+	m_disp->register_member_processer(region::api::AddService::descriptor(),&RIRegionActor::addService,this);
+	m_disp->register_member_processer(region::api::RmService::descriptor(),&RIRegionActor::rmService,this);
+	m_disp->register_member_processer(region::api::AddPayload::descriptor(),&RIRegionActor::addPayload,this);
+	m_disp->register_member_processer(region::api::RmPayload::descriptor(),&RIRegionActor::rmPayload,this);
 }
 
 RIRegionActor::~RIRegionActor() {
@@ -228,9 +229,11 @@ void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>&
 	zpb_send(m_rep,ret);
 }
 
-void RIRegionActor::addService(const std::shared_ptr<region::api::AddService>& msg) {
+void RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg) {
+	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
+	assert(p);
 	region::api::Result result;
-	if( 0 == m_table->addService(msg->name(),msg->address()) ) {
+	if( 0 == m_table->addService(p->name(),p->address()) ) {
 		result.set_result(0);
 	} else {
 		result.set_result(-1);
@@ -238,9 +241,11 @@ void RIRegionActor::addService(const std::shared_ptr<region::api::AddService>& m
 	zpb_send(m_rep,result);
 }
 
-void RIRegionActor::rmService(const std::shared_ptr<region::api::RmService>& msg) {
+void RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& msg) {
+	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
+	assert(p);
 	region::api::Result result;
-	if( 0 == m_table->rmService(msg->name()) ) {
+	if( 0 == m_table->rmService(p->name()) ) {
 		result.set_result(0);
 	} else {
 		result.set_result(-1);
@@ -248,20 +253,11 @@ void RIRegionActor::rmService(const std::shared_ptr<region::api::RmService>& msg
 	zpb_send(m_rep,result);
 }
 
-void RIRegionActor::addPayload(const std::shared_ptr<region::api::AddPayload>& msg) {
+void RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
+	assert(p);
 	region::api::Result result;
-	if( 0 == m_table->addPayload(msg->uuid()) ) {
-		result.set_result(0);
-	} else {
-		result.set_result(-1);
-	}
-
-	zpb_send(m_rep,result);
-}
-
-void RIRegionActor::rmPayload(const std::shared_ptr<region::api::RmPayload>& msg) {
-	region::api::Result result;
-	if( 0 == m_table->rmPayload(msg->uuid()) ) {
+	if( 0 == m_table->addPayload(p->uuid()) ) {
 		result.set_result(0);
 	} else {
 		result.set_result(-1);
@@ -270,36 +266,17 @@ void RIRegionActor::rmPayload(const std::shared_ptr<region::api::RmPayload>& msg
 	zpb_send(m_rep,result);
 }
 
-void RIRegionActor::defaultOptAdapter(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	self->defaultOpt(msg,err);
+void RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
+	assert(p);
+	region::api::Result result;
+	if( 0 == m_table->rmPayload(p->uuid()) ) {
+		result.set_result(0);
+	} else {
+		result.set_result(-1);
+	}
+
+	zpb_send(m_rep,result);
 }
 
-void RIRegionActor::addServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	auto m = std::dynamic_pointer_cast<region::api::AddService>(msg);
-	assert( m );
-	self->addService(m);
-}
-
-void RIRegionActor::rmServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	auto m = std::dynamic_pointer_cast<region::api::RmService>(msg);
-	assert( m );
-	self->rmService(m);
-}
-
-void RIRegionActor::addPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	auto m = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
-	assert( m );
-	self->addPayload(m);
-}
-
-void RIRegionActor::rmPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	auto m = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
-	assert( m );
-	self->rmPayload(m);
-}
 

@@ -37,16 +37,11 @@ private:
 
 
 	void defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int err);
-	void addService(const std::shared_ptr<region::api::AddService>& msg);
-	void rmService(const std::shared_ptr<region::api::RmService>& msg);
-	void addPayload(const std::shared_ptr<region::api::AddPayload>& msg);
-	void rmPayload(const std::shared_ptr<region::api::RmPayload>& msg);
+	void addService(const std::shared_ptr<google::protobuf::Message>& msg);
+	void rmService(const std::shared_ptr<google::protobuf::Message>& msg);
+	void addPayload(const std::shared_ptr<google::protobuf::Message>& msg);
+	void rmPayload(const std::shared_ptr<google::protobuf::Message>& msg);
 
-	static void defaultOptAdapter(const std::shared_ptr<google::protobuf::Message>& msg,int err,void* arg);
-	static void addServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg);
-	static void rmServiceAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg);
-	static void addPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg);
-	static void rmPayloadAdapter(const std::shared_ptr<google::protobuf::Message>& msg,void* arg);
 private:
 	bool						m_running;
 	zactor_t*					m_actor;
