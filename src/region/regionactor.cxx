@@ -58,7 +58,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
 
-		m_table = std::make_shared<RIRegionTable>(m_ctx);
+		m_table = std::make_shared<RIRegionTable>(m_ctx,m_loop);
 		m_pub = std::make_shared<RIPublisher>( m_loop );
 		m_ssvc = std::make_shared<SnapshotService>( m_loop );
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
@@ -69,7 +69,9 @@ void RIRegionActor::run(zsock_t* pipe) {
 				LOG(ERROR) << "can not bind Rep on: " << m_ctx->api_address;
 				break;
 			}
-			if( -1 == m_pub->start(m_table,m_ctx->pub_address) )
+			if( -1 == m_pub->start(m_ctx->pub_address) )
+				break;
+			if( -1 == m_table->start(m_pub) )
 				break;
 			if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) )
 				break;

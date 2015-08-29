@@ -19,7 +19,7 @@ public:
 	typedef std::unordered_map<uuid_t,payload_list_it_t>	payload_index_t;
 
 public:
-	RIRegionTable(const std::shared_ptr<RegionCtx>& ctx);
+	RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop);
 	virtual ~RIRegionTable();
 
 	inline const Region& region() const {
@@ -38,24 +38,33 @@ public:
 		return m_payloads.size();
 	}
 
-	void setObserver(IRIObserver* ob);
-	void unsetObserver();
-
 	int addService(const std::string& name,const std::string& address);
 	int rmService(const std::string& svc);
 	int addPayload(const uuid_t& pl);
 	int rmPayload(const uuid_t& pl);
 
+	virtual snapshot_package_t buildSnapshot();
+
+	int start(const std::shared_ptr<IRIObserver>& ob);
+	void stop();
+private:
 	service_list_t update_timeouted_service(ri_time_t timeout,size_t maxcount);
 	payload_list_t update_timeouted_payload(ri_time_t timeout,size_t maxcount);
 
-	virtual snapshot_package_t buildSnapshot();
+	int pubRegion();
+	int pubRepeated();
+	static int onRegionPubTimer(zloop_t *loop, int timer_id, void *arg);
+	static int onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg);
 private:
+	zloop_t*						m_loop;
 	Region							m_region;
-	IRIObserver*					m_observer;
+	std::shared_ptr<IRIObserver>	m_observer;
 
 	service_list_t		m_services;
 	service_index_t		m_services_idx;
 	payload_list_t		m_payloads;
 	payload_index_t		m_payloads_idx;
+
+	int								m_tid_reg;
+	int								m_tid_repeat;
 };

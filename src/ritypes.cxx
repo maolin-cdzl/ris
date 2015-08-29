@@ -4,6 +4,28 @@
  * class Region
  */
 
+Region::Region(const Region& ref) :
+	id(ref.id),
+	version(ref.version),
+	idc(ref.idc),
+	bus_address(ref.bus_address),
+	snapshot_address(ref.snapshot_address),
+	timeval(ref.timeval)
+{
+}
+
+Region& Region::operator = (const Region& ref) {
+	if( this != &ref  ) {
+		id = ref.id;
+		version = ref.version;
+		idc = ref.idc;
+		bus_address = ref.bus_address;
+		snapshot_address = ref.snapshot_address;
+		timeval = ref.timeval;
+	}
+	return *this;
+}
+
 std::shared_ptr<region::pub::Region> Region::toPublish() const {
 	assert( ! id.empty() );
 	std::shared_ptr<region::pub::Region> msg(new region::pub::Region());
@@ -63,6 +85,21 @@ std::shared_ptr<snapshot::RegionEnd> Region::toSnapshotEnd() const {
  * class Service 
  */
 
+Service::Service(const Service& ref) :
+	name(ref.name),
+	address(ref.address),
+	timeval(ref.timeval)
+{
+}
+
+Service& Service::operator = (const Service& ref) {
+	if( this != &ref ) {
+		name = ref.name;
+		address = ref.address;
+		timeval = ref.timeval;
+	}
+	return *this;
+}
 
 std::shared_ptr<snapshot::Service> Service::toSnapshot() const {
 	std::shared_ptr<snapshot::Service> msg{ new snapshot::Service() };
@@ -99,6 +136,20 @@ std::shared_ptr<region::pub::RmService> Service::toPublishRm(const uuid_t& regio
 /**
  * class Payload
  */
+
+Payload::Payload(const Payload& ref) :
+	id(ref.id),
+	timeval(ref.timeval)
+{
+}
+
+Payload& Payload::operator = (const Payload& ref) {
+	if( this != &ref ) {
+		id = ref.id;
+		timeval = ref.timeval;
+	}
+	return *this;
+}
 
 std::shared_ptr<region::pub::Payload> Payload::toPublish(const uuid_t& region,uint32_t version) const {
 	assert( ! id.empty() );

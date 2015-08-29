@@ -1,8 +1,18 @@
 #include <glog/logging.h>
 #include "ris/region/regiontable.h"
 
-RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx) :
-	m_observer(nullptr)
+static const long RI_PUB_REPEAT_SECOND			= 60;
+static const long RI_PUB_REPEAT_MS				= RI_PUB_REPEAT_SECOND * 1000;
+static const long RI_PUB_REPEAT_TIMER			= 20;
+static const long RI_PUB_REPEAT_LOOP_TIMER_COUNT	= RI_PUB_REPEAT_MS / RI_PUB_REPEAT_TIMER;
+
+static const long RI_PUB_REGION_SECOND			= 5;
+static const long RI_PUB_REGION_MS				= RI_PUB_REGION_SECOND * 1000;
+
+RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop) :
+	m_loop(loop),
+	m_tid_reg(-1),
+	m_tid_repeat(-1)
 {
 	m_region.id = ctx->uuid;
 	m_region.idc = ctx->idc;
@@ -13,14 +23,6 @@ RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx) :
 }
 
 RIRegionTable::~RIRegionTable() {
-}
-
-void RIRegionTable::setObserver(IRIObserver* ob) {
-	m_observer = ob;
-}
-
-void RIRegionTable::unsetObserver() {
-	m_observer = nullptr;
 }
 
 int RIRegionTable::addService(const std::string& name,const std::string& address) {
@@ -156,6 +158,77 @@ snapshot_package_t RIRegionTable::buildSnapshot() {
 	package.push_back(m_region.toSnapshotEnd());
 	package.push_back(std::shared_ptr<snapshot::SnapshotEnd>(new snapshot::SnapshotEnd()));
 	return std::move(package);
+}
+
+int RIRegionTable::start(const std::shared_ptr<IRIObserver>& ob) {
+	if( -1 != m_tid_reg || -1 != m_tid_repeat )
+		return -1;
+	m_observer = ob;
+	m_tid_reg = zloop_timer(m_loop,RI_PUB_REGION_MS,0,onRegionPubTimer,this);
+	if( -1 == m_tid_reg )
+		return -1;
+	m_tid_repeat = zloop_timer(m_loop,RI_PUB_REPEAT_TIMER,0,onRepeatPubTimer,this);
+	if( -1 == m_tid_repeat ) {
+		zloop_timer_end(m_loop,m_tid_reg);
+		m_tid_reg = -1;
+		return -1;
+	}
+	if( m_observer ) {
+		m_observer->onRegion(m_region);
+	}
+	return 0;
+}
+
+void RIRegionTable::stop() {
+	if( m_tid_reg != -1 ) {
+		zloop_timer_end(m_loop,m_tid_reg);
+		m_tid_reg = -1;
+	}
+	if( m_tid_repeat != -1 ) {
+		zloop_timer_end(m_loop,m_tid_repeat);
+		m_tid_repeat = -1;
+	}
+	if( m_observer ) {
+		m_observer->onRmRegion(m_region.id);
+	}
+}
+
+int RIRegionTable::pubRepeated() {
+	if( m_observer ) {
+		auto svclist = update_timeouted_service(RI_PUB_REPEAT_MS,100);
+		for(auto it=svclist.begin(); it != svclist.end(); ++it) {
+			m_observer->onService(m_region.id,m_region.version,*it);
+		}
+
+		const size_t maxcount = (payload_size() / RI_PUB_REPEAT_LOOP_TIMER_COUNT) + 100;
+
+		auto pldlist = update_timeouted_payload(RI_PUB_REPEAT_MS,maxcount);
+		for(auto it=pldlist.begin(); it != pldlist.end(); ++it) {
+			m_observer->onPayload(m_region.id,m_region.version,*it);
+		}
+
+		if( ! svclist.empty() || ! pldlist.empty() ) {
+			LOG(INFO) << "Repeated pub " << svclist.size() << " service and " << pldlist.size() << " payload, version: " << m_region.version;
+		}
+	}
+	return 0;
+}
+
+int RIRegionTable::pubRegion() {
+	if( m_observer ) {
+		m_observer->onRegion(m_region);
+	}
+	return 0;
+}
+
+int RIRegionTable::onRegionPubTimer(zloop_t *loop, int timer_id, void *arg) {
+	RIRegionTable* self = (RIRegionTable*)arg;
+	return self->pubRegion();
+}
+
+int RIRegionTable::onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg) {
+	RIRegionTable* self = (RIRegionTable*)arg;
+	return self->pubRepeated();
 }
 
 

@@ -26,6 +26,9 @@ public:
 		version(0),timeval(0)
 	{
 	}
+
+	Region(const Region& ref);
+	Region& operator = (const Region& ref);
 public:
 	std::shared_ptr<region::pub::Region> toPublish() const ;
 	void toPublishBase(region::pub::RegionBase* region) const;
@@ -51,6 +54,9 @@ public:
 		name(n),address(a),timeval(tv)
 	{
 	}
+
+	Service(const Service& ref);
+	Service& operator = (const Service& ref);
 public:
 	std::shared_ptr<region::pub::Service> toPublish(const uuid_t& region,uint32_t version) const;
 	static std::shared_ptr<region::pub::RmService> toPublishRm(const uuid_t& region,uint32_t version,const std::string& name);
@@ -71,6 +77,9 @@ public:
 		id(_id),timeval(tv)
 	{
 	}
+
+	Payload(const Payload& ref);
+	Payload& operator = (const Payload& ref);
 public:
 	std::shared_ptr<region::pub::Payload> toPublish(const uuid_t& region,uint32_t version) const;
 	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id);
