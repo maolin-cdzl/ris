@@ -20,13 +20,14 @@ void RITrackerTable::stop() {
 
 // method from IRIObserver
 void RITrackerTable::onRegion(const Region& reg) {
-	auto it = m_regions_index.find(reg.id);
-	if( it == m_regions_index.end() ) {
+	auto riit = m_regions_index.find(reg.id);
+	if( riit == m_regions_index.end() ) {
 		auto iit = m_regions.insert(m_regions.end(),std::make_shared<Region>(reg));
 		m_regions_index.insert( std::make_pair(reg.id,iit) );
 	} else {
-		auto iit = it->second;
-		*(*iit) = reg;
+		auto rcit = riit->second;
+		*(*rcit) = reg;
+		m_regions.splice(m_regions.end(),m_regions,rcit);	// move latest updated to end
 	}
 }
 
@@ -100,6 +101,8 @@ void RITrackerTable::onService(const uuid_t& reg,uint32_t version,const Service&
 			if( lit != l.end() ) {
 				// update the service info of this region
 				(*lit)->service = svc;
+				auto scit = (*lit);
+				m_services.splice(m_services.end(),m_services,scit); // move latest updated to end
 			} else {
 				// if this region has no this service yet.
 				RegionService rs;
@@ -175,8 +178,9 @@ void RITrackerTable::onPayload(const uuid_t& reg,uint32_t version,const Payload&
 				LOG(ERROR) << "Region: " << reg << " replace region: " << regptr->id << " with payload: " << pl.id;
 				pcit->region = *regit;
 			}
-			updateRegionVersion(*regit,version);
 			pcit->payload = pl;
+			m_payloads.splice(m_payloads.end(),m_payloads,pcit);	// move latest updated to end
+			updateRegionVersion(*regit,version);
 		}
 	} else {
 		LOG(WARNING) << "Recv payload: " << pl.id << " pub to unexists region: " << reg;
@@ -267,14 +271,13 @@ int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
 			std::list<service_iterator_t> l;
 			l.push_back(scit);
 			m_services_index.insert( std::make_pair(svc.name,l) );
-
+			result = 0;
 			LOG(INFO) << "Add full new service: " << svc.name << " to region: " << reg;
 		} else {
 			std::list<service_iterator_t>& l = siit->second;
 			auto lit = findRegionService(l,reg);
 			if( lit != l.end() ) {
-				// update the service info of this region
-				(*lit)->service = svc;
+				LOG(ERROR) << "Region: " << reg << " already has service: " << svc.name;
 			} else {
 				// if this region has no this service yet.
 				RegionService rs;
@@ -282,11 +285,11 @@ int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
 				rs.service = svc;
 				auto scit = m_services.insert(m_services.end(),rs);
 				l.push_back(scit);
+				result = 0;
 				
 				LOG(INFO) << "Add service: " << svc.name << " to region: " << reg;
 			}
 		}
-		result = 0;
 	} else {
 		LOG(WARNING) << "Add service: " << svc.name << " to unexists region: " << reg;
 	}
@@ -308,19 +311,12 @@ int RITrackerTable::addPayload(const uuid_t& reg,const Payload& pl) {
 
 			auto pcit = m_payloads.insert(m_payloads.end(),rp);
 			m_payloads_index.insert( std::make_pair(pl.id,pcit) );
+			result = 0;
 
 			LOG(INFO) << "New payload: " << pl.id << " from region: " << reg;
 		} else {
-			// update payload info
-			auto pcit = piit->second;
-			auto regptr = pcit->region;
-			if( regptr != *regit ) {
-				LOG(ERROR) << "Region: " << reg << " replace region: " << regptr->id << " with payload: " << pl.id;
-				pcit->region = *regit;
-			}
-			pcit->payload = pl;
+			LOG(ERROR) << "Payload: " << pl.id << " already exists in region: " << piit->second->region->id;
 		}
-		result = 0;
 	} else {
 		LOG(WARNING) << "add payload: " << pl.id << " to unexists region: " << reg;
 	}
