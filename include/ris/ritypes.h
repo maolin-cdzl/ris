@@ -18,7 +18,7 @@ public:
 	uuid_t					id;
 	uint32_t				version;
 	std::string				idc;
-	std::string				msg_address;
+	std::string				bus_address;
 	std::string				snapshot_address;
 	ri_time_t				timeval;
 

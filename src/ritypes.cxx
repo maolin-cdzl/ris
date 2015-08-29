@@ -13,8 +13,8 @@ std::shared_ptr<region::pub::Region> Region::toPublish() const {
 	if( ! idc.empty() ) {
 		msg->set_idc(idc);
 	}
-	if( ! msg_address.empty() ) {
-		msg->set_msg_address(msg_address);
+	if( ! bus_address.empty() ) {
+		msg->set_bus_address(bus_address);
 	}
 	if( ! snapshot_address.empty() ) {
 		msg->set_snapshot_address(snapshot_address);
@@ -42,8 +42,8 @@ std::shared_ptr<snapshot::RegionBegin> Region::toSnapshotBegin() const {
 	if( ! idc.empty() ) {
 		msg->set_idc(idc);
 	}
-	if( ! msg_address.empty() ) {
-		msg->set_msg_address(msg_address);
+	if( ! bus_address.empty() ) {
+		msg->set_bus_address(bus_address);
 	}
 	if( ! snapshot_address.empty() ) {
 		msg->set_snapshot_address(snapshot_address);

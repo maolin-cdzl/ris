@@ -104,8 +104,8 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 			if( p->has_idc() ) {
 				region.idc = p->idc();
 			}
-			if( p->has_msg_address() ) {
-				region.msg_address = p->msg_address();
+			if( p->has_bus_address() ) {
+				region.bus_address = p->bus_address();
 			}
 			if( p->has_snapshot_address() ) {
 				region.snapshot_address = p->snapshot_address();

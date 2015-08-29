@@ -10,7 +10,7 @@ message RegionBegin {
 	required string				uuid = 1;
 	required uint32				version = 2;
 	optional string				idc = 3;
-	optional string				msg_address = 4;
+	optional string				bus_address = 4;
 	optional string				snapshot_address = 5;
 }
 
