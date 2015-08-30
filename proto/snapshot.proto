@@ -1,5 +1,13 @@
 package snapshot;
 
+message SnapshotReq {
+}
+
+message SnapshotRep {
+	required int32				result = 1;
+	optional string				address = 2;
+}
+
 message SnapshotBegin {
 }
 
