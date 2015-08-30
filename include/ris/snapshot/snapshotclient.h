@@ -14,6 +14,8 @@ public:
 
 	int start(const std::function<void(int)>& ob,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
 	void stop();
+
+	bool isActive() const;
 private:
 	int pullSnapshotBegin(zsock_t* sock);
 	int pullRegionOrFinish(zsock_t* sock);

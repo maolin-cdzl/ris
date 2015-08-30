@@ -228,3 +228,7 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 	return -1;
 }
 
+bool SnapshotClient::isActive() const {
+	return m_sock != nullptr;
+}
+
