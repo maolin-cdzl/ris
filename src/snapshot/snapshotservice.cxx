@@ -1,4 +1,7 @@
+#include <glog/logging.h>
 #include "ris/snapshot/snapshotservice.h"
+#include "ris/snapshot.pb.h"
+#include "zmqx/zprotobuf++.h"
 
 
 SnapshotService::SnapshotService(zloop_t* loop) :
@@ -67,40 +70,29 @@ void SnapshotService::stopLoop(zloop_t* loop) {
 }
 
 int SnapshotService::onMainReadable(zloop_t* loop) {
-	zmsg_t* msg = nullptr;
 	bool good = false;
 
 	do {
-		msg = zmsg_recv(m_sock);
-		if( msg == nullptr )
+		snapshot::SnapshotReq req;
+		if( -1 == zpb_recv(req,m_sock) )
 			break;
 		
-		zframe_t* fr = zmsg_first(msg);
-		if( fr == nullptr )
+		if( m_workers.size() >= m_capacity )
 			break;
-		if( zframe_streq(fr,"$ssreq") ) {
-			if( m_workers.size() >= m_capacity )
-				break;
-			std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
-			auto snapshot = m_snapshotable->buildSnapshot();
-			if( 0 == worker->start(snapshot) ) {
-				auto endpoint = worker->endpoint();
-				m_workers.push_back(worker);
-				
-				zloop_reader(loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
-				zstr_sendm(m_sock,"ok");
-				zstr_send(m_sock,endpoint.c_str());
-				good = true;
-			}
-		} else {
-			break;
-		}
-		
-	} while(0);
+		std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
+		auto snapshot = m_snapshotable->buildSnapshot();
+		if( 0 == worker->start(snapshot) ) {
+			auto endpoint = worker->endpoint();
+			m_workers.push_back(worker);
+			zloop_reader(loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
 
-	if( msg ) {
-		zmsg_destroy(&msg);
-	}
+			snapshot::SnapshotRep rep;
+			rep.set_result(0);
+			rep.set_address(endpoint);
+			zpb_send(m_sock,rep);
+			good = true;
+		}
+	} while(0);
 
 	if( ! good ) {
 		zstr_send(m_sock,"error");
@@ -111,13 +103,15 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 int SnapshotService::onWorkerReadable(zloop_t* loop,zsock_t* reader) {
 	auto worker = findWorker(reader);
 	if( worker == nullptr ) {
-		// log it
+		LOG(FATAL) << "SnapshotService can NOT found worker in onWorkerReadable";
 		return -1;
 	}
 
 	zmsg_t* msg = zmsg_recv(worker->actor());
 	if( msg ) {
-		// log it
+		char* result = zframe_strdup( zmsg_first(msg) );
+		LOG(INFO) << "SnapshotServiceWorker done with result: " << result;
+		free(result);
 		zmsg_destroy(&msg);
 	}
 
