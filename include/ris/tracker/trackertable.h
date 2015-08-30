@@ -57,9 +57,21 @@ private:
 
 private:
 	void updateRegionVersion(std::shared_ptr<Region>& region,uint32_t version);
+	void updateRegionVersion(const uuid_t& region,uint32_t version);
 	std::list<service_iterator_t>::iterator findRegionService(std::list<service_iterator_t>& l,const uuid_t& region);
+
+	int doAddRegion(const Region& region);
+	int doRmRegion(const uuid_t& region);
+	int doAddService(const uuid_t& region,const Service& svc);
+	int doRmService(const uuid_t& region,const std::string& svc);
+	int doAddPayload(const uuid_t& region,const Payload& pl);
+	int doRmPayload(const uuid_t& region,const uuid_t& pl);
+	int onCheckTimer();
+
+	static int checkTimerAdapter(zloop_t *loop, int timer_id, void *arg);
 private:
 	zloop_t*										m_loop;
+	int												m_tid;
 	region_container_t								m_regions;
 	region_index_t									m_regions_index;
 	service_container_t								m_services;
