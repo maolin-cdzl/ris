@@ -29,6 +29,8 @@ public:
 	UpdateData();
 	~UpdateData();
 
+	void present(const uuid_t& region,const std::shared_ptr<IRIObserver>& ob);
+
 	static std::shared_ptr<UpdateData> fromRegion(const Region& reg);
 	static std::shared_ptr<UpdateData> fromService(uint32_t version,const Service& svc);
 	static std::shared_ptr<UpdateData> fromPayload(uint32_t version,const Payload& pl);
@@ -43,6 +45,7 @@ public:
 	SubCacher(const std::function<void(const Region&)>& fnNewRegion,const std::function<void(const uuid_t&)>& fnRmRegion);
 	virtual ~SubCacher();
 
+	int present(const uuid_t& region,uint32_t version,const std::shared_ptr<IRIObserver>& observer);
 private:
 	virtual void onRegion(const Region& reg);
 	virtual void onRmRegion(const uuid_t& reg);

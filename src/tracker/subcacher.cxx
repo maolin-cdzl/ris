@@ -42,6 +42,33 @@ UpdateData::~UpdateData() {
 	}
 }
 
+void UpdateData::present(const uuid_t& region,const std::shared_ptr<IRIObserver>& ob) {
+	assert( type != UNKNOWN );
+	assert( data );
+
+	switch( type )
+	{
+		case UPDATE_REGION :
+			ob->onRegion(*(Region*)data);
+			break;
+		case UPDATE_SERVICE :
+			ob->onService(region,version,*(Service*)data);
+			break;
+		case RM_SERVICE :
+			ob->onRmService(region,version,*(std::string*)data);
+			break;
+		case UPDATE_PAYLOAD :
+			ob->onPayload(region,version,*(Payload*)data);
+			break;
+		case RM_PAYLOAD :
+			ob->onRmPayload(region,version,*(uuid_t*)data);
+			break;
+		default:
+			LOG(FATAL) << "UpdateData present unknown type: " << (int)type;
+			break;
+	}
+}
+
 std::shared_ptr<UpdateData> UpdateData::fromRegion(const Region& reg) {
 	return std::make_shared<UpdateData>(reg.version,UPDATE_REGION,new Region(reg));
 }
@@ -125,5 +152,22 @@ void SubCacher::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t& pl)
 		auto update = UpdateData::fromRmPayload(version,pl);
 		it->second.push_back(update);
 	}
+}
+
+int SubCacher::present(const uuid_t& region,uint32_t version,const std::shared_ptr<IRIObserver>& observer) {
+	auto it = m_updates.find(region);
+	if( it == m_updates.end() )
+		return -1;
+
+	auto& l = it->second;
+	while( ! l.empty() ) {
+		auto& update = l.front();
+		if( update->version > version ) {
+			update->present(it->first,observer);
+		}
+		l.pop_front();
+	}
+	m_updates.erase(it);
+	return 0;
 }
 
