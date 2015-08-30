@@ -26,6 +26,14 @@ Region& Region::operator = (const Region& ref) {
 	return *this;
 }
 
+bool Region::operator == (const uuid_t& _id) {
+	return id == _id;
+}
+
+bool Region::operator == (const Region& ref) {
+	return id ==  ref.id;
+}
+
 std::shared_ptr<region::pub::Region> Region::toPublish() const {
 	assert( ! id.empty() );
 	std::shared_ptr<region::pub::Region> msg(new region::pub::Region());
@@ -149,6 +157,14 @@ Payload& Payload::operator = (const Payload& ref) {
 		timeval = ref.timeval;
 	}
 	return *this;
+}
+
+bool Payload::operator == (const uuid_t& _id) {
+	return id == _id;
+}
+
+bool Payload::operator == (const Payload& ref) {
+	return id == ref.id;
 }
 
 std::shared_ptr<region::pub::Payload> Payload::toPublish(const uuid_t& region,uint32_t version) const {

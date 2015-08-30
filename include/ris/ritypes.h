@@ -29,6 +29,9 @@ public:
 
 	Region(const Region& ref);
 	Region& operator = (const Region& ref);
+
+	bool operator == (const uuid_t& _id);
+	bool operator == (const Region& ref);
 public:
 	std::shared_ptr<region::pub::Region> toPublish() const ;
 	void toPublishBase(region::pub::RegionBase* region) const;
@@ -36,7 +39,6 @@ public:
 
 	std::shared_ptr<snapshot::RegionBegin> toSnapshotBegin() const;
 	std::shared_ptr<snapshot::RegionEnd> toSnapshotEnd() const;
-
 };
 
 
@@ -80,6 +82,8 @@ public:
 
 	Payload(const Payload& ref);
 	Payload& operator = (const Payload& ref);
+	bool operator == (const uuid_t& _id);
+	bool operator == (const Payload& ref);
 public:
 	std::shared_ptr<region::pub::Payload> toPublish(const uuid_t& region,uint32_t version) const;
 	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id);
@@ -88,4 +92,20 @@ public:
 	std::shared_ptr<snapshot::Payload> toSnapshot() const;
 };
 
+
+namespace std {
+	template<>
+	struct hash<Region> {
+		std::size_t operator()(const Region& region) const {
+			return std::hash<std::string>()(region.id);
+		}
+	};
+
+	template<>
+	struct hash<Payload> {
+		std::size_t operator()(const Payload& payload) const {
+			return std::hash<std::string>()(payload.id);
+		}
+	};
+}
 
