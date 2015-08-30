@@ -30,8 +30,8 @@ public:
 	Region(const Region& ref);
 	Region& operator = (const Region& ref);
 
-	bool operator == (const uuid_t& _id);
-	bool operator == (const Region& ref);
+	bool operator == (const uuid_t& _id) const;
+	bool operator == (const Region& ref) const;
 public:
 	std::shared_ptr<region::pub::Region> toPublish() const ;
 	void toPublishBase(region::pub::RegionBase* region) const;
@@ -82,8 +82,8 @@ public:
 
 	Payload(const Payload& ref);
 	Payload& operator = (const Payload& ref);
-	bool operator == (const uuid_t& _id);
-	bool operator == (const Payload& ref);
+	bool operator == (const uuid_t& _id) const;
+	bool operator == (const Payload& ref) const;
 public:
 	std::shared_ptr<region::pub::Payload> toPublish(const uuid_t& region,uint32_t version) const;
 	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id);

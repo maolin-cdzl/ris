@@ -26,11 +26,11 @@ Region& Region::operator = (const Region& ref) {
 	return *this;
 }
 
-bool Region::operator == (const uuid_t& _id) {
+bool Region::operator == (const uuid_t& _id) const {
 	return id == _id;
 }
 
-bool Region::operator == (const Region& ref) {
+bool Region::operator == (const Region& ref) const {
 	return id ==  ref.id;
 }
 
@@ -159,11 +159,11 @@ Payload& Payload::operator = (const Payload& ref) {
 	return *this;
 }
 
-bool Payload::operator == (const uuid_t& _id) {
+bool Payload::operator == (const uuid_t& _id) const {
 	return id == _id;
 }
 
-bool Payload::operator == (const Payload& ref) {
+bool Payload::operator == (const Payload& ref) const {
 	return id == ref.id;
 }
 
