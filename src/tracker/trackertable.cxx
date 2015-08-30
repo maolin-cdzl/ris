@@ -44,6 +44,50 @@ void RITrackerTable::stop() {
 	}
 }
 
+// access method
+size_t RITrackerTable::region_size() const {
+	return m_regions.size();
+}
+
+size_t RITrackerTable::service_size() const {
+	return m_services.size();
+}
+
+size_t RITrackerTable::payload_size() const {
+	return m_payloads.size();
+}
+
+std::shared_ptr<Region> RITrackerTable::getRegion(const uuid_t& id)  const {
+	auto riit = m_regions_index.find(id);
+	if( riit != m_regions_index.end() ) {
+		return *(riit->second);
+	}
+	return nullptr;
+}
+
+// get region carry this payload
+std::shared_ptr<Region> RITrackerTable::routePayload(const uuid_t& id)  const {
+	auto piit = m_payloads_index.find(id);
+	if( m_payloads_index.end() != piit ) {
+		return piit->second->region;
+	}
+	return nullptr;
+}
+
+// get region provide this service,this is round-robin
+std::shared_ptr<Region> RITrackerTable::RobinRouteService(const std::string& svc) {
+	auto siit = m_services_index.find(svc);
+	if( siit != m_services_index.end() ) {
+		auto& l = siit->second;
+		if( ! l.empty() ) {
+			auto regptr = l.front()->region;
+			l.splice(l.end(),l,l.begin());		// move first to end
+			return std::move(regptr);
+		}
+	}
+	return nullptr;
+}
+
 int RITrackerTable::checkTimerAdapter(zloop_t *loop, int timer_id, void *arg) {
 	RITrackerTable* self = (RITrackerTable*) arg;
 	self->onCheckTimer();
