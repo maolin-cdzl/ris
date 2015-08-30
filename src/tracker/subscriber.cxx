@@ -76,6 +76,15 @@ int RISubscriber::stop() {
 	return 0;
 }
 
+int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
+	assert( ob );
+	if( m_sub ) {
+		m_observer = ob;
+		return 0;
+	} else {
+		return -1;
+	}
+}
 
 void RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int) {
 	if( msg ) {

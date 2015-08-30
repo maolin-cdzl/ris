@@ -11,6 +11,8 @@ public:
 
 	int start(const std::string& address,const std::shared_ptr<IRIObserver>& ob);
 	int stop();
+
+	int setObserver(const std::shared_ptr<IRIObserver>& ob);
 private:
 	int startLoop();
 	void stopLoop();
