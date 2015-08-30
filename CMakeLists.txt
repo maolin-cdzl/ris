@@ -112,8 +112,10 @@ target_link_libraries(regionapi LINK_PUBLIC
 add_library(tracker STATIC
 	src/tracker/subscriber.cxx
 	src/tracker/trackertable.cxx
+	src/tracker/fromregionfactory.cxx
 	include/ris/tracker/subscriber.h
 	include/ris/tracker/trackertable.h
+	include/ris/tracker/fromregionfactory.h
 )
 
 target_include_directories(tracker
