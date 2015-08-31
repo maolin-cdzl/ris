@@ -25,7 +25,7 @@ public:
 	FromRegionFactory(zloop_t* loop);
 	~FromRegionFactory();
 
-	int start(const std::string& pub_address);
+	int start(const std::string& pub_address,const std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>& ob);
 	void stop();
 private:
 	void onSnapshotDone(uuid_t uuid,int err);
@@ -34,14 +34,21 @@ private:
 
 	int nextSnapshot();
 	std::shared_ptr<TrackerFactoryProduct> product();
+	int onTimer();
+
+	static int timerAdapter(zloop_t* loop,int timerid,void* arg);
 private:
 	zloop_t*						m_loop;
-	TrackerFactoryProduct			m_product;
+	std::shared_ptr<TrackerFactoryProduct>			m_product;
 
 	std::shared_ptr<SubCacher>		m_sub_cacher;
 	std::shared_ptr<SnapshotClient>	m_ss_cli;
 
 	std::unordered_set<uuid_t>		m_shoted_regions;
 	std::unordered_set<Region>		m_unshoted_regions;
+
+	int								m_tid;
+	ri_time_t						m_tv_timeout;
+	std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>	m_observer;
 };
 
