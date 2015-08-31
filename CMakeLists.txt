@@ -142,6 +142,22 @@ target_link_libraries(tracker LINK_PUBLIC
 )
 
 
+# trackerapi
+add_library(trackerapi SHARED
+	trackerapi/trackerapi.h
+	trackerapi/trackerapi.cxx
+)
+
+target_include_directories(trackerapi
+	PRIVATE $<TARGET_PROPERTY:tracker,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(trackerapi PRIVATE TRACKERAPI_BUILDING)
+
+target_link_libraries(trackerapi LINK_PUBLIC
+	tracker
+)
+
 
 # broker
 add_executable(ribroker src/broker/ribroker.cxx)
