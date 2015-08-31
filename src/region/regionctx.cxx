@@ -9,7 +9,7 @@ int RegionCtx::loadConfig(const std::string& file) {
 	try {
 		cfg.readFile(file.c_str());
 	} catch( const libconfig::FileIOException& e ) {
-		LOG(FATAL) << "RIRegionActor can not open config file: " << file;
+		LOG(FATAL) << "RegionCtx can not open config file: " << file;
 		return -1;
 	} catch( const libconfig::ParseException& e ) {
 		LOG(FATAL) << "Parse error at " << e.getFile() << ":" << e.getLine() << " - " << e.getError();
