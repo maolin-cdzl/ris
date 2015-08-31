@@ -25,12 +25,7 @@ int RITrackerActor::start(const std::shared_ptr<TrackerCtx>& ctx) {
 	m_actor = zactor_new(actorRunner,this);
 	if( nullptr == m_actor )
 		return -1;
-	if( 0 != zsock_wait(m_actor) ) {
-		zactor_destroy(&m_actor);
-		return -1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 void RITrackerActor::stop() {
@@ -40,32 +35,46 @@ void RITrackerActor::stop() {
 	}
 }
 
+int RITrackerActor::wait() {
+	if( nullptr == m_actor )
+		return -1;
+	zsock_wait(m_actor);
+	stop();
+	return 0;
+}
+
 
 void RITrackerActor::run(zsock_t* pipe) {
 	assert( m_ctx );
 
 	do {
+		LOG(INFO) << "RITrackerActor initialize...";
 		m_loop = zloop_new();
 		assert(m_loop);
 		m_rep = zsock_new_rep(m_ctx->api_address.c_str());
-		if( nullptr == m_rep )
+		if( nullptr == m_rep ) {
+			LOG(FATAL) << "Create rep socket failed";
 			break;
+		}
 
 		if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
-			LOG(ERROR) << "Register pipe reader error";
+			LOG(FATAL) << "Register pipe reader error";
 			break;
 		}
 
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 		if( -1 == zdisp->start(m_rep,m_disp) ) {
+			LOG(FATAL) << "Start zdispatcher failed";
 			break;
 		}
 		
 		m_factory = std::make_shared<FromRegionFactory>(m_loop);
 		if( -1 == m_factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2)) ) {
+			LOG(FATAL) << "Start factory failed";
 			break;
 		}
 		m_running = true;
+		zsock_signal(pipe,0);
 		while( m_running ) {
 			int result = zloop_start(m_loop);
 			if( result == 0 ) {
@@ -95,6 +104,8 @@ void RITrackerActor::run(zsock_t* pipe) {
 	if( m_loop ) {
 		zloop_destroy(&m_loop);
 	}
+	LOG(INFO) << "RITrackerActor shutdown";
+	zsock_signal(pipe,0);
 }
 
 int RITrackerActor::onPipeReadable(zsock_t* pipe) {
@@ -155,13 +166,13 @@ void RITrackerActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>
 
 void RITrackerActor::onFactoryDone(int err,const std::shared_ptr<TrackerFactoryProduct>& product) {
 	if( 0 == err && product ) {
-		LOG(INFO) << "Factory done success";
 		m_table = product->table;
 		m_sub = product->sub;
 		assert( m_table );
 		assert( m_sub );
-
 		m_factory.reset();
+
+		LOG(INFO) << "Factory done success,region: " << m_table->region_size() << ", service: " << m_table->service_size() << ", payloads: " << m_table->payload_size();
 
 		m_ssvc = std::make_shared<SnapshotService>(m_loop);
 		if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {

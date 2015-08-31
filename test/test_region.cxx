@@ -21,8 +21,7 @@ int main(int argc,char* argv[]) {
 	const uint64_t tv_end = t_time_now();
 	std::cout << "Cost " << tv_end - tv_start << " msec" << std::endl;
 	region_close(s);
-	sleep(30);
-	region_stop();
+	region_wait();
 	return 0;
 }
 

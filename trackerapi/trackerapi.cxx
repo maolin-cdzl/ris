@@ -46,3 +46,11 @@ extern "C" TRACKERAPI_EXPORT int tracker_stop() {
 }
 
 
+extern "C" TRACKERAPI_EXPORT int tracker_wait() {
+	if( g_actor ) {
+		return g_actor->wait();
+	} else {
+		return -1;
+	}
+}
+

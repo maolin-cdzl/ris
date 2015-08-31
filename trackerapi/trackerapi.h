@@ -24,6 +24,9 @@ TRACKERAPI_EXPORT int tracker_start(const char* confile,int standalone);
 
 TRACKERAPI_EXPORT int tracker_stop();
 
+// wait tracker shutdown,it will block caller
+TRACKERAPI_EXPORT int tracker_wait();
+
 #ifdef __cplusplus
 }
 #endif

@@ -8,9 +8,7 @@ int main(int argc,char* argv[]) {
 	if( -1 == result )
 		return -1;
 
-	sleep(600);
-
-	tracker_stop();
+	tracker_wait();
 	return 0;
 }
 

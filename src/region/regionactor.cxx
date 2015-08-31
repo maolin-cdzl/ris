@@ -30,12 +30,7 @@ int RIRegionActor::start(const std::shared_ptr<RegionCtx>& ctx) {
 	m_actor = zactor_new(actorRunner,this);
 	if( nullptr == m_actor )
 		return -1;
-	if( 0 != zsock_wait(m_actor) ) {
-		zactor_destroy(&m_actor);
-		return -1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 int RIRegionActor::stop() {
@@ -48,8 +43,16 @@ int RIRegionActor::stop() {
 	}
 }
 
+int RIRegionActor::wait() {
+	if( nullptr == m_actor )
+		return -1;
+
+	zsock_wait(m_actor);
+	stop();
+	return 0;
+}
+
 void RIRegionActor::run(zsock_t* pipe) {
-	int result = -1;
 	m_loop = zloop_new();
 	m_rep = zsock_new(ZMQ_REP);
 
@@ -63,45 +66,38 @@ void RIRegionActor::run(zsock_t* pipe) {
 		m_ssvc = std::make_shared<SnapshotService>( m_loop );
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 
-		result = -1;
-		do {
-			if( -1 == zsock_bind(m_rep,"%s",m_ctx->api_address.c_str()) ) {
-				LOG(ERROR) << "can not bind Rep on: " << m_ctx->api_address;
-				break;
-			}
-			if( -1 == m_pub->start(m_ctx->pub_address) )
-				break;
-			if( -1 == m_table->start(m_pub) )
-				break;
-			if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) )
-				break;
+		if( -1 == zsock_bind(m_rep,"%s",m_ctx->api_address.c_str()) ) {
+			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
+			break;
+		}
+		if( -1 == m_pub->start(m_ctx->pub_address) ) {
+			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
+			break;
+		}
+		if( -1 == m_table->start(m_pub) ) {
+			LOG(FATAL) << "Start RIRegionTable failed";
+			break;
+		}
+		if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
+			LOG(FATAL) << "Start SnapshotService failed";
+			break;
+		}
 
-			if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
-				LOG(ERROR) << "Register pipe reader error";
-				break;
-			}
+		if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
+			LOG(FATAL) << "Register pipe reader error";
+			break;
+		}
 
-			if( -1 == zdisp->start(m_rep,m_disp) ) {
-				LOG(ERROR) << "Start dispatcher error";
-				break;
-			}
-			result = 0;
-		} while( 0 );
+		if( -1 == zdisp->start(m_rep,m_disp) ) {
+			LOG(FATAL) << "Start dispatcher error";
+			break;
+		}
 
 		zsock_signal(pipe,0);
-		if( -1 == result ) {
-			LOG(ERROR) << "RIRegionActor initialize error!";
-			zsock_signal(pipe,1);
-			break;
-		} else {
-			LOG(INFO) << "RIRegionActor initialize done";
-			zsock_signal(pipe,0);
-			m_running = true;
-		}
-		
 
+		m_running = true;
 		while( m_running ) {
-			result = zloop_start(m_loop);
+			int result = zloop_start(m_loop);
 			if( result == 0 ) {
 				LOG(INFO) << "RIRegionActor interrupted";
 				m_running = false;
@@ -123,6 +119,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		zsock_destroy(&m_rep);
 	}
 	LOG(INFO) << "RIRegionActor shutdown";
+	zsock_signal(pipe,0);
 }
 
 void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {

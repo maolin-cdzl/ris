@@ -49,6 +49,14 @@ extern "C" REGIONAPI_EXPORT int region_stop() {
 	return 0;
 }
 
+extern "C" REGIONAPI_EXPORT int region_wait() {
+	if( g_actor ) {
+		return g_actor->wait();
+	} else {
+		return -1;
+	}
+}
+
 extern "C" {
 
 struct region_api_t {

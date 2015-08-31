@@ -21,6 +21,9 @@ public:
 	int start(const std::shared_ptr<TrackerCtx>& ctx);
 	void stop();
 
+	// wait actor shutdown,it will block caller
+	int wait();
+
 	inline std::shared_ptr<TrackerCtx> getCtx() const {
 		return m_ctx;
 	}

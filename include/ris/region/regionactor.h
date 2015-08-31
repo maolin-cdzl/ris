@@ -21,6 +21,9 @@ public:
 	int start(const std::shared_ptr<RegionCtx>& ctx);
 	int stop();
 
+	// wait actor shutdown,it will block caller
+	int wait();
+
 	inline std::shared_ptr<RegionCtx> getCtx() {
 		return m_ctx;
 	}

@@ -25,6 +25,8 @@ REGIONAPI_EXPORT int region_start(const char* confile,int standalone);
 
 REGIONAPI_EXPORT int region_stop();
 
+// wait tracker shutdown,it will block caller
+REGIONAPI_EXPORT int region_wait();
 
 REGIONAPI_EXPORT void* region_open();
 
