@@ -115,10 +115,12 @@ add_library(tracker STATIC
 	src/tracker/trackertable.cxx
 	src/tracker/fromregionfactory.cxx
 	src/tracker/trackeractor.cxx
+	src/tracker/trackerctx.cxx
 	include/ris/tracker/subscriber.h
 	include/ris/tracker/trackertable.h
 	include/ris/tracker/fromregionfactory.h
 	include/ris/tracker/trackeractor.h
+	include/ris/tracker/trackerctx.h
 )
 
 target_include_directories(tracker

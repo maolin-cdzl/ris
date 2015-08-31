@@ -10,6 +10,8 @@ public:
 	std::string					pub_address;					
 	std::string					snapshot_svc_address;
 	std::string					snapshot_worker_address;
+
+	int loadConfig(const std::string& file);
 };
 
 std::shared_ptr<TrackerCtx> loadTrackerCtx(const std::string& file);
