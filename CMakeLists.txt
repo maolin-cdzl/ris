@@ -17,6 +17,7 @@ set(RIS_PROTO
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionapi.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionpub.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/snapshot.proto 
+	${CMAKE_CURRENT_SOURCE_DIR}/proto/trackerapi.proto 
 )
 
 build_pb_cxx_sources(${CMAKE_CURRENT_BINARY_DIR}/include/ris ${CMAKE_CURRENT_BINARY_DIR}/src RIS_PROTO_SRCS RIS_PROTO_HDRS ${RIS_PROTO})
@@ -113,9 +114,11 @@ add_library(tracker STATIC
 	src/tracker/subscriber.cxx
 	src/tracker/trackertable.cxx
 	src/tracker/fromregionfactory.cxx
+	src/tracker/trackeractor.cxx
 	include/ris/tracker/subscriber.h
 	include/ris/tracker/trackertable.h
 	include/ris/tracker/fromregionfactory.h
+	include/ris/tracker/trackeractor.h
 )
 
 target_include_directories(tracker

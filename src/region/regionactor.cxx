@@ -1,10 +1,10 @@
 #include <iostream>
 #include "ris/region/regionactor.h"
 #include <glog/logging.h>
-#include <libconfig.h++>
 #include "zmqx/zprotobuf++.h"
 
 RIRegionActor::RIRegionActor() :
+	m_running(false),
 	m_actor(nullptr),
 	m_loop(nullptr),
 	m_rep(nullptr),
