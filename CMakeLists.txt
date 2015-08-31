@@ -67,6 +67,8 @@ add_library(region STATIC
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
 	src/region/regionctx.cxx
+	include/ris/ritypes.h
+	include/ris/riobserver.h
 	include/ris/region/publisher.h
 	include/ris/region/regionactor.h
 	include/ris/region/regiontable.h
@@ -111,12 +113,17 @@ target_link_libraries(regionapi LINK_PUBLIC
 
 # tracker
 add_library(tracker STATIC
+	src/ritypes.cxx
 	src/tracker/subscriber.cxx
+	src/tracker/subcacher.cxx
 	src/tracker/trackertable.cxx
 	src/tracker/fromregionfactory.cxx
 	src/tracker/trackeractor.cxx
 	src/tracker/trackerctx.cxx
+	include/ris/ritypes.h
+	include/ris/riobserver.h
 	include/ris/tracker/subscriber.h
+	include/ris/tracker/subcacher.h
 	include/ris/tracker/trackertable.h
 	include/ris/tracker/fromregionfactory.h
 	include/ris/tracker/trackeractor.h

@@ -27,6 +27,7 @@ public:
 	}					data;
 	*/
 	UpdateData();
+	UpdateData(uint32_t v,UpdateType t,void* d);
 	~UpdateData();
 
 	void present(const uuid_t& region,const std::shared_ptr<IRIObserver>& ob);
@@ -36,8 +37,6 @@ public:
 	static std::shared_ptr<UpdateData> fromPayload(uint32_t version,const Payload& pl);
 	static std::shared_ptr<UpdateData> fromRmService(uint32_t version,const std::string& svc);
 	static std::shared_ptr<UpdateData> fromRmPayload(uint32_t version,const uuid_t& pl);
-private:
-	UpdateData(uint32_t v,UpdateType t,void* d);
 };
 
 class SubCacher : public IRIObserver {
