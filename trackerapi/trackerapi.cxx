@@ -13,7 +13,7 @@ extern "C" TRACKERAPI_EXPORT int tracker_start(const char* confile,int standalon
 
 	g_standalone = standalone;
 	if( g_standalone ) {
-		google::InitGoogleLogging("region");
+		google::InitGoogleLogging("tracker");
 		FLAGS_log_dir = "./log";
 		zsys_init();
 	}
