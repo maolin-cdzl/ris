@@ -56,6 +56,7 @@ void FromRegionFactory::stop() {
 	if( m_ss_cli ) {
 		m_ss_cli.reset();
 	}
+	m_bad_regions.clear();
 	m_shoted_regions.clear();
 	m_unshoted_regions.clear();
 	if( m_tid != -1 ) {
@@ -68,7 +69,14 @@ void FromRegionFactory::stop() {
 
 void FromRegionFactory::onSnapshotDone(uuid_t uuid,int err) {
 	if( 0 != err ) {
-		LOG(ERROR) << "Error when geting snapshot from region: " << uuid;
+		LOG(ERROR) << "Error when geting snapshot from region: " << uuid << " error:" << err;
+		for(auto it=m_unshoted_regions.begin(); it != m_unshoted_regions.end(); ++it) {
+			if( (*it) == uuid ) {
+				m_bad_regions.insert(it->id);
+				m_unshoted_regions.erase(it);
+				break;
+			}
+		}
 	} else {
 		LOG(INFO) << "Get snapshot done from region: " << uuid;
 		for(auto it=m_unshoted_regions.begin(); it != m_unshoted_regions.end(); ++it) {
@@ -85,9 +93,14 @@ void FromRegionFactory::onSnapshotDone(uuid_t uuid,int err) {
 }
 
 void FromRegionFactory::onNewRegion(const Region& region) {
-	m_unshoted_regions.insert(region);
-	if( ! m_ss_cli->isActive() ) {
-		nextSnapshot();
+	if( m_unshoted_regions.end() == m_unshoted_regions.find(region) &&
+		m_shoted_regions.end() == m_shoted_regions.find(region.id) &&
+		m_bad_regions.end() == m_bad_regions.find(region.id) )
+	{
+		m_unshoted_regions.insert(region);
+		if( ! m_ss_cli->isActive() ) {
+			nextSnapshot();
+		}
 	}
 }
 

@@ -23,12 +23,16 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 	
 	do {
 		m_sock = zsock_new_req(address.c_str());
-		if( nullptr == m_sock )
+		if( nullptr == m_sock ) {
+			LOG(ERROR) << "SnapshotClient can NOT connect to: " << address;
 			break;
+		}
 
 		snapshot::SnapshotReq req;
-		if( -1 == zpb_send(m_sock,req) )
+		if( -1 == zpb_send(m_sock,req) ) {
+			LOG(ERROR) << "SnapshotClient send SnapshotReq failed";
 			break;
+		}
 
 		m_fn_readable = std::bind<int>(&SnapshotClient::onReqReadable,this,std::placeholders::_1);
 		
@@ -67,6 +71,7 @@ int SnapshotClient::pullSnapshotBegin(zsock_t* sock) {
 	do {
 		snapshot::SnapshotBegin msg;
 		if( -1 == zpb_recv(msg,sock) ) {
+			LOG(ERROR) << "SnapshotClient recv SnapshotBegin failed";
 			break;
 		}
 
@@ -87,6 +92,7 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 	do {
 		auto msg = zpb_recv(sock);
 		if( msg == nullptr ) {
+			LOG(ERROR) << "SnapshotClient recv RegionBegin or SnapshotEnd failed";
 			break;
 		}
 		if( msg->GetDescriptor() == snapshot::RegionBegin::descriptor() ) {
@@ -107,13 +113,16 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 			const ri_time_t now = ri_time_now();
 			region.timeval = now;
 
+			DLOG(INFO) << "SnapshotClient recv RegionBegin: " << region.id << "(" << region.version << ")"; 
 			if( -1 == m_builder->addRegion(region) ) {
+				LOG(ERROR) << "SnapshotClient addRegion failed,region: " <<  region.id << "(" << region.version << ")";
 				break;
 			}
 			m_last_region = p->uuid();
 			m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionBody,this,std::placeholders::_1);
 			m_tv_timeout = now + 1000;
 		} else if( msg->GetDescriptor() == snapshot::SnapshotEnd::descriptor() ) {
+			DLOG(INFO) << "SnapshotClient recv SnapshotEnd"; 
 			auto ob = m_observer;
 			stop();
 			ob(0);
@@ -135,6 +144,7 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 	do {
 		auto msg = zpb_recv(sock);
 		if( msg == nullptr ) {
+			LOG(ERROR) << "SnapshotClient recv Service or Payload failed";
 			break;
 		}
 		const ri_time_t now = ri_time_now();
@@ -143,8 +153,12 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 			Payload pl;
 			pl.id = p->uuid();
 			pl.timeval = now;
-			if( -1 == m_builder->addPayload(m_last_region,pl) )
+
+			DLOG(INFO) << "SnapshotClient recv Payload: " << pl.id; 
+			if( -1 == m_builder->addPayload(m_last_region,pl) ) {
+				LOG(ERROR) << "Snapshot addPayload failed: " << pl.id;
 				break;
+			}
 			m_tv_timeout = now + 1000;
 		} else if( msg->GetDescriptor() == snapshot::Service::descriptor() ) {
 			auto p = std::dynamic_pointer_cast<snapshot::Service>(msg);
@@ -152,11 +166,15 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 			svc.name = p->name();
 			svc.address = p->address();
 			svc.timeval = ri_time_now();
+
+			DLOG(INFO) << "SnapshotClient recv Service: " << svc.name; 
 			if( -1 == m_builder->addService(m_last_region,svc) ) {
+				LOG(ERROR) << "Snapshot addService failed: " << svc.name;
 				break;
 			}
 			m_tv_timeout = now + 1000;
 		} else if( msg->GetDescriptor() == snapshot::RegionEnd::descriptor() ) {
+			DLOG(INFO) << "SnapshotClient recv RegionEnd: ";
 			m_last_region.clear();
 			m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionOrFinish,this,std::placeholders::_1);
 			m_tv_timeout = now + 1000;
@@ -187,6 +205,7 @@ int SnapshotClient::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 
 int SnapshotClient::onTimeoutTimer() {
 	if( ri_time_now() > m_tv_timeout ) {
+		LOG(ERROR) << "SnapshotClient timeout";
 		auto ob = m_observer;
 		stop();
 		ob(SNAPSHOT_CLIENT_ERROR);
@@ -200,9 +219,11 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 	do {
 		snapshot::SnapshotRep rep;
 		if( -1 == zpb_recv(rep,sock) ) {
+			LOG(ERROR) << "SnapshotClient recv SnapshotRep failed";
 			break;
 		}
 		if( rep.result() != 0 || ! rep.has_address() ) {
+			LOG(ERROR) << "SnapshotClient SnapshotRep error,result:" << rep.result() << ",address: " << (rep.has_address() ? rep.address() : "none");
 			break;
 		}
 		zloop_reader_end(m_loop,m_sock);
@@ -215,8 +236,9 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 		}
 
 		m_fn_readable = std::bind<int>(&SnapshotClient::pullSnapshotBegin,this,std::placeholders::_1);
-		if( -1 == zloop_reader(m_loop,m_sock,readableAdapter,this) )
+		if( -1 == zloop_reader(m_loop,m_sock,readableAdapter,this) ) {
 			break;
+		}
 
 		m_tv_timeout = ri_time_now() + 2000;
 		return 0;

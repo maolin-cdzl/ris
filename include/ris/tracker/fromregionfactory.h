@@ -44,6 +44,7 @@ private:
 	std::shared_ptr<SubCacher>		m_sub_cacher;
 	std::shared_ptr<SnapshotClient>	m_ss_cli;
 
+	std::unordered_set<uuid_t>		m_bad_regions;
 	std::unordered_set<uuid_t>		m_shoted_regions;
 	std::unordered_set<Region>		m_unshoted_regions;
 
