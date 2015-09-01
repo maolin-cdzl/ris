@@ -5,9 +5,8 @@ project(ris)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 include(CMakeProtobuf)
 
-
-set(CMAKE_C_FLAGS "-std=c99 -fPIC -g -O3 -Wall -fvisibility=hidden ${CMAKE_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -g -O3 -Wall -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
+set(CMAKE_C_FLAGS "-std=c99 -fPIC -Wall -fvisibility=hidden ${CMAKE_C_FLAGS}")
+set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -Wall -fvisibility=hidden ${CMAKE_CXX_FLAGS}")
 
 
 # configure risproto
