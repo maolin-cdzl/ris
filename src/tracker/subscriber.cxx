@@ -44,15 +44,19 @@ int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObse
 		if( m_sub )
 			break;
 		m_observer = ob;
-		m_sub = zsock_new(ZMQ_SUB);
+		m_sub = zsock_new_sub(address.c_str(),"");
 
-		if( -1 == zsock_connect(m_sub,"%s",address.c_str()) ) {
-			LOG(ERROR) << "Subscriber can NOT connect to: " << address;
+		if( nullptr == m_sub ) {
+			LOG(FATAL) << "Subscriber can NOT connect to: " << address;
 			break;
+		} else {
+			DLOG(INFO) << "Subscriber connect to: " << address;
 		}
 
-		if( -1 == startLoop() )
+		if( -1 == startLoop() ) {
+			LOG(FATAL) << "RISubscriber start dispatcher loop failed";
 			break;
+		}
 		result = 0;
 	} while( 0 );
 
@@ -97,6 +101,7 @@ void RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Messag
 void RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::Region>(msg);
 	assert(p);
+
 	Region region;
 	region.id = p->region().uuid();
 	region.version = p->region().version();
@@ -110,6 +115,8 @@ void RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& ms
 		region.snapshot_address = p->snapshot_address();
 	}
 	region.timeval = ri_time_now();
+
+	DLOG(INFO) << "RISubscriber recv region: " << region.id << "(" << region.version << ")";
 	m_observer->onRegion(region);
 }
 
@@ -117,6 +124,7 @@ void RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& 
 	auto p = std::dynamic_pointer_cast<region::pub::RmRegion>(msg);
 	assert(p);
 
+	DLOG(INFO) << "RISubscriber recv rm region: " << p->uuid();
 	m_observer->onRmRegion(p->uuid());
 }
 
@@ -128,12 +136,16 @@ void RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& m
 	svc.name = p->name();
 	svc.address = p->address();
 	svc.timeval = ri_time_now();
+
+	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onService(p->region().uuid(),p->region().version(),svc);
 }
 
 void RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::RmService>(msg);
 	assert(p);
+
+	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmService(p->region().uuid(),p->region().version(),p->name());
 }
 
@@ -145,12 +157,15 @@ void RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& m
 	pl.id = p->uuid();
 	pl.timeval = ri_time_now();
 
+	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onPayload(p->region().uuid(),p->region().version(),pl);
 }
 
 void RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::RmPayload>(msg);
 	assert(p);
+
+	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmPayload(p->region().uuid(),p->region().version(),p->uuid());
 }
 

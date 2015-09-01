@@ -29,12 +29,12 @@ int FromRegionFactory::start(const std::string& pub_address,const std::function<
 
 		m_tid = zloop_timer(m_loop,1000,0,timerAdapter,this);
 		if( -1 == m_tid ) {
-			LOG(ERROR) << "FromRegionFactory start timer failed";
+			LOG(FATAL) << "FromRegionFactory start timer failed";
 			break;
 		}
 
 		if( -1 == m_product->sub->start(pub_address,m_sub_cacher) ) {
-			LOG(ERROR) << "FromRegionFactory start subscriber failed";
+			LOG(FATAL) << "FromRegionFactory start subscriber failed";
 			break;
 		}
 

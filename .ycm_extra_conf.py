@@ -52,6 +52,8 @@ flags = [
 './zmqx/include',
 '-I',
 'buildir/include',
+'-I',
+'googletest/googletest/include',
 ]
 
 

@@ -169,6 +169,7 @@ target_link_libraries(trackerapi LINK_PUBLIC
 add_executable(ribroker src/broker/ribroker.cxx)
 target_link_libraries(ribroker PRIVATE zmq gflags)
 
+include_directories(googletest/googletest/include)
+add_subdirectory(googletest/googletest)
 add_subdirectory(zmqx)
-
 add_subdirectory(test)
