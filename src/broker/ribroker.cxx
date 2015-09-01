@@ -31,6 +31,8 @@ int main(int argc,char* argv[]) {
 		frontend = zmq_socket(ctx,ZMQ_SUB);
 		if( nullptr == frontend )
 			break;
+		if( -1 == zmq_setsockopt(frontend,ZMQ_SUBSCRIBE,"",0) )
+			break;
 		if( -1 == zmq_bind(frontend,FLAGS_frontend.c_str()) )
 			break;
 		backend = zmq_socket(ctx,ZMQ_PUB);
