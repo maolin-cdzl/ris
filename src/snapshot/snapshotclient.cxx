@@ -26,8 +26,8 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 		if( nullptr == m_sock )
 			break;
 
-		snapshot::SnapshotRep rep;
-		if( -1 == zpb_send(m_sock,rep) )
+		snapshot::SnapshotReq req;
+		if( -1 == zpb_send(m_sock,req) )
 			break;
 
 		m_fn_readable = std::bind<int>(&SnapshotClient::onReqReadable,this,std::placeholders::_1);
