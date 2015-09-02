@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "ris/snapshot/snapshotserviceworker.h"
 #include "zmqx/zprotobuf++.h"
 
@@ -24,12 +25,7 @@ int SnapshotServiceWorker::start(const snapshot_package_t& snapshot) {
 	if( nullptr == m_actor ) {
 		return -1;
 	}
-	if( 0 != zsock_wait(m_actor) ) {
-		zactor_destroy(&m_actor);
-		return -1;
-	} else {
-		return 0;
-	}
+	return 0;
 }
 
 int SnapshotServiceWorker::stop() {
@@ -46,13 +42,7 @@ void SnapshotServiceWorker::actorAdapterFn(zsock_t* pipe,void* arg) {
 
 void SnapshotServiceWorker::run(zsock_t* pipe) {
 	zsock_t* sock = createPipelineSock();
-	zsock_signal(pipe,0);
-	if( nullptr == sock ) {
-		zsock_signal(pipe,1);
-		return;
-	} else {
-		zsock_signal(pipe,0);
-	}
+	assert( sock );
 
 	zmq_pollitem_t pollitems[2];
 	pollitems[0].socket = zsock_resolve(pipe);
@@ -63,15 +53,19 @@ void SnapshotServiceWorker::run(zsock_t* pipe) {
 	pollitems[1].fd = 0;
 	pollitems[1].events = ZMQ_POLLOUT;
 
+	zsock_signal(pipe,0);
 	int result = 0;
 	do {
 		result = zmq_poll(pollitems,2,5000);
 		if( result == 0 ) {
 			// error or timeout,log it
+			LOG(ERROR) << "SnapshotServiceWorker poll timeout";
 			zstr_send(m_actor,"timeout");
 			break;
 		} else if( result == -1 ) {
-			zstr_sendf(m_actor,"error: %i",errno);
+			int e = errno;
+			LOG(ERROR) << "SnapshotServiceWorker poll error: " << e;
+			zstr_sendf(m_actor,"error: %i",e);
 			break;
 		}
 
@@ -94,12 +88,14 @@ zsock_t* SnapshotServiceWorker::createPipelineSock() {
 	do {
 		sock = zsock_new(ZMQ_PUSH);
 		if( -1 == zsock_bind(sock,"%s",m_address.c_str()) ) {
+			LOG(FATAL) << "SnapshotServiceWorker can NOT bind to: " << m_address;
 			break;
 		}
 		m_endpoint = zsock_endpoint(sock);
 		if( m_endpoint.empty() )
 			break;
-
+		
+		LOG(INFO) << "SnapshotServiceWorker bind to: " << m_endpoint;
 		return sock;
 	} while(0);
 

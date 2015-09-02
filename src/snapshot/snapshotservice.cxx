@@ -35,18 +35,19 @@ int SnapshotService::stop() {
 }
 
 int SnapshotService::startLoop(zloop_t* loop) {
+	if( m_sock != nullptr ) {
+		return -1;
+	}
 
 	do {
-		if( m_sock != nullptr ) {
-			break;
-		}
-
 		m_sock = zsock_new(ZMQ_REP);
 		if( -1 == zsock_bind(m_sock,"%s",m_svc_address.c_str()) ) {
+			LOG(FATAL) << "SnapshotService can NOT bind to: " << m_svc_address;
 			break;
 		}
 
 		if( -1 == zloop_reader(loop,m_sock,mainReaderAdapter,this) ) {
+			LOG(FATAL) << "SnapshotService register reader failed";
 			break;
 		}
 		return 0;
@@ -70,33 +71,43 @@ void SnapshotService::stopLoop(zloop_t* loop) {
 }
 
 int SnapshotService::onMainReadable(zloop_t* loop) {
-	bool good = false;
+	snapshot::SnapshotRep rep;
+	rep.set_result(-1);
 
 	do {
 		snapshot::SnapshotReq req;
-		if( -1 == zpb_recv(req,m_sock) )
+		if( -1 == zpb_recv(req,m_sock) ) {
+			LOG(ERROR) << "SnapshotService recv SnapshotReq error";
 			break;
+		}
+
+		LOG(INFO) << "SnapshotService recv request";
 		
-		if( m_workers.size() >= m_capacity )
+		if( m_workers.size() >= m_capacity ) {
+			LOG(ERROR) << "SnapshotService busy,current worker " << m_workers.size();
 			break;
-		std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
+		}
 		auto snapshot = m_snapshotable->buildSnapshot();
+		if( snapshot.empty() ) {
+			LOG(ERROR) << "SnapshotService build snapshot faile";
+			break;
+		}
+
+		std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
 		if( 0 == worker->start(snapshot) ) {
 			auto endpoint = worker->endpoint();
 			m_workers.push_back(worker);
 			zloop_reader(loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
 
-			snapshot::SnapshotRep rep;
 			rep.set_result(0);
 			rep.set_address(endpoint);
-			zpb_send(m_sock,rep);
-			good = true;
+			LOG(INFO) << "SnapshotService start transform snapshot with " << snapshot.size() << " item";
+		} else {
+			LOG(ERROR) << "SnapshotService start worker failed";
 		}
 	} while(0);
 
-	if( ! good ) {
-		zstr_send(m_sock,"error");
-	}
+	zpb_send(m_sock,rep);
 	return 0;
 }
 
@@ -119,10 +130,11 @@ int SnapshotService::onWorkerReadable(zloop_t* loop,zsock_t* reader) {
 	for(auto it = m_workers.begin(); it != m_workers.end(); ++it) {
 		if( (*it) == worker ) {
 			m_workers.erase(it);
-			break;
+			return 0;
 		}
 	}
-	return 0;
+	LOG(FATAL) << "some SnapsthoServiceWorker say it's done,but can not found in m_workers";
+	return -1;
 }
 
 std::shared_ptr<SnapshotServiceWorker> SnapshotService::findWorker(zsock_t* sock) {
