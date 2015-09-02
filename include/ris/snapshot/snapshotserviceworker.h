@@ -23,8 +23,8 @@ private:
 
 	void run(zsock_t* pipe);
 	zsock_t* createPipelineSock();
-	int onPipeReadable(zsock_t* pipe);
-	int onPipelineWritable(zsock_t* sock);
+	int onPipeReadable(zsock_t* sock,zsock_t* pipe);
+	int onPipelineWritable(zsock_t* sock,zsock_t* pipe);
 
 private:
 	const std::string						m_address;						

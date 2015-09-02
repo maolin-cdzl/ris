@@ -178,8 +178,9 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 			m_last_region.clear();
 			m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionOrFinish,this,std::placeholders::_1);
 			m_tv_timeout = now + 1000;
-			break;
+			return 0;
 		} else {
+			LOG(ERROR) << "SnapshotClient pullRegionBody recv unexpect message: " << msg->GetTypeName();
 			break;
 		}
 	} while(1);
@@ -229,8 +230,10 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 		zloop_reader_end(m_loop,m_sock);
 		zsock_destroy(&m_sock);
 
-		m_sock = zsock_new_pull(rep.address().c_str());
-		if( nullptr == m_sock ) {
+		m_sock = zsock_new(ZMQ_PULL);
+		assert(m_sock);
+
+		if( -1 == zsock_connect(m_sock,"%s",rep.address().c_str()) ) {
 			LOG(ERROR) << "SnapshotClient can NOT connect to: " << rep.address().c_str();
 			break;
 		}

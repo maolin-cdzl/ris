@@ -94,6 +94,7 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 		}
 
 		std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
+		LOG(INFO) << "SnapshotService start transform snapshot with " << snapshot.size() << " item";
 		if( 0 == worker->start(snapshot) ) {
 			auto endpoint = worker->endpoint();
 			m_workers.push_back(worker);
@@ -101,7 +102,6 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 
 			rep.set_result(0);
 			rep.set_address(endpoint);
-			LOG(INFO) << "SnapshotService start transform snapshot with " << snapshot.size() << " item";
 		} else {
 			LOG(ERROR) << "SnapshotService start worker failed";
 		}

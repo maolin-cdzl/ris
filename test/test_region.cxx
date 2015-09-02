@@ -3,6 +3,7 @@
 #include <iostream>
 #include "../regionapi/regionapi.h"
 
+static const size_t PAYLOAD_SIZE = 100;
 static uint64_t t_time_now();
 
 int main(int argc,char* argv[]) {
@@ -14,7 +15,7 @@ int main(int argc,char* argv[]) {
 
 	char id[32];
 	const uint64_t tv_start = t_time_now();
-	for(size_t i=1; i <= 50000; ++i) {
+	for(size_t i=1; i <= PAYLOAD_SIZE; ++i) {
 		sprintf(id,"%lu",i);
 		region_new_payload(s,id);
 	}

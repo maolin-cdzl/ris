@@ -156,7 +156,7 @@ snapshot_package_t RIRegionTable::buildSnapshot() {
 	}
 
 	package.push_back(m_region.toSnapshotEnd());
-	package.push_back(std::shared_ptr<snapshot::SnapshotEnd>(new snapshot::SnapshotEnd()));
+	package.push_back(std::make_shared<snapshot::SnapshotEnd>());
 	return std::move(package);
 }
 
