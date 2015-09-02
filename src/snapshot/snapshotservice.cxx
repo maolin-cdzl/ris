@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "ris/snapshot/snapshotservice.h"
+#include "snapshot/snapshotservice.h"
 #include "ris/snapshot.pb.h"
 #include "zmqx/zprotobuf++.h"
 

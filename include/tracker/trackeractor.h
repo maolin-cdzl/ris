@@ -6,11 +6,11 @@
 
 #include "zmqx/zdispatcher.h"
 
-#include "ris/tracker/trackerctx.h"
-#include "ris/tracker/trackertable.h"
-#include "ris/tracker/subscriber.h"
-#include "ris/snapshot/snapshotservice.h"
-#include "ris/tracker/fromregionfactory.h"
+#include "tracker/trackerctx.h"
+#include "tracker/trackertable.h"
+#include "tracker/subscriber.h"
+#include "snapshot/snapshotservice.h"
+#include "tracker/fromregionfactory.h"
 
 
 class RITrackerActor {

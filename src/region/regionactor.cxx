@@ -1,6 +1,5 @@
-#include <iostream>
-#include "ris/region/regionactor.h"
 #include <glog/logging.h>
+#include "region/regionactor.h"
 #include "zmqx/zprotobuf++.h"
 
 RIRegionActor::RIRegionActor() :

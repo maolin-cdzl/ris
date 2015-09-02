@@ -5,7 +5,7 @@
 
 #include "ris/ritypes.h"
 #include "ris/riobserver.h"
-#include "ris/region/regiontable.h"
+#include "region/regiontable.h"
 
 class RIPublisher : public IRIObserver {
 public:

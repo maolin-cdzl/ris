@@ -1,6 +1,6 @@
 #include <libconfig.h++>
 #include <glog/logging.h>
-#include "ris/region/regionctx.h"
+#include "region/regionctx.h"
 
 
 int RegionCtx::loadConfig(const std::string& file) {

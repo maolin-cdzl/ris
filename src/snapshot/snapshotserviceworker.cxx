@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "ris/snapshot/snapshotserviceworker.h"
+#include "snapshot/snapshotserviceworker.h"
 #include "zmqx/zprotobuf++.h"
 
 SnapshotServiceWorker::SnapshotServiceWorker(const std::string& address) :

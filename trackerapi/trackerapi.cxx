@@ -2,7 +2,7 @@
 #include <glog/logging.h>
 
 #include "trackerapi.h"
-#include "ris/tracker/trackeractor.h"
+#include "tracker/trackeractor.h"
 
 int g_standalone = 0;
 static RITrackerActor* g_actor = nullptr;

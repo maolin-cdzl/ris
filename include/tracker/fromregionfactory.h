@@ -2,11 +2,11 @@
 
 #include <unordered_set>
 #include "ris/ritypes.h"
-#include "ris/snapshot/snapshotbuilder.h"
-#include "ris/snapshot/snapshotclient.h"
-#include "ris/tracker/trackertable.h"
-#include "ris/tracker/subscriber.h"
-#include "ris/tracker/subcacher.h"
+#include "snapshot/snapshotbuilder.h"
+#include "snapshot/snapshotclient.h"
+#include "tracker/trackertable.h"
+#include "tracker/subscriber.h"
+#include "tracker/subcacher.h"
 
 class TrackerFactoryProduct {
 public:

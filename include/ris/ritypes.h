@@ -4,9 +4,9 @@
 #include <czmq.h>
 
 #include "zmqx/zhelper.h"
-#include "ris/snapshot/snapshotable.h"
 #include "ris/regionpub.pb.h"
 #include "ris/snapshot.pb.h"
+#include "snapshot/snapshotable.h"
 
 typedef std::string			uuid_t;
 typedef uint64_t			ri_time_t;		// msec

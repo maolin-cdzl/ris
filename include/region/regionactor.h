@@ -5,13 +5,12 @@
 #include <string>
 #include <list>
 
-#include "ris/region/publisher.h"
-#include "ris/region/regiontable.h"
-#include "ris/snapshot/snapshotservice.h"
-
 #include "ris/regionapi.pb.h"
-#include "ris/region/regionctx.h"
 #include "zmqx/zdispatcher.h"
+#include "region/publisher.h"
+#include "region/regiontable.h"
+#include "region/regionctx.h"
+#include "snapshot/snapshotservice.h"
 
 class RIRegionActor {
 public:

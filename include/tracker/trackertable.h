@@ -5,8 +5,8 @@
 #include <memory>
 #include <czmq.h>
 #include "ris/riobserver.h"
-#include "ris/snapshot/snapshotable.h"
-#include "ris/snapshot/snapshotbuilder.h"
+#include "snapshot/snapshotable.h"
+#include "snapshot/snapshotbuilder.h"
 
 class RITrackerTable : public IRIObserver,public ISnapshotable, public ISnapshotBuilder {
 public:

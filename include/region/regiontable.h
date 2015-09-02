@@ -5,8 +5,8 @@
 #include <memory>
 #include "ris/ritypes.h"
 #include "ris/riobserver.h"
-#include "ris/region/regionctx.h"
-#include "ris/snapshot/snapshotable.h"
+#include "region/regionctx.h"
+#include "snapshot/snapshotable.h"
 
 class RIRegionTable : public ISnapshotable {
 public:

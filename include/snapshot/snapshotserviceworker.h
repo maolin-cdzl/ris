@@ -1,7 +1,7 @@
 #pragma once
 
 #include <czmq.h>
-#include "ris/snapshot/snapshotable.h"
+#include "snapshot/snapshotable.h"
 
 class SnapshotServiceWorker {
 public:

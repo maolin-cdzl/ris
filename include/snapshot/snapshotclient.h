@@ -2,7 +2,7 @@
 
 #include <czmq.h>
 #include <functional>
-#include "ris/snapshot/snapshotbuilder.h"
+#include "snapshot/snapshotbuilder.h"
 
 #define SNAPSHOT_CLIENT_ERROR			-1
 #define SNAPSHOT_CLIENT_TIMEOUT			-2

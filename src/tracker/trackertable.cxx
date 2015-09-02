@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "ris/tracker/trackertable.h"
+#include "tracker/trackertable.h"
 
 #define TRACKER_REGION_TIMEOUT_MS				30000
 #define TRACKER_SERVICE_TIMEOUT_MS				125000

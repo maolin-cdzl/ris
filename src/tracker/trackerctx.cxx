@@ -1,6 +1,6 @@
 #include <glog/logging.h>
 #include <libconfig.h++>
-#include "ris/tracker/trackerctx.h"
+#include "tracker/trackerctx.h"
 
 int TrackerCtx::loadConfig(const std::string& file) {
 	libconfig::Config cfg;

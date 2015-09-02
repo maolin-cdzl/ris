@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "ris/region/regiontable.h"
+#include "region/regiontable.h"
 
 static const long RI_PUB_REPEAT_SECOND			= 60;
 static const long RI_PUB_REPEAT_MS				= RI_PUB_REPEAT_SECOND * 1000;

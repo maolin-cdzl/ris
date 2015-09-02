@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ris/snapshot/snapshotable.h"
-#include "ris/snapshot/snapshotserviceworker.h"
+#include "snapshot/snapshotable.h"
+#include "snapshot/snapshotserviceworker.h"
 
 
 class SnapshotService {

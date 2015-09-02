@@ -1,6 +1,6 @@
 #include <functional>
 #include <glog/logging.h>
-#include "ris/tracker/fromregionfactory.h"
+#include "tracker/fromregionfactory.h"
 
 using namespace std::placeholders;
 

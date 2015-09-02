@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "ris/region/publisher.h"
+#include "region/publisher.h"
 #include "zmqx/zprotobuf++.h"
 
 RIPublisher::RIPublisher(zloop_t* loop) :

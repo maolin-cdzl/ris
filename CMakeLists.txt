@@ -38,10 +38,10 @@ add_library(snapshot STATIC
 	src/snapshot/snapshotservice.cxx
 	src/snapshot/snapshotserviceworker.cxx
 	src/snapshot/snapshotclient.cxx
-	include/ris/snapshot/snapshotable.h
-	include/ris/snapshot/snapshotservice.h
-	include/ris/snapshot/snapshotserviceworker.h
-	include/ris/snapshot/snapshotbuilder.h
+	include/snapshot/snapshotable.h
+	include/snapshot/snapshotservice.h
+	include/snapshot/snapshotserviceworker.h
+	include/snapshot/snapshotbuilder.h
 )
 
 target_include_directories(snapshot
@@ -55,23 +55,37 @@ target_link_libraries(snapshot LINK_PUBLIC
 	risproto
 	zmq
 	czmq
+	glog
+	gflags
 )
 
+# target ris
+
+add_library(ris STATIC
+	src/ritypes.cxx
+	include/ris/ritypes.h
+	include/ris/riobserver.h
+)
+
+target_include_directories(ris
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(ris LINK_PUBLIC 
+	snapshot
+)
 
 # region
 
 add_library(region STATIC
-	src/ritypes.cxx
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
 	src/region/regionctx.cxx
-	include/ris/ritypes.h
-	include/ris/riobserver.h
-	include/ris/region/publisher.h
-	include/ris/region/regionactor.h
-	include/ris/region/regiontable.h
-	include/ris/region/regionctx.h
+	include/region/publisher.h
+	include/region/regionactor.h
+	include/region/regiontable.h
+	include/region/regionctx.h
 )
 
 target_include_directories(region
@@ -84,12 +98,9 @@ target_include_directories(region
 target_link_libraries(region LINK_PUBLIC
 	risproto
 	snapshot
+	ris
 	zmqx
-	czmq
-	zmq
 	config++
-	glog
-	gflags
 )
 
 
@@ -112,21 +123,18 @@ target_link_libraries(regionapi LINK_PUBLIC
 
 # tracker
 add_library(tracker STATIC
-	src/ritypes.cxx
 	src/tracker/subscriber.cxx
 	src/tracker/subcacher.cxx
 	src/tracker/trackertable.cxx
 	src/tracker/fromregionfactory.cxx
 	src/tracker/trackeractor.cxx
 	src/tracker/trackerctx.cxx
-	include/ris/ritypes.h
-	include/ris/riobserver.h
-	include/ris/tracker/subscriber.h
-	include/ris/tracker/subcacher.h
-	include/ris/tracker/trackertable.h
-	include/ris/tracker/fromregionfactory.h
-	include/ris/tracker/trackeractor.h
-	include/ris/tracker/trackerctx.h
+	include/tracker/subscriber.h
+	include/tracker/subcacher.h
+	include/tracker/trackertable.h
+	include/tracker/fromregionfactory.h
+	include/tracker/trackeractor.h
+	include/tracker/trackerctx.h
 )
 
 target_include_directories(tracker
@@ -139,12 +147,9 @@ target_include_directories(tracker
 target_link_libraries(tracker LINK_PUBLIC
 	risproto
 	snapshot
+	ris
 	zmqx
-	czmq
-	zmq
 	config++
-	glog
-	gflags
 )
 
 
