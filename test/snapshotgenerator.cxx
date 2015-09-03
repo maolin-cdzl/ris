@@ -3,6 +3,7 @@
 #include <memory>
 #include <random>
 #include <sstream>
+#include <chrono>
 
 #include "snapshotgenerator.h"
 #include "ris/snapshot.pb.h"
@@ -205,7 +206,8 @@ SnapshotGenerator::SnapshotGenerator(size_t region_max,size_t payload_max,size_t
 	m_service_max(service_max),
 	m_region_size(0),
 	m_payload_size(0),
-	m_service_size(0)
+	m_service_size(0),
+	m_generator(std::chrono::system_clock::now().time_since_epoch().count())
 {
 }
 

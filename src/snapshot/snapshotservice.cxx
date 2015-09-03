@@ -22,11 +22,13 @@ int SnapshotService::start(const std::shared_ptr<ISnapshotable>& snapshotable,co
 	m_worker_address = workerAddress;
 	m_capacity = capacity;
 
+	LOG(INFO) << "SnapshotService start listen on: " << svcAddress << " , limit " << capacity << " works address to: " << workerAddress;
 	return startLoop(m_loop);
 }
 
 int SnapshotService::stop() {
 	if( m_sock ) {
+		LOG(INFO) << "SnapshotService stop";
 		stopLoop(m_loop);
 		return 0;
 	} else {
@@ -80,8 +82,6 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 			LOG(ERROR) << "SnapshotService recv SnapshotReq error";
 			break;
 		}
-
-		LOG(INFO) << "SnapshotService recv request";
 		
 		if( m_workers.size() >= m_capacity ) {
 			LOG(ERROR) << "SnapshotService busy,current worker " << m_workers.size();

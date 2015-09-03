@@ -45,6 +45,7 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 			LOG(FATAL) << "SnapshotClient register loop timer failed: " << errno;
 			break;
 		}
+		LOG(INFO) << "SnapshotClient send request to address: " << address;
 		m_tv_timeout = ri_time_now() + 1000;
 		m_builder = builder;
 		m_observer = ob;
@@ -231,6 +232,7 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 			LOG(ERROR) << "SnapshotClient SnapshotRep error,result:" << rep.result() << ",address: " << (rep.has_address() ? rep.address() : "none");
 			break;
 		}
+		LOG(INFO) << "SnapshotClient get response to address: " << rep.address();
 		zloop_reader_end(m_loop,m_sock);
 		zsock_destroy(&m_sock);
 
