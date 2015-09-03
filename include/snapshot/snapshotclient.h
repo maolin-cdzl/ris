@@ -36,7 +36,7 @@ private:
 
 	std::function<void(int)>				m_observer;
 	std::shared_ptr<ISnapshotBuilder>		m_builder;
-	uuid_t									m_last_region;
+	ri_uuid_t								m_last_region;
 };
 
 

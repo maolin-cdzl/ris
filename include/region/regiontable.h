@@ -12,11 +12,11 @@ class RIRegionTable : public ISnapshotable {
 public:
 	typedef std::list<Service>								service_list_t;
 	typedef typename service_list_t::iterator				service_list_it_t;
-	typedef std::unordered_map<uuid_t,service_list_it_t>	service_index_t;
+	typedef std::unordered_map<ri_uuid_t,service_list_it_t>	service_index_t;
 
 	typedef std::list<Payload>								payload_list_t;
 	typedef typename payload_list_t::iterator				payload_list_it_t;
-	typedef std::unordered_map<uuid_t,payload_list_it_t>	payload_index_t;
+	typedef std::unordered_map<ri_uuid_t,payload_list_it_t>	payload_index_t;
 
 public:
 	RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop);
@@ -40,8 +40,8 @@ public:
 
 	int addService(const std::string& name,const std::string& address);
 	int rmService(const std::string& svc);
-	int addPayload(const uuid_t& pl);
-	int rmPayload(const uuid_t& pl);
+	int addPayload(const ri_uuid_t& pl);
+	int rmPayload(const ri_uuid_t& pl);
 
 	virtual snapshot_package_t buildSnapshot();
 

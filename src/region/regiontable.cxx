@@ -61,7 +61,7 @@ int RIRegionTable::rmService(const std::string& svc) {
 	}
 }
 
-int RIRegionTable::addPayload(const uuid_t& pl) {
+int RIRegionTable::addPayload(const ri_uuid_t& pl) {
 	if( m_payloads_idx.end() == m_payloads_idx.find(pl) ) {
 		++m_region.version;
 		Payload payload(pl,ri_time_now());
@@ -78,7 +78,7 @@ int RIRegionTable::addPayload(const uuid_t& pl) {
 	}
 }
 
-int RIRegionTable::rmPayload(const uuid_t& pl) {
+int RIRegionTable::rmPayload(const ri_uuid_t& pl) {
 	auto it = m_payloads_idx.find(pl);
 	if( it != m_payloads_idx.end() ) {
 		auto itl = it->second;

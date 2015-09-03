@@ -67,7 +67,7 @@ void FromRegionFactory::stop() {
 	m_observer = nullptr;
 }
 
-void FromRegionFactory::onSnapshotDone(uuid_t uuid,int err) {
+void FromRegionFactory::onSnapshotDone(ri_uuid_t uuid,int err) {
 	if( 0 != err ) {
 		LOG(ERROR) << "Error when geting snapshot from region: " << uuid << " error:" << err;
 		for(auto it=m_unshoted_regions.begin(); it != m_unshoted_regions.end(); ++it) {
@@ -104,7 +104,7 @@ void FromRegionFactory::onNewRegion(const Region& region) {
 	}
 }
 
-void FromRegionFactory::onRmRegion(const uuid_t& region) {
+void FromRegionFactory::onRmRegion(const ri_uuid_t& region) {
 	LOG(INFO) << "Factory remove region: " << region << " when building";
 
 	for(auto it = m_unshoted_regions.begin(); it != m_unshoted_regions.end(); ++it) {

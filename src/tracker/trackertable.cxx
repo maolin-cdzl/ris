@@ -57,7 +57,7 @@ size_t RITrackerTable::payload_size() const {
 	return m_payloads.size();
 }
 
-std::shared_ptr<Region> RITrackerTable::getRegion(const uuid_t& id)  const {
+std::shared_ptr<Region> RITrackerTable::getRegion(const ri_uuid_t& id)  const {
 	auto riit = m_regions_index.find(id);
 	if( riit != m_regions_index.end() ) {
 		return *(riit->second);
@@ -66,7 +66,7 @@ std::shared_ptr<Region> RITrackerTable::getRegion(const uuid_t& id)  const {
 }
 
 // get region carry this payload
-std::shared_ptr<Region> RITrackerTable::routePayload(const uuid_t& id)  const {
+std::shared_ptr<Region> RITrackerTable::routePayload(const ri_uuid_t& id)  const {
 	auto piit = m_payloads_index.find(id);
 	if( m_payloads_index.end() != piit ) {
 		return piit->second->region;
@@ -100,33 +100,33 @@ void RITrackerTable::onRegion(const Region& reg) {
 	doAddRegion(reg);
 }
 
-void RITrackerTable::onRmRegion(const uuid_t& reg) {
+void RITrackerTable::onRmRegion(const ri_uuid_t& reg) {
 	LOG(INFO) << "Recv remove region: " << reg << " pub";
 	doRmRegion(reg);
 }
 
-void RITrackerTable::onService(const uuid_t& reg,uint32_t version,const Service& svc) {
+void RITrackerTable::onService(const ri_uuid_t& reg,uint32_t version,const Service& svc) {
 	int result = doAddService(reg,svc);
 	if( result >= 0 ) {
 		updateRegionVersion(reg,version);
 	}
 }
 
-void RITrackerTable::onRmService(const uuid_t& reg,uint32_t version,const std::string& svc) {
+void RITrackerTable::onRmService(const ri_uuid_t& reg,uint32_t version,const std::string& svc) {
 	int result = doRmService(reg,svc);
 	if( result >= 0 ) {
 		updateRegionVersion(reg,version);
 	}
 }
 
-void RITrackerTable::onPayload(const uuid_t& reg,uint32_t version,const Payload& pl) {
+void RITrackerTable::onPayload(const ri_uuid_t& reg,uint32_t version,const Payload& pl) {
 	int result = doAddPayload(reg,pl);
 	if( result >= 0 ) {
 		updateRegionVersion(reg,version);
 	}
 }
 
-void RITrackerTable::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t& pl) {
+void RITrackerTable::onRmPayload(const ri_uuid_t& reg,uint32_t version,const ri_uuid_t& pl) {
 	int result = doRmPayload(reg,pl);
 	if( result >= 0 ) {
 		updateRegionVersion(reg,version);
@@ -138,8 +138,8 @@ snapshot_package_t RITrackerTable::buildSnapshot() {
 	snapshot_package_t package;
 	package.push_back(std::shared_ptr<snapshot::SnapshotBegin>(new snapshot::SnapshotBegin()));
 
-	std::unordered_map<uuid_t,std::list<Payload>> regionpayloads;
-	std::unordered_map<uuid_t,std::list<Service>> regionservices;
+	std::unordered_map<ri_uuid_t,std::list<Payload>> regionpayloads;
+	std::unordered_map<ri_uuid_t,std::list<Service>> regionservices;
 
 	for(auto it=m_services.begin(); it != m_services.end(); ++it) {
 		regionservices[ it->region->id ].push_back(it->service);
@@ -173,7 +173,7 @@ int RITrackerTable::addRegion(const Region& region) {
 	return 0;
 }
 
-int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
+int RITrackerTable::addService(const ri_uuid_t& reg,const Service& svc) {
 	int result = doAddService(reg,svc);
 	if( result >= 0 )
 		return 0;
@@ -181,7 +181,7 @@ int RITrackerTable::addService(const uuid_t& reg,const Service& svc) {
 		return -1;
 }
 
-int RITrackerTable::addPayload(const uuid_t& reg,const Payload& pl) {
+int RITrackerTable::addPayload(const ri_uuid_t& reg,const Payload& pl) {
 	int result = doAddPayload(reg,pl);
 	if( result >= 0 )
 		return 0;
@@ -197,7 +197,7 @@ void RITrackerTable::updateRegionVersion(std::shared_ptr<Region>& region,uint32_
 	region->version = version;
 }
 
-void RITrackerTable::updateRegionVersion(const uuid_t& region,uint32_t version) {
+void RITrackerTable::updateRegionVersion(const ri_uuid_t& region,uint32_t version) {
 	auto riit = m_regions_index.find(region);
 	if( riit != m_regions_index.end() ) {
 		auto rcit = riit->second;
@@ -207,7 +207,7 @@ void RITrackerTable::updateRegionVersion(const uuid_t& region,uint32_t version) 
 	}
 }
 
-std::list<RITrackerTable::service_iterator_t>::iterator RITrackerTable::findRegionService(std::list<RITrackerTable::service_iterator_t>& l,const uuid_t& region) {
+std::list<RITrackerTable::service_iterator_t>::iterator RITrackerTable::findRegionService(std::list<RITrackerTable::service_iterator_t>& l,const ri_uuid_t& region) {
 	for(auto it = l.begin(); it != l.end(); ) {
 		auto regptr = (*it)->region;
 		if( regptr == nullptr ) {
@@ -240,7 +240,7 @@ int RITrackerTable::doAddRegion(const Region& region) {
 	return result;
 }
 
-int RITrackerTable::doRmRegion(const uuid_t& region) {
+int RITrackerTable::doRmRegion(const ri_uuid_t& region) {
 	int result = -1;
 	auto riit = m_regions_index.find(region);
 	if( riit != m_regions_index.end() ) {
@@ -288,7 +288,7 @@ int RITrackerTable::doRmRegion(const uuid_t& region) {
 	return result;
 }
 
-int RITrackerTable::doAddService(const uuid_t& region,const Service& svc) {
+int RITrackerTable::doAddService(const ri_uuid_t& region,const Service& svc) {
 	int result = -1;
 	auto it = m_regions_index.find(region);
 	if( it != m_regions_index.end() ) {
@@ -336,7 +336,7 @@ int RITrackerTable::doAddService(const uuid_t& region,const Service& svc) {
 	return result;
 }
 
-int RITrackerTable::doRmService(const uuid_t& region,const std::string& svc) {
+int RITrackerTable::doRmService(const ri_uuid_t& region,const std::string& svc) {
 	int result = -1;
 	auto it = m_regions_index.find(region);
 	if( it != m_regions_index.end() ) {
@@ -374,7 +374,7 @@ int RITrackerTable::doRmService(const uuid_t& region,const std::string& svc) {
 	return result;
 }
 
-int RITrackerTable::doAddPayload(const uuid_t& region,const Payload& pl) {
+int RITrackerTable::doAddPayload(const ri_uuid_t& region,const Payload& pl) {
 	int result = -1;
 	auto it = m_regions_index.find(region);
 	if( it != m_regions_index.end() ) {
@@ -411,7 +411,7 @@ int RITrackerTable::doAddPayload(const uuid_t& region,const Payload& pl) {
 	return result;
 }
 
-int RITrackerTable::doRmPayload(const uuid_t& region,const uuid_t& pl) {
+int RITrackerTable::doRmPayload(const ri_uuid_t& region,const ri_uuid_t& pl) {
 	int result = -1;
 	auto it = m_regions_index.find(region);
 	if( it != m_regions_index.end() ) {

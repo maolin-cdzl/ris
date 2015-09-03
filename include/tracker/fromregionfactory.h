@@ -28,9 +28,9 @@ public:
 	int start(const std::string& pub_address,const std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>& ob);
 	void stop();
 private:
-	void onSnapshotDone(uuid_t uuid,int err);
+	void onSnapshotDone(ri_uuid_t uuid,int err);
 	void onNewRegion(const Region& region);
-	void onRmRegion(const uuid_t& region);
+	void onRmRegion(const ri_uuid_t& region);
 
 	int nextSnapshot();
 	std::shared_ptr<TrackerFactoryProduct> product();
@@ -44,8 +44,8 @@ private:
 	std::shared_ptr<SubCacher>		m_sub_cacher;
 	std::shared_ptr<SnapshotClient>	m_ss_cli;
 
-	std::unordered_set<uuid_t>		m_bad_regions;
-	std::unordered_set<uuid_t>		m_shoted_regions;
+	std::unordered_set<ri_uuid_t>		m_bad_regions;
+	std::unordered_set<ri_uuid_t>		m_shoted_regions;
 	std::unordered_set<Region>		m_unshoted_regions;
 
 	int								m_tid;

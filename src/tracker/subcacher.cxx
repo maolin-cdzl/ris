@@ -33,7 +33,7 @@ UpdateData::~UpdateData() {
 				delete (Payload*)data;
 				break;
 			case RM_PAYLOAD :
-				delete (uuid_t*)data;
+				delete (ri_uuid_t*)data;
 				break;
 			default:
 				LOG(FATAL) << "UpdateData unknown type: " << (int)type;
@@ -42,7 +42,7 @@ UpdateData::~UpdateData() {
 	}
 }
 
-void UpdateData::present(const uuid_t& region,const std::shared_ptr<IRIObserver>& ob) {
+void UpdateData::present(const ri_uuid_t& region,const std::shared_ptr<IRIObserver>& ob) {
 	assert( type != UNKNOWN );
 	assert( data );
 
@@ -61,7 +61,7 @@ void UpdateData::present(const uuid_t& region,const std::shared_ptr<IRIObserver>
 			ob->onPayload(region,version,*(Payload*)data);
 			break;
 		case RM_PAYLOAD :
-			ob->onRmPayload(region,version,*(uuid_t*)data);
+			ob->onRmPayload(region,version,*(ri_uuid_t*)data);
 			break;
 		default:
 			LOG(FATAL) << "UpdateData present unknown type: " << (int)type;
@@ -85,8 +85,8 @@ std::shared_ptr<UpdateData> UpdateData::fromRmService(uint32_t version,const std
 	return std::make_shared<UpdateData>(version,RM_SERVICE,new std::string(svc));
 }
 
-std::shared_ptr<UpdateData> UpdateData::fromRmPayload(uint32_t version,const uuid_t& pl) {
-	return std::make_shared<UpdateData>(version,RM_PAYLOAD,new uuid_t(pl));
+std::shared_ptr<UpdateData> UpdateData::fromRmPayload(uint32_t version,const ri_uuid_t& pl) {
+	return std::make_shared<UpdateData>(version,RM_PAYLOAD,new ri_uuid_t(pl));
 }
 
 
@@ -94,7 +94,7 @@ std::shared_ptr<UpdateData> UpdateData::fromRmPayload(uint32_t version,const uui
  * class SubCacher
  */
 
-SubCacher::SubCacher(const std::function<void(const Region&)>& fnNewRegion,const std::function<void(const uuid_t&)>& fnRmRegion) :
+SubCacher::SubCacher(const std::function<void(const Region&)>& fnNewRegion,const std::function<void(const ri_uuid_t&)>& fnRmRegion) :
 	m_fn_new_region(fnNewRegion),
 	m_fn_rm_region(fnRmRegion)
 {
@@ -116,7 +116,7 @@ void SubCacher::onRegion(const Region& reg) {
 	it->second.push_back(update);
 }
 
-void SubCacher::onRmRegion(const uuid_t& reg) {
+void SubCacher::onRmRegion(const ri_uuid_t& reg) {
 	DLOG(INFO) << "SubCacher recv pub rm region: " << reg;
 	auto it = m_updates.find(reg);
 	if( it != m_updates.end() ) {
@@ -126,7 +126,7 @@ void SubCacher::onRmRegion(const uuid_t& reg) {
 	}
 }
 
-void SubCacher::onService(const uuid_t& reg,uint32_t version,const Service& svc) {
+void SubCacher::onService(const ri_uuid_t& reg,uint32_t version,const Service& svc) {
 	DLOG(INFO) << "SubCacher recv pub service: " << svc.name << " provided by region: " << reg << "(" << version << ")";
 	auto it = m_updates.find(reg);
 	if( it != m_updates.end() ) {
@@ -135,7 +135,7 @@ void SubCacher::onService(const uuid_t& reg,uint32_t version,const Service& svc)
 	}
 }
 
-void SubCacher::onRmService(const uuid_t& reg,uint32_t version,const std::string& svc) {
+void SubCacher::onRmService(const ri_uuid_t& reg,uint32_t version,const std::string& svc) {
 	DLOG(INFO) << "SubCacher recv pub remove service: " << svc << " provided by region: " << reg << "(" << version << ")";
 	auto it = m_updates.find(reg);
 	if( it != m_updates.end() ) {
@@ -144,7 +144,7 @@ void SubCacher::onRmService(const uuid_t& reg,uint32_t version,const std::string
 	}
 }
 
-void SubCacher::onPayload(const uuid_t& reg,uint32_t version,const Payload& pl) {
+void SubCacher::onPayload(const ri_uuid_t& reg,uint32_t version,const Payload& pl) {
 	DLOG(INFO) << "SubCacher recv pub payload: " << pl.id << " provided by region: " << reg << "(" << version << ")";
 	auto it = m_updates.find(reg);
 	if( it != m_updates.end() ) {
@@ -153,7 +153,7 @@ void SubCacher::onPayload(const uuid_t& reg,uint32_t version,const Payload& pl) 
 	}
 }
 
-void SubCacher::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t& pl) {
+void SubCacher::onRmPayload(const ri_uuid_t& reg,uint32_t version,const ri_uuid_t& pl) {
 	DLOG(INFO) << "SubCacher recv pub rm payload: " << pl << " provided by region: " << reg << "(" << version << ")";
 	auto it = m_updates.find(reg);
 	if( it != m_updates.end() ) {
@@ -162,7 +162,7 @@ void SubCacher::onRmPayload(const uuid_t& reg,uint32_t version,const uuid_t& pl)
 	}
 }
 
-int SubCacher::present(const uuid_t& region,uint32_t version,const std::shared_ptr<IRIObserver>& observer) {
+int SubCacher::present(const ri_uuid_t& region,uint32_t version,const std::shared_ptr<IRIObserver>& observer) {
 	auto it = m_updates.find(region);
 	if( it == m_updates.end() )
 		return -1;

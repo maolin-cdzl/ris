@@ -8,14 +8,14 @@
 #include "ris/snapshot.pb.h"
 #include "snapshot/snapshotable.h"
 
-typedef std::string			uuid_t;
+typedef std::string			ri_uuid_t;
 typedef uint64_t			ri_time_t;		// msec
 
 #define ri_time_now			time_now
 
 class Region {
 public:
-	uuid_t					id;
+	ri_uuid_t					id;
 	uint32_t				version;
 	std::string				idc;
 	std::string				bus_address;
@@ -30,12 +30,12 @@ public:
 	Region(const Region& ref);
 	Region& operator = (const Region& ref);
 
-	bool operator == (const uuid_t& _id) const;
+	bool operator == (const ri_uuid_t& _id) const;
 	bool operator == (const Region& ref) const;
 public:
 	std::shared_ptr<region::pub::Region> toPublish() const ;
 	void toPublishBase(region::pub::RegionBase* region) const;
-	static std::shared_ptr<region::pub::RmRegion> toPublishRm(const uuid_t& uuid);
+	static std::shared_ptr<region::pub::RmRegion> toPublishRm(const ri_uuid_t& uuid);
 
 	std::shared_ptr<snapshot::RegionBegin> toSnapshotBegin() const;
 	std::shared_ptr<snapshot::RegionEnd> toSnapshotEnd() const;
@@ -60,33 +60,33 @@ public:
 	Service(const Service& ref);
 	Service& operator = (const Service& ref);
 public:
-	std::shared_ptr<region::pub::Service> toPublish(const uuid_t& region,uint32_t version) const;
-	static std::shared_ptr<region::pub::RmService> toPublishRm(const uuid_t& region,uint32_t version,const std::string& name);
+	std::shared_ptr<region::pub::Service> toPublish(const ri_uuid_t& region,uint32_t version) const;
+	static std::shared_ptr<region::pub::RmService> toPublishRm(const ri_uuid_t& region,uint32_t version,const std::string& name);
 
 	std::shared_ptr<snapshot::Service> toSnapshot() const;
 };
 
 class Payload {
 public:
-	uuid_t					id;
+	ri_uuid_t					id;
 	ri_time_t				timeval;
 
 	inline Payload() :
 		timeval(0)
 	{
 	}
-	inline Payload(const uuid_t& _id,ri_time_t tv=0) :
+	inline Payload(const ri_uuid_t& _id,ri_time_t tv=0) :
 		id(_id),timeval(tv)
 	{
 	}
 
 	Payload(const Payload& ref);
 	Payload& operator = (const Payload& ref);
-	bool operator == (const uuid_t& _id) const;
+	bool operator == (const ri_uuid_t& _id) const;
 	bool operator == (const Payload& ref) const;
 public:
-	std::shared_ptr<region::pub::Payload> toPublish(const uuid_t& region,uint32_t version) const;
-	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id);
+	std::shared_ptr<region::pub::Payload> toPublish(const ri_uuid_t& region,uint32_t version) const;
+	static std::shared_ptr<region::pub::RmPayload> toPublishRm(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& id);
 
 
 	std::shared_ptr<snapshot::Payload> toSnapshot() const;

@@ -26,7 +26,7 @@ Region& Region::operator = (const Region& ref) {
 	return *this;
 }
 
-bool Region::operator == (const uuid_t& _id) const {
+bool Region::operator == (const ri_uuid_t& _id) const {
 	return id == _id;
 }
 
@@ -58,7 +58,7 @@ void Region::toPublishBase(region::pub::RegionBase* region) const {
 	region->set_version( version );
 }
 
-std::shared_ptr<region::pub::RmRegion> Region::toPublishRm(const uuid_t& uuid) {
+std::shared_ptr<region::pub::RmRegion> Region::toPublishRm(const ri_uuid_t& uuid) {
 	assert( ! uuid.empty() );
 	std::shared_ptr<region::pub::RmRegion> msg(new region::pub::RmRegion());
 	msg->set_uuid(uuid);
@@ -117,7 +117,7 @@ std::shared_ptr<snapshot::Service> Service::toSnapshot() const {
 	return msg;
 }
 
-std::shared_ptr<region::pub::Service> Service::toPublish(const uuid_t& region,uint32_t version) const {
+std::shared_ptr<region::pub::Service> Service::toPublish(const ri_uuid_t& region,uint32_t version) const {
 	assert( ! name.empty() );
 	assert( ! address.empty() );
 
@@ -129,7 +129,7 @@ std::shared_ptr<region::pub::Service> Service::toPublish(const uuid_t& region,ui
 	return msg;
 }
 
-std::shared_ptr<region::pub::RmService> Service::toPublishRm(const uuid_t& region,uint32_t version,const std::string& name) {
+std::shared_ptr<region::pub::RmService> Service::toPublishRm(const ri_uuid_t& region,uint32_t version,const std::string& name) {
 	assert( ! name.empty() );
 
 	std::shared_ptr<region::pub::RmService> msg(new region::pub::RmService());
@@ -159,7 +159,7 @@ Payload& Payload::operator = (const Payload& ref) {
 	return *this;
 }
 
-bool Payload::operator == (const uuid_t& _id) const {
+bool Payload::operator == (const ri_uuid_t& _id) const {
 	return id == _id;
 }
 
@@ -167,7 +167,7 @@ bool Payload::operator == (const Payload& ref) const {
 	return id == ref.id;
 }
 
-std::shared_ptr<region::pub::Payload> Payload::toPublish(const uuid_t& region,uint32_t version) const {
+std::shared_ptr<region::pub::Payload> Payload::toPublish(const ri_uuid_t& region,uint32_t version) const {
 	assert( ! id.empty() );
 	
 	std::shared_ptr<region::pub::Payload> msg(new region::pub::Payload());
@@ -177,7 +177,7 @@ std::shared_ptr<region::pub::Payload> Payload::toPublish(const uuid_t& region,ui
 	return msg;
 }
 
-std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const uuid_t& region,uint32_t version,const uuid_t& id) {
+std::shared_ptr<region::pub::RmPayload> Payload::toPublishRm(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& id) {
 	assert( ! id.empty() );
 	
 	std::shared_ptr<region::pub::RmPayload> msg(new region::pub::RmPayload());
