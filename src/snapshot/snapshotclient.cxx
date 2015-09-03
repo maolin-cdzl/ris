@@ -36,11 +36,15 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 
 		m_fn_readable = std::bind<int>(&SnapshotClient::onReqReadable,this,std::placeholders::_1);
 		
-		if( -1 == zloop_reader(m_loop,m_sock,readableAdapter,this) )
+		if( -1 == zloop_reader(m_loop,m_sock,readableAdapter,this) ) {
+			LOG(FATAL) << "SnapshotClient register loop reader failed: " << errno;
 			break;
+		}
 		m_tid = zloop_timer(m_loop,500,0,timerAdapter,this);
-		if( m_tid == -1 )
+		if( m_tid == -1 ) {
+			LOG(FATAL) << "SnapshotClient register loop timer failed: " << errno;
 			break;
+		}
 		m_tv_timeout = ri_time_now() + 1000;
 		m_builder = builder;
 		m_observer = ob;
