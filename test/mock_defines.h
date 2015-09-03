@@ -12,7 +12,7 @@ public:
 class MockSnapshotBuilder : public ISnapshotBuilder {
 public:
 	MOCK_METHOD1(addRegion,int(const Region&));
-	MOCK_METHOD2(addService,int(const uuid_t&,const Service& svc));
-	MOCK_METHOD2(addPayload,int(const uuid_t&,const Payload&));
+	MOCK_METHOD2(addService,int(const ri_uuid_t&,const Service& svc));
+	MOCK_METHOD2(addPayload,int(const ri_uuid_t&,const Payload&));
 };
 

@@ -200,13 +200,15 @@ snapshot_package_t UncompletedRegionGenerator::operator()() {
 
 
 // class SnapshotGenerator
+
+size_t SnapshotGenerator::s_region_size = 0;
+size_t SnapshotGenerator::s_payload_size = 0;
+size_t SnapshotGenerator::s_service_size = 0;
+
 SnapshotGenerator::SnapshotGenerator(size_t region_max,size_t payload_max,size_t service_max) :
 	m_region_max(region_max),
 	m_payload_max(payload_max),
 	m_service_max(service_max),
-	m_region_size(0),
-	m_payload_size(0),
-	m_service_size(0),
 	m_generator(std::chrono::system_clock::now().time_since_epoch().count())
 {
 }
@@ -216,8 +218,9 @@ snapshot_package_t SnapshotGenerator::operator()() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	std::uniform_int_distribution<size_t> region_random(1,m_region_max);
-	m_region_size = region_random(m_generator);
-	for(size_t i=0; i < m_region_size; ++i) {
+	size_t region_size = region_random(m_generator);
+	s_region_size += region_size;
+	for(size_t i=0; i < region_size; ++i) {
 		generate_region(package);
 	}
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
@@ -231,8 +234,8 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 
 	const size_t payload_size = payload_random(m_generator);
 	const size_t service_size = service_random(m_generator);
-	m_payload_size += payload_size;
-	m_service_size += service_size;
+	s_payload_size += payload_size;
+	s_service_size += service_size;
 
 	const std::string uuid = newUUID();
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -262,5 +265,17 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 	auto end = std::make_shared<snapshot::RegionEnd>();
 	end->set_uuid(uuid);
 	package.push_back(end);
+}
+
+testing::Cardinality RegionCardinality() {
+	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::region_size)));
+}
+
+testing::Cardinality ServiceCardinality() {
+	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::service_size)));
+}
+
+testing::Cardinality PayloadCardinality() {
+	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::payload_size)));
 }
 

@@ -1,6 +1,9 @@
+#include <iostream>
+#include <gtest/gtest.h>
 #include "test_helper.h"
 
 
+// class ReadableHelper
 ReadableHelper::ReadableHelper(zloop_t* loop) :
 	m_loop(loop),
 	m_sock(nullptr),
@@ -71,3 +74,110 @@ int ReadableHelper::readAndInterrupt(zloop_t* loop,zsock_t* reader,void* arg) {
 	return 0;
 }
 
+// class CompleteResultHelper
+
+CompleteResultHelper::CompleteResultHelper() :
+	m_result(-1)
+{
+}
+
+void CompleteResultHelper::onComplete(int err) {
+	m_result = err;
+	zsys_interrupted = 1;
+}
+
+// class SnapshotClientRepeater
+
+SnapshotClientRepeater::SnapshotClientRepeater(zloop_t* loop) :
+	m_client(std::make_shared<SnapshotClient>(loop)),
+	m_limits(0),
+	m_count(0)
+{
+}
+
+int SnapshotClientRepeater::start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
+	m_limits = count;
+	m_count = 0;
+	m_builder = builder;
+	m_address = address;
+
+	return m_client->start(std::bind(&SnapshotClientRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address);
+}
+
+void SnapshotClientRepeater::onComplete(int err) {
+	++m_count;
+	EXPECT_EQ(0,err);
+	if( m_count < m_limits ) {
+		m_client->start(std::bind(&SnapshotClientRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address);
+	} else {
+		zsys_interrupted = 1;
+	}
+}
+
+
+//class SnapshotClientParallelRepeater
+
+SnapshotClientParallelRepeater::SnapshotClientParallelRepeater(zloop_t* loop) :
+	m_loop(loop),
+	m_limits(0),
+	m_count(0)
+{
+}
+
+int SnapshotClientParallelRepeater::start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
+	m_limits = count;
+	m_count = 0;
+	m_builder = builder;
+	m_address = address;
+
+	for(size_t i = 0; i < count; ++i) {
+		auto client = std::make_shared<SnapshotClient>(m_loop);
+		if( -1 == client->start(std::bind(&SnapshotClientParallelRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address) ) {
+			return -1;
+		}
+	}
+	return 0;
+}
+
+void SnapshotClientParallelRepeater::onComplete(int err) {
+	++m_count;
+	EXPECT_EQ(0,err);
+	if( m_count >= m_limits ) {
+		zsys_interrupted = 1;
+	}
+}
+
+// class InvokeCardinality
+
+InvokeCardinality::InvokeCardinality(const std::function<size_t()>& fn) :
+	m_fn(fn)
+{
+}
+
+InvokeCardinality::~InvokeCardinality() {
+}
+
+
+int InvokeCardinality::ConservativeLowerBound() const {
+	return 0; 
+}
+
+int InvokeCardinality::ConservativeUpperBound() const {
+	return INT_MAX;
+}
+
+// Returns true iff call_count calls will satisfy this cardinality.
+bool InvokeCardinality::IsSatisfiedByCallCount(int call_count) const {
+	return (m_fn() == (size_t)call_count);
+}
+
+
+// Returns true iff call_count calls will saturate this cardinality.
+bool InvokeCardinality::IsSaturatedByCallCount(int call_count) const {
+	return (size_t)call_count > m_fn();
+}
+
+// Describes self to an ostream.
+void InvokeCardinality::DescribeTo(::std::ostream* os) const {
+    *os << "called " << m_fn();
+}
