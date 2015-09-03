@@ -121,6 +121,21 @@ target_link_libraries(regionapi LINK_PUBLIC
 	region
 )
 
+add_library(regionapi_static STATIC 
+	regionapi/regionapi.h
+	regionapi/regionapi.cxx
+)
+
+target_include_directories(regionapi_static
+	PRIVATE $<TARGET_PROPERTY:region,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(regionapi_static PRIVATE REGIONAPI_BUILDING)
+
+target_link_libraries(regionapi_static LINK_PUBLIC
+	region
+)
+
 # tracker
 add_library(tracker STATIC
 	src/tracker/subscriber.cxx
@@ -169,12 +184,29 @@ target_link_libraries(trackerapi LINK_PUBLIC
 	tracker
 )
 
+add_library(trackerapi_static STATIC
+	trackerapi/trackerapi.h
+	trackerapi/trackerapi.cxx
+)
+
+target_include_directories(trackerapi_static
+	PRIVATE $<TARGET_PROPERTY:tracker,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(trackerapi_static PRIVATE TRACKERAPI_BUILDING)
+
+target_link_libraries(trackerapi_static LINK_PUBLIC
+	tracker
+)
+
 
 # broker
 add_executable(ribroker src/broker/ribroker.cxx)
 target_link_libraries(ribroker PRIVATE zmq gflags)
 
+# test project
 include_directories(googletest/googletest/include)
-add_subdirectory(googletest/googletest)
+include_directories(googletest/googlemock/include)
+add_subdirectory(googletest/googlemock)
 add_subdirectory(zmqx)
 add_subdirectory(test)

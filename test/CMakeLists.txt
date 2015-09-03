@@ -31,3 +31,22 @@ target_compile_definitions(test_tracker PRIVATE CONFI_FILE="${CMAKE_CURRENT_SOUR
 target_link_libraries(test_tracker
 	LINK_PRIVATE trackerapi
 )
+
+
+# test
+
+add_executable(test_ris
+	main.cxx
+	snapshotgenerator.cxx
+	snapshotgenerator.h
+	mock_defines.h
+)
+
+target_include_directories(test_ris
+	PRIVATE $<TARGET_PROPERTY:trackerapi_static,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:regionapi_static,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(test_ris
+	LINK_PRIVATE trackerapi_static regionapi_static gmock gtest uuid
+)

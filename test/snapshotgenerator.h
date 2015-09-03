@@ -6,37 +6,37 @@
 
 #include "snapshot/snapshotable.h"
 
-class EmptySnapshotGenerator : public ISnapshotable {
+class EmptySnapshotGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class DuplicateRegionGenerator : public ISnapshotable {
+class DuplicateRegionGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class DuplicatePayloadGenerator : public ISnapshotable {
+class DuplicatePayloadGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class DuplicateServiceGenerator : public ISnapshotable {
+class DuplicateServiceGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class UnmatchedRegionGenerator : public ISnapshotable {
+class UnmatchedRegionGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class UncompletedRegionGenerator : public ISnapshotable {
+class UncompletedRegionGenerator {
 public:
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 };
 
-class SnapshotGenerator : public ISnapshotable {
+class SnapshotGenerator {
 public:
 	SnapshotGenerator(size_t region_max,size_t payload_max,size_t service_max);
 	inline size_t region_size() const {
@@ -51,7 +51,7 @@ public:
 		return m_service_size;
 	}
 
-	virtual snapshot_package_t buildSnapshot();
+	snapshot_package_t operator()();
 private:
 	void generate_region(snapshot_package_t& package);
 

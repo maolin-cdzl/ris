@@ -16,7 +16,7 @@ static std::string newUUID() {
 }
 
 // class EmptySnapshotGenerator
-snapshot_package_t EmptySnapshotGenerator::buildSnapshot() {
+snapshot_package_t EmptySnapshotGenerator::operator()() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
@@ -24,7 +24,7 @@ snapshot_package_t EmptySnapshotGenerator::buildSnapshot() {
 }
 
 // class DuplicateRegionGenerator
-snapshot_package_t DuplicateRegionGenerator::buildSnapshot() {
+snapshot_package_t DuplicateRegionGenerator::operator()() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -62,7 +62,7 @@ snapshot_package_t DuplicateRegionGenerator::buildSnapshot() {
 }
 
 // class DuplicatePayloadGenerator
-snapshot_package_t DuplicatePayloadGenerator::buildSnapshot() {
+snapshot_package_t DuplicatePayloadGenerator::operator()() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -98,7 +98,7 @@ snapshot_package_t DuplicatePayloadGenerator::buildSnapshot() {
 }
 
 // class DuplicateServiceGenerator
-snapshot_package_t DuplicateServiceGenerator::buildSnapshot() {
+snapshot_package_t DuplicateServiceGenerator::operator()() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -131,7 +131,7 @@ snapshot_package_t DuplicateServiceGenerator::buildSnapshot() {
 }
 
 // class UnmatchedRegionGenerator
-snapshot_package_t UnmatchedRegionGenerator::buildSnapshot() {
+snapshot_package_t UnmatchedRegionGenerator::operator()() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -166,7 +166,7 @@ snapshot_package_t UnmatchedRegionGenerator::buildSnapshot() {
 }
 
 // class UncompletedRegionGenerator
-snapshot_package_t UncompletedRegionGenerator::buildSnapshot() {
+snapshot_package_t UncompletedRegionGenerator::operator()() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -210,7 +210,7 @@ SnapshotGenerator::SnapshotGenerator(size_t region_max,size_t payload_max,size_t
 }
 
 
-snapshot_package_t SnapshotGenerator::buildSnapshot() {
+snapshot_package_t SnapshotGenerator::operator()() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	std::uniform_int_distribution<size_t> region_random(1,m_region_max);

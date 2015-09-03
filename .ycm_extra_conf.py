@@ -53,6 +53,8 @@ flags = [
 '-I',
 './googletest/googletest/include',
 '-I',
+'./googletest/googlemock/include',
+'-I',
 './buildir/include',
 ]
 
