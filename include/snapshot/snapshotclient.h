@@ -18,6 +18,7 @@ public:
 	bool isActive() const;
 private:
 	int pullSnapshotBegin(zsock_t* sock);
+	int pullRegionBegin(zsock_t* sock);
 	int pullRegionOrFinish(zsock_t* sock);
 	int pullRegionBody(zsock_t* sock);
 

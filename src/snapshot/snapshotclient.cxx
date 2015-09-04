@@ -80,7 +80,48 @@ int SnapshotClient::pullSnapshotBegin(zsock_t* sock) {
 			break;
 		}
 
-		m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionOrFinish,this,std::placeholders::_1);
+		m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionBegin,this,std::placeholders::_1);
+		m_tv_timeout = ri_time_now() + 1000;
+		return 0;
+	} while(0);
+
+	auto ob = m_observer;
+	stop();
+	ob(SNAPSHOT_CLIENT_ERROR);
+	return -1;
+}
+
+int SnapshotClient::pullRegionBegin(zsock_t* sock) {
+	do {
+		snapshot::RegionBegin msg;
+		if( -1 == zpb_recv(msg,sock) ) {
+			LOG(ERROR) << "SnapshotClient recv RegionBegin failed";
+			break;
+		}
+
+		Region region;
+		region.id = msg.uuid();
+		region.version = msg.version();
+		if( msg.has_idc() ) {
+			region.idc = msg.idc();
+		}
+		if( msg.has_bus_address() ) {
+			region.bus_address = msg.bus_address();
+		}
+		if( msg.has_snapshot_address() ) {
+			region.snapshot_address = msg.snapshot_address();
+		}
+
+		const ri_time_t now = ri_time_now();
+		region.timeval = now;
+
+		DLOG(INFO) << "SnapshotClient recv RegionBegin: " << region.id << "(" << region.version << ")"; 
+		if( -1 == m_builder->addRegion(region) ) {
+			LOG(ERROR) << "SnapshotClient addRegion failed,region: " <<  region.id << "(" << region.version << ")";
+			break;
+		}
+		m_last_region = msg.uuid();
+		m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionBody,this,std::placeholders::_1);
 		m_tv_timeout = ri_time_now() + 1000;
 		return 0;
 	} while(0);
