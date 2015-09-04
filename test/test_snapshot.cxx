@@ -40,7 +40,7 @@ void snapshot_testcase(size_t repeat_count) {
 	ASSERT_EQ(0,result);
 
 	ASSERT_EQ(repeat_count,repeater->success_count());
-	std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
+	//std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
 }
 
 template<typename RepeaterT>
@@ -80,6 +80,37 @@ void snapshot_partfail_testcase(size_t repeat_count) {
 	ASSERT_LT(repeater->success_count(),repeat_count);
 }
 
+template<typename GeneratorT>
+void snapshot_fail_testcase() {
+	auto snapshotable = std::make_shared<MockSnapshotable>();
+	auto builder = std::make_shared<MockSnapshotBuilder>();
+	auto server = std::make_shared<SnapshotService>(g_loop);
+	auto repeater = std::make_shared<SnapshotClientRepeater>(g_loop);
+
+	auto generator = std::make_shared<GeneratorT>();
+	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
+
+	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(1).WillRepeatedly(testing::Invoke(func));
+	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionNumber(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
+
+	int result;
+
+	result = server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS);
+	ASSERT_EQ(0,result);
+
+	result = repeater->start(1,builder,SS_SERVER_ADDRESS);
+	ASSERT_EQ(0,result);
+
+
+	zsys_interrupted = 0;
+	result = zloop_start(g_loop);
+	zsys_interrupted = 0;
+	ASSERT_EQ(-1,result);
+
+	ASSERT_EQ(size_t(0),repeater->success_count());
+}
 
 
 TEST(Snapshot,Normal) {
@@ -97,3 +128,11 @@ TEST(Snapshot,Parallel) {
 TEST(Snapshot,ParallelOverflow) {
 	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(5);
 }
+
+TEST(Snapshot,UnmatchedRegion) {
+	snapshot_fail_testcase<UnmatchedRegionGenerator>();
+}
+
+
+
+

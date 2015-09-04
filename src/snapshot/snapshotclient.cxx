@@ -145,7 +145,7 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 
 int SnapshotClient::pullRegionBody(zsock_t* sock) {
 	assert( ! m_last_region.empty() );
-
+	int result = -1;
 	do {
 		auto msg = zpb_recv(sock);
 		if( msg == nullptr ) {
@@ -165,6 +165,7 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 				break;
 			}
 			m_tv_timeout = now + 1000;
+			result = 0;
 		} else if( msg->GetDescriptor() == snapshot::Service::descriptor() ) {
 			auto p = std::dynamic_pointer_cast<snapshot::Service>(msg);
 			Service svc;
@@ -178,22 +179,28 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 				break;
 			}
 			m_tv_timeout = now + 1000;
+			result = 0;
 		} else if( msg->GetDescriptor() == snapshot::RegionEnd::descriptor() ) {
 			DLOG(INFO) << "SnapshotClient recv RegionEnd: ";
+			auto p = std::dynamic_pointer_cast<snapshot::RegionEnd>(msg);
+			if( p->uuid() != m_last_region )
+				break;
 			m_last_region.clear();
 			m_fn_readable = std::bind<int>(&SnapshotClient::pullRegionOrFinish,this,std::placeholders::_1);
 			m_tv_timeout = now + 1000;
-			return 0;
+			result = 0;
 		} else {
 			LOG(ERROR) << "SnapshotClient pullRegionBody recv unexpect message: " << msg->GetTypeName();
 			break;
 		}
-	} while(1);
+	} while(0);
 
-	auto ob = m_observer;
-	stop();
-	ob(SNAPSHOT_CLIENT_ERROR);
-	return -1;
+	if( -1 == result ) {
+		auto ob = m_observer;
+		stop();
+		ob(SNAPSHOT_CLIENT_ERROR);
+	}
+	return result;
 }
 
 int SnapshotClient::readableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
