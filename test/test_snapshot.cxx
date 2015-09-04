@@ -129,10 +129,17 @@ TEST(Snapshot,ParallelOverflow) {
 	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(5);
 }
 
+TEST(Snapshot,Empty) {
+	snapshot_fail_testcase<EmptySnapshotGenerator>();
+}
+
 TEST(Snapshot,UnmatchedRegion) {
 	snapshot_fail_testcase<UnmatchedRegionGenerator>();
 }
 
+TEST(Snapshot,UncompletedRegion) {
+	snapshot_fail_testcase<UncompletedRegionGenerator>();
+}
 
 
 

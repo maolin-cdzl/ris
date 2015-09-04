@@ -23,7 +23,7 @@ private:
 	int onWorkerReadable(zloop_t* loop,zsock_t* reader);
 	zactor_t* createWorker();
 
-	std::shared_ptr<SnapshotServiceWorker> findWorker(zsock_t* sock);
+	std::shared_ptr<SnapshotServiceWorker> popWorker(zsock_t* sock);
 private:
 	zloop_t*						m_loop;
 	std::shared_ptr<ISnapshotable>	m_snapshotable;

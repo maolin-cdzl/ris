@@ -112,7 +112,7 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 }
 
 int SnapshotService::onWorkerReadable(zloop_t* loop,zsock_t* reader) {
-	auto worker = findWorker(reader);
+	auto worker = popWorker(reader);
 	if( worker == nullptr ) {
 		LOG(FATAL) << "SnapshotService can NOT found worker in onWorkerReadable";
 		return -1;
@@ -126,21 +126,17 @@ int SnapshotService::onWorkerReadable(zloop_t* loop,zsock_t* reader) {
 		zmsg_destroy(&msg);
 	}
 
-	zloop_reader_end(loop,reader);
-	for(auto it = m_workers.begin(); it != m_workers.end(); ++it) {
-		if( (*it) == worker ) {
-			m_workers.erase(it);
-			return 0;
-		}
-	}
-	LOG(FATAL) << "some SnapsthoServiceWorker say it's done,but can not found in m_workers";
-	return -1;
+	return 0;
 }
 
-std::shared_ptr<SnapshotServiceWorker> SnapshotService::findWorker(zsock_t* sock) {
+std::shared_ptr<SnapshotServiceWorker> SnapshotService::popWorker(zsock_t* sock) {
 	for(auto it=m_workers.begin(); it != m_workers.end(); ++it) {
-		if( zactor_sock((*it)->actor()) == sock )
-			return (*it);
+		if( zactor_sock((*it)->actor()) == sock ) {
+			auto p = *it;
+			m_workers.erase(it);
+			zloop_reader_end(m_loop,sock);
+			return p;
+		}
 	}
 	return std::shared_ptr<SnapshotServiceWorker>(nullptr);
 }
