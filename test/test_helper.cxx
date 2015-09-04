@@ -11,6 +11,33 @@ std::string newUUID() {
     return s;
 }
 
+//class LoopStoper
+LoopStoper::LoopStoper(zloop_t* loop,long timeout) :
+	m_loop(loop),
+	m_tid(-1)
+{
+	m_tid = zloop_timer(loop,timeout,1,&LoopStoper::onTimer,this);
+}
+
+LoopStoper::~LoopStoper() {
+	cancel();
+}
+
+void LoopStoper::cancel() {
+	if( m_tid != -1 ) {
+		zloop_timer_end(m_loop,m_tid);
+		m_tid = -1;
+	}
+}
+
+int LoopStoper::onTimer(zloop_t* loop,int timeid,void* arg) {
+	(void)loop;
+	(void)timeid;
+	LoopStoper* self = (LoopStoper*)arg;
+	self->m_tid = -1;
+	zsys_interrupted = 1;
+	return 0;
+}
 
 // class ReadableHelper
 ReadableHelper::ReadableHelper(zloop_t* loop) :

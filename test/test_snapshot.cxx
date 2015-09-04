@@ -25,19 +25,12 @@ void snapshot_testcase(size_t repeat_count) {
 	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
 
-	int result;
-
-	result = server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS);
-	ASSERT_EQ(0,result);
-
-	result = repeater->start(repeat_count,builder,SS_SERVER_ADDRESS);
-	ASSERT_EQ(0,result);
+	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS));
+	ASSERT_EQ(0,repeater->start(repeat_count,builder,SS_SERVER_ADDRESS));
 
 
 	zsys_interrupted = 0;
-	result = zloop_start(g_loop);
-	zsys_interrupted = 0;
-	ASSERT_EQ(0,result);
+	ASSERT_EQ(0,zloop_start(g_loop));
 
 	ASSERT_EQ(repeat_count,repeater->success_count());
 	//std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
@@ -95,19 +88,11 @@ void snapshot_fail_testcase() {
 	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
 
-	int result;
-
-	result = server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS);
-	ASSERT_EQ(0,result);
-
-	result = repeater->start(1,builder,SS_SERVER_ADDRESS);
-	ASSERT_EQ(0,result);
-
+	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS));
+	ASSERT_EQ(0,repeater->start(1,builder,SS_SERVER_ADDRESS));
 
 	zsys_interrupted = 0;
-	result = zloop_start(g_loop);
-	zsys_interrupted = 0;
-	ASSERT_EQ(-1,result);
+	ASSERT_EQ(-1,zloop_start(g_loop));
 
 	ASSERT_EQ(size_t(0),repeater->success_count());
 }

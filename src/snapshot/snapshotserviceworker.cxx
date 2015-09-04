@@ -92,6 +92,8 @@ zsock_t* SnapshotServiceWorker::createPipelineSock() {
 			LOG(FATAL) << "SnapshotServiceWorker can NOT bind to: " << m_address;
 			break;
 		}
+		// set linger so when we close it,it will not discard pending message.
+		zsock_set_linger(sock,20);
 		m_endpoint = zsock_endpoint(sock);
 		if( m_endpoint.empty() )
 			break;

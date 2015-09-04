@@ -8,6 +8,19 @@
 
 std::string newUUID();
 
+class LoopStoper {
+public:
+	LoopStoper(zloop_t* loop,long timeout);
+	~LoopStoper();
+
+	void cancel();
+private:
+	static int onTimer(zloop_t* loop,int timeid,void* arg);
+private:
+	zloop_t*	m_loop;
+	int			m_tid;
+};
+
 class ReadableHelper {
 public:
 	ReadableHelper(zloop_t* loop);
