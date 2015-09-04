@@ -48,6 +48,16 @@ public:
 	SnapshotClientRepeater(zloop_t* loop);
 
 	int start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
+
+	inline size_t limits() const {
+		return m_limits;
+	}
+	inline size_t finish_count() const {
+		return m_count;
+	}
+	inline size_t success_count() const {
+		return m_success_count;
+	}
 private:
 	void onComplete(int err);
 private:
@@ -56,12 +66,23 @@ private:
 	std::string									m_address;
 	size_t										m_limits;
 	size_t										m_count;
+	size_t										m_success_count;
 };
 
 class SnapshotClientParallelRepeater {
 public:
 	SnapshotClientParallelRepeater(zloop_t* loop); 
 	int start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
+
+	inline size_t limits() const {
+		return m_limits;
+	}
+	inline size_t finish_count() const {
+		return m_count;
+	}
+	inline size_t success_count() const {
+		return m_success_count;
+	}
 private:
 	void onComplete(int err);
 private:
@@ -71,11 +92,12 @@ private:
 	std::string									m_address;
 	size_t										m_limits;
 	size_t										m_count;
+	size_t										m_success_count;
 };
 
 class InvokeCardinality : public testing::CardinalityInterface {
 public:
-	InvokeCardinality(const std::function<size_t()>& fn);
+	InvokeCardinality(const std::function<size_t()>& min,const std::function<size_t()>& max);
 	virtual ~InvokeCardinality();
 
 	virtual int ConservativeLowerBound() const;
@@ -89,8 +111,17 @@ public:
 
 	// Describes self to an ostream.
 	virtual void DescribeTo(::std::ostream* os) const;
+
+public:
+	static testing::Cardinality makeAtLeast(const std::function<size_t()>& min);
+	static testing::Cardinality makeAtMost(const std::function<size_t()>& max);
+	static testing::Cardinality makeBetween(const std::function<size_t()>& min,const std::function<size_t()>& max);
 private:
-	std::function<size_t()>						m_fn;
+	static size_t Zero();
+	static size_t Unlimited();
+private:
+	std::function<size_t()>						m_fn_min;
+	std::function<size_t()>						m_fn_max;
 };
 
 

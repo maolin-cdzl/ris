@@ -268,14 +268,14 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 }
 
 testing::Cardinality RegionCardinality() {
-	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::region_size)));
+	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::region_size),std::bind(&SnapshotGenerator::region_size));
 }
 
 testing::Cardinality ServiceCardinality() {
-	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::service_size)));
+	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::service_size),std::bind(&SnapshotGenerator::service_size));
 }
 
 testing::Cardinality PayloadCardinality() {
-	return testing::MakeCardinality(new InvokeCardinality(std::bind(&SnapshotGenerator::payload_size)));
+	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::payload_size),std::bind(&SnapshotGenerator::payload_size));
 }
 

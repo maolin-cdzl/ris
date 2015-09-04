@@ -91,13 +91,15 @@ void CompleteResultHelper::onComplete(int err) {
 SnapshotClientRepeater::SnapshotClientRepeater(zloop_t* loop) :
 	m_client(std::make_shared<SnapshotClient>(loop)),
 	m_limits(0),
-	m_count(0)
+	m_count(0),
+	m_success_count(0)
 {
 }
 
 int SnapshotClientRepeater::start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
 	m_limits = count;
 	m_count = 0;
+	m_success_count = 0;
 	m_builder = builder;
 	m_address = address;
 
@@ -106,7 +108,9 @@ int SnapshotClientRepeater::start(size_t count,const std::shared_ptr<ISnapshotBu
 
 void SnapshotClientRepeater::onComplete(int err) {
 	++m_count;
-	EXPECT_EQ(0,err);
+	if( 0 == err ) {
+		++m_success_count;
+	}
 	if( m_count < m_limits ) {
 		m_client->start(std::bind(&SnapshotClientRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address);
 	} else {
@@ -120,20 +124,25 @@ void SnapshotClientRepeater::onComplete(int err) {
 SnapshotClientParallelRepeater::SnapshotClientParallelRepeater(zloop_t* loop) :
 	m_loop(loop),
 	m_limits(0),
-	m_count(0)
+	m_count(0),
+	m_success_count(0)
 {
 }
 
 int SnapshotClientParallelRepeater::start(size_t count,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
 	m_limits = count;
 	m_count = 0;
+	m_success_count = 0;
 	m_builder = builder;
 	m_address = address;
+	m_clients.clear();
 
 	for(size_t i = 0; i < count; ++i) {
 		auto client = std::make_shared<SnapshotClient>(m_loop);
 		if( -1 == client->start(std::bind(&SnapshotClientParallelRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address) ) {
 			return -1;
+		} else {
+			m_clients.push_back(client);
 		}
 	}
 	return 0;
@@ -141,7 +150,9 @@ int SnapshotClientParallelRepeater::start(size_t count,const std::shared_ptr<ISn
 
 void SnapshotClientParallelRepeater::onComplete(int err) {
 	++m_count;
-	EXPECT_EQ(0,err);
+	if( 0 == err ) {
+		++m_success_count;
+	}
 	if( m_count >= m_limits ) {
 		zsys_interrupted = 1;
 	}
@@ -149,8 +160,9 @@ void SnapshotClientParallelRepeater::onComplete(int err) {
 
 // class InvokeCardinality
 
-InvokeCardinality::InvokeCardinality(const std::function<size_t()>& fn) :
-	m_fn(fn)
+InvokeCardinality::InvokeCardinality(const std::function<size_t()>& min,const std::function<size_t()>& max) :
+	m_fn_min(min),
+	m_fn_max(max)
 {
 }
 
@@ -168,16 +180,55 @@ int InvokeCardinality::ConservativeUpperBound() const {
 
 // Returns true iff call_count calls will satisfy this cardinality.
 bool InvokeCardinality::IsSatisfiedByCallCount(int call_count) const {
-	return (m_fn() == (size_t)call_count);
+	return (m_fn_min() <= (size_t)call_count && (size_t)call_count <= m_fn_max());
 }
 
 
 // Returns true iff call_count calls will saturate this cardinality.
 bool InvokeCardinality::IsSaturatedByCallCount(int call_count) const {
-	return (size_t)call_count > m_fn();
+	return (size_t)call_count > m_fn_max();
 }
 
 // Describes self to an ostream.
 void InvokeCardinality::DescribeTo(::std::ostream* os) const {
-    *os << "called " << m_fn();
+	const size_t min = m_fn_min();
+	const size_t max = m_fn_max();
+
+	if (min == 0) {
+		if (max == 0) {
+			*os << "never called";
+		} else if (max == INT_MAX) {
+			*os << "called any number of times";
+		} else {
+			*os << "called at most " << max;
+		}
+	} else if (min == max) {
+		*os << "called " << min;
+	} else if (max == INT_MAX) {
+		*os << "called at least " << min;
+	} else {
+		// 0 < min_ < max_ < INT_MAX
+		*os << "called between " << min << " and " << max << " times";
+	}
 }
+
+size_t InvokeCardinality::Zero() {
+	return 0;
+}
+
+size_t InvokeCardinality::Unlimited() {
+	return INT_MAX;
+}
+
+testing::Cardinality InvokeCardinality::makeAtLeast(const std::function<size_t()>& min) {
+	return testing::MakeCardinality(new InvokeCardinality(min,std::bind(&InvokeCardinality::Unlimited)));
+}
+
+testing::Cardinality InvokeCardinality::makeAtMost(const std::function<size_t()>& max) {
+	return testing::MakeCardinality(new InvokeCardinality(std::bind(&InvokeCardinality::Zero),max));
+}
+
+testing::Cardinality InvokeCardinality::makeBetween(const std::function<size_t()>& min,const std::function<size_t()>& max) {
+	return testing::MakeCardinality(new InvokeCardinality(min,max));
+}
+
