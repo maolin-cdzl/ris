@@ -38,6 +38,26 @@ public:
 		return m_payloads.size();
 	}
 
+	inline size_t sec_repub_region() const {
+		return m_sec_repub_region;
+	}
+	inline size_t sec_repub_service() const {
+		return m_sec_repub_service;
+	}
+	inline size_t sec_repub_payload() const {
+		return m_sec_repub_payload;
+	}
+
+	inline void sec_repub_region(size_t sec) {
+		m_sec_repub_region = sec;
+	}
+	inline void sec_repub_service(size_t sec) {
+		m_sec_repub_service = sec;
+	}
+	inline void sec_repub_payload(size_t sec) {
+		m_sec_repub_payload = sec;
+	}
+
 	int addService(const std::string& name,const std::string& address);
 	int rmService(const std::string& svc);
 	int addPayload(const ri_uuid_t& pl);
@@ -67,4 +87,7 @@ private:
 
 	int								m_tid_reg;
 	int								m_tid_repeat;
+	size_t							m_sec_repub_region;
+	size_t							m_sec_repub_service;
+	size_t							m_sec_repub_payload;
 };

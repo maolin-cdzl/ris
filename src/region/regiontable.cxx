@@ -1,18 +1,15 @@
 #include <glog/logging.h>
 #include "region/regiontable.h"
 
-static const long RI_PUB_REPEAT_SECOND			= 60;
-static const long RI_PUB_REPEAT_MS				= RI_PUB_REPEAT_SECOND * 1000;
 static const long RI_PUB_REPEAT_TIMER			= 20;
-static const long RI_PUB_REPEAT_LOOP_TIMER_COUNT	= RI_PUB_REPEAT_MS / RI_PUB_REPEAT_TIMER;
-
-static const long RI_PUB_REGION_SECOND			= 5;
-static const long RI_PUB_REGION_MS				= RI_PUB_REGION_SECOND * 1000;
 
 RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop) :
 	m_loop(loop),
 	m_tid_reg(-1),
-	m_tid_repeat(-1)
+	m_tid_repeat(-1),
+	m_sec_repub_region(5),
+	m_sec_repub_service(60),
+	m_sec_repub_payload(60)
 {
 	m_region.id = ctx->uuid;
 	m_region.idc = ctx->idc;
@@ -164,7 +161,7 @@ int RIRegionTable::start(const std::shared_ptr<IRIObserver>& ob) {
 	if( -1 != m_tid_reg || -1 != m_tid_repeat )
 		return -1;
 	m_observer = ob;
-	m_tid_reg = zloop_timer(m_loop,RI_PUB_REGION_MS,0,onRegionPubTimer,this);
+	m_tid_reg = zloop_timer(m_loop,m_sec_repub_region * 1000,0,onRegionPubTimer,this);
 	if( -1 == m_tid_reg )
 		return -1;
 	m_tid_repeat = zloop_timer(m_loop,RI_PUB_REPEAT_TIMER,0,onRepeatPubTimer,this);
@@ -195,14 +192,14 @@ void RIRegionTable::stop() {
 
 int RIRegionTable::pubRepeated() {
 	if( m_observer ) {
-		auto svclist = update_timeouted_service(RI_PUB_REPEAT_MS,100);
+		auto svclist = update_timeouted_service(m_sec_repub_service * 1000,100);
 		for(auto it=svclist.begin(); it != svclist.end(); ++it) {
 			m_observer->onService(m_region.id,m_region.version,*it);
 		}
 
-		const size_t maxcount = (payload_size() / RI_PUB_REPEAT_LOOP_TIMER_COUNT) + 100;
+		const size_t maxcount = (payload_size() / (m_sec_repub_payload * 1000 / RI_PUB_REPEAT_TIMER)) + 100;
 
-		auto pldlist = update_timeouted_payload(RI_PUB_REPEAT_MS,maxcount);
+		auto pldlist = update_timeouted_payload(m_sec_repub_payload * 1000,maxcount);
 		for(auto it=pldlist.begin(); it != pldlist.end(); ++it) {
 			m_observer->onPayload(m_region.id,m_region.version,*it);
 		}
