@@ -29,7 +29,8 @@ private:
 private:
 	static int readableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
 	static int timerAdapter(zloop_t* loop,int timer_id,void* arg);
-
+	
+	void cancelRegion();
 private:
 	zloop_t*								m_loop;
 	zsock_t*								m_sock;

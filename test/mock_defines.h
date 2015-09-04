@@ -25,5 +25,6 @@ public:
 	MOCK_METHOD1(addRegion,int(const Region&));
 	MOCK_METHOD2(addService,int(const ri_uuid_t&,const Service& svc));
 	MOCK_METHOD2(addPayload,int(const ri_uuid_t&,const Payload&));
+	MOCK_METHOD1(rmRegion,int(const ri_uuid_t&));
 };
 

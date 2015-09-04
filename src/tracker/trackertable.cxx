@@ -189,6 +189,13 @@ int RITrackerTable::addPayload(const ri_uuid_t& reg,const Payload& pl) {
 		return -1;
 }
 
+int RITrackerTable::rmRegion(const ri_uuid_t& region) {
+	int result = doRmRegion(region);
+	if( result >= 0 )
+		return 0;
+	else
+		return -1;
+}
 
 void RITrackerTable::updateRegionVersion(std::shared_ptr<Region>& region,uint32_t version) {
 	if( region->version != version && region->version + 1 != version ) {

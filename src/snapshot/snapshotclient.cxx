@@ -245,6 +245,7 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 	} while(0);
 
 	if( -1 == result ) {
+		cancelRegion();
 		auto ob = m_observer;
 		stop();
 		ob(SNAPSHOT_CLIENT_ERROR);
@@ -268,6 +269,7 @@ int SnapshotClient::timerAdapter(zloop_t* loop,int timer_id,void* arg) {
 int SnapshotClient::onTimeoutTimer() {
 	if( ri_time_now() > m_tv_timeout ) {
 		LOG(ERROR) << "SnapshotClient timeout,state: " << state();
+		cancelRegion();
 		auto ob = m_observer;
 		stop();
 		ob(SNAPSHOT_CLIENT_ERROR);
@@ -322,5 +324,12 @@ bool SnapshotClient::isActive() const {
 
 std::string SnapshotClient::state() const {
 	return m_state;
+}
+
+void SnapshotClient::cancelRegion() {
+	if( ! m_last_region.empty() ) {
+		m_builder->rmRegion(m_last_region);
+		m_last_region.clear();
+	}
 }
 
