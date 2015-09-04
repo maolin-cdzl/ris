@@ -17,34 +17,52 @@ public:
 };
 
 
-class EmptySnapshotGenerator {
+class EmptySnapshotGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
-class DuplicateRegionGenerator {
+class DuplicateRegionGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
-class DuplicatePayloadGenerator {
+class DuplicatePayloadGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
-class DuplicateServiceGenerator {
+class DuplicateServiceGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
-class UnmatchedRegionGenerator {
+class UnmatchedRegionGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
-class UncompletedRegionGenerator {
+class UncompletedRegionGenerator : public ISnapshotGeneratorImpl {
 public:
 	virtual snapshot_package_t build();
+	virtual size_t region_size() const;
+	virtual size_t payload_size() const;
+	virtual size_t service_size() const;
 };
 
 class SnapshotGenerator : public ISnapshotGeneratorImpl  {

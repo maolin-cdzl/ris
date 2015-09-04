@@ -24,6 +24,18 @@ snapshot_package_t EmptySnapshotGenerator::build() {
 	return std::move(package);
 }
 
+size_t EmptySnapshotGenerator::region_size() const {
+	return 0;
+}
+
+size_t EmptySnapshotGenerator::payload_size() const {
+	return 0;
+}
+
+size_t EmptySnapshotGenerator::service_size() const {
+	return 0;
+}
+
 // class DuplicateRegionGenerator
 snapshot_package_t DuplicateRegionGenerator::build() {
 	snapshot_package_t package;
@@ -62,6 +74,18 @@ snapshot_package_t DuplicateRegionGenerator::build() {
 	return std::move(package);
 }
 
+size_t DuplicateRegionGenerator::region_size() const {
+	return 1;
+}
+
+size_t DuplicateRegionGenerator::payload_size() const {
+	return 10;
+}
+
+size_t DuplicateRegionGenerator::service_size() const {
+	return 10;
+}
+
 // class DuplicatePayloadGenerator
 snapshot_package_t DuplicatePayloadGenerator::build() {
 	snapshot_package_t package;
@@ -98,6 +122,18 @@ snapshot_package_t DuplicatePayloadGenerator::build() {
 	return std::move(package);
 }
 
+size_t DuplicatePayloadGenerator::region_size() const {
+	return 1;
+}
+
+size_t DuplicatePayloadGenerator::payload_size() const {
+	return 10;
+}
+
+size_t DuplicatePayloadGenerator::service_size() const {
+	return 10;
+}
+
 // class DuplicateServiceGenerator
 snapshot_package_t DuplicateServiceGenerator::build() {
 	snapshot_package_t package;
@@ -129,6 +165,18 @@ snapshot_package_t DuplicateServiceGenerator::build() {
 	package.push_back(end);
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
 	return std::move(package);
+}
+
+size_t DuplicateServiceGenerator::region_size() const {
+	return 1;
+}
+
+size_t DuplicateServiceGenerator::payload_size() const {
+	return 10;
+}
+
+size_t DuplicateServiceGenerator::service_size() const {
+	return 10;
 }
 
 // class UnmatchedRegionGenerator
@@ -166,6 +214,19 @@ snapshot_package_t UnmatchedRegionGenerator::build() {
 	return std::move(package);
 }
 
+size_t UnmatchedRegionGenerator::region_size() const {
+	return 1;
+}
+
+size_t UnmatchedRegionGenerator::payload_size() const {
+	return 10;
+}
+
+size_t UnmatchedRegionGenerator::service_size() const {
+	return 10;
+}
+
+
 // class UncompletedRegionGenerator
 snapshot_package_t UncompletedRegionGenerator::build() {
 	snapshot_package_t package;
@@ -198,6 +259,17 @@ snapshot_package_t UncompletedRegionGenerator::build() {
 	return std::move(package);
 }
 
+size_t UncompletedRegionGenerator::region_size() const {
+	return 1;
+}
+
+size_t UncompletedRegionGenerator::payload_size() const {
+	return 10;
+}
+
+size_t UncompletedRegionGenerator::service_size() const {
+	return 10;
+}
 
 // class SnapshotGenerator
 
