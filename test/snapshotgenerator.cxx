@@ -17,7 +17,7 @@ static std::string newUUID() {
 }
 
 // class EmptySnapshotGenerator
-snapshot_package_t EmptySnapshotGenerator::operator()() {
+snapshot_package_t EmptySnapshotGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
@@ -25,7 +25,7 @@ snapshot_package_t EmptySnapshotGenerator::operator()() {
 }
 
 // class DuplicateRegionGenerator
-snapshot_package_t DuplicateRegionGenerator::operator()() {
+snapshot_package_t DuplicateRegionGenerator::build() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -63,7 +63,7 @@ snapshot_package_t DuplicateRegionGenerator::operator()() {
 }
 
 // class DuplicatePayloadGenerator
-snapshot_package_t DuplicatePayloadGenerator::operator()() {
+snapshot_package_t DuplicatePayloadGenerator::build() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -99,7 +99,7 @@ snapshot_package_t DuplicatePayloadGenerator::operator()() {
 }
 
 // class DuplicateServiceGenerator
-snapshot_package_t DuplicateServiceGenerator::operator()() {
+snapshot_package_t DuplicateServiceGenerator::build() {
 	snapshot_package_t package;
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
@@ -132,7 +132,7 @@ snapshot_package_t DuplicateServiceGenerator::operator()() {
 }
 
 // class UnmatchedRegionGenerator
-snapshot_package_t UnmatchedRegionGenerator::operator()() {
+snapshot_package_t UnmatchedRegionGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -167,7 +167,7 @@ snapshot_package_t UnmatchedRegionGenerator::operator()() {
 }
 
 // class UncompletedRegionGenerator
-snapshot_package_t UncompletedRegionGenerator::operator()() {
+snapshot_package_t UncompletedRegionGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -201,25 +201,24 @@ snapshot_package_t UncompletedRegionGenerator::operator()() {
 
 // class SnapshotGenerator
 
-size_t SnapshotGenerator::s_region_size = 0;
-size_t SnapshotGenerator::s_payload_size = 0;
-size_t SnapshotGenerator::s_service_size = 0;
-
 SnapshotGenerator::SnapshotGenerator(size_t region_max,size_t payload_max,size_t service_max) :
 	m_region_max(region_max),
 	m_payload_max(payload_max),
 	m_service_max(service_max),
+	m_region_size(0),
+	m_payload_size(0),
+	m_service_size(0),
 	m_generator(std::chrono::system_clock::now().time_since_epoch().count())
 {
 }
 
 
-snapshot_package_t SnapshotGenerator::operator()() {
+snapshot_package_t SnapshotGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	std::uniform_int_distribution<size_t> region_random(1,m_region_max);
 	size_t region_size = region_random(m_generator);
-	s_region_size += region_size;
+	m_region_size += region_size;
 	for(size_t i=0; i < region_size; ++i) {
 		generate_region(package);
 	}
@@ -234,8 +233,8 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 
 	const size_t payload_size = payload_random(m_generator);
 	const size_t service_size = service_random(m_generator);
-	s_payload_size += payload_size;
-	s_service_size += service_size;
+	m_payload_size += payload_size;
+	m_service_size += service_size;
 
 	const std::string uuid = newUUID();
 	auto begin = std::make_shared<snapshot::RegionBegin>();
@@ -267,15 +266,42 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 	package.push_back(end);
 }
 
-testing::Cardinality RegionCardinality() {
-	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::region_size),std::bind(&SnapshotGenerator::region_size));
+size_t SnapshotGenerator::region_size() const {
+	return m_region_size;
 }
 
-testing::Cardinality ServiceCardinality() {
-	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::service_size),std::bind(&SnapshotGenerator::service_size));
+size_t SnapshotGenerator::payload_size() const {
+	return m_payload_size;
 }
 
-testing::Cardinality PayloadCardinality() {
-	return InvokeCardinality::makeBetween(std::bind(&SnapshotGenerator::payload_size),std::bind(&SnapshotGenerator::payload_size));
+size_t SnapshotGenerator::service_size() const {
+	return m_service_size;
+}
+
+
+//
+
+testing::Cardinality RegionNumber(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeBetween(std::bind(&ISnapshotGeneratorImpl::region_size,impl),std::bind(&ISnapshotGeneratorImpl::region_size,impl));
+}
+
+testing::Cardinality RegionAtMost(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeAtMost(std::bind(&ISnapshotGeneratorImpl::region_size,impl));
+}
+
+testing::Cardinality ServiceNumber(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeBetween(std::bind(&ISnapshotGeneratorImpl::service_size,impl),std::bind(&ISnapshotGeneratorImpl::service_size,impl));
+}
+
+testing::Cardinality ServiceAtMost(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeAtMost(std::bind(&ISnapshotGeneratorImpl::service_size,impl));
+}
+
+testing::Cardinality PayloadNumber(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeBetween(std::bind(&ISnapshotGeneratorImpl::payload_size,impl),std::bind(&ISnapshotGeneratorImpl::payload_size,impl));
+}
+
+testing::Cardinality PayloadAtMost(const std::shared_ptr<ISnapshotGeneratorImpl>& impl) {
+	return InvokeCardinality::makeAtMost(std::bind(&ISnapshotGeneratorImpl::payload_size,impl));
 }
 

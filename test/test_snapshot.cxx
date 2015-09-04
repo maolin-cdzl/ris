@@ -14,16 +14,16 @@ template<typename RepeaterT>
 void snapshot_testcase(size_t repeat_count) {
 	auto snapshotable = std::make_shared<MockSnapshotable>();
 	auto builder = std::make_shared<MockSnapshotBuilder>();
-	SnapshotGenerator::reset_count();
-	SnapshotGenerator generator(10,100,20);
-
-	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(repeat_count).WillRepeatedly(testing::Invoke(generator));
-	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionCardinality()).WillRepeatedly(testing::Return(0));
-	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadCardinality()).WillRepeatedly(testing::Return(0));
-	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceCardinality()).WillRepeatedly(testing::Return(0));
-
 	auto server = std::make_shared<SnapshotService>(g_loop);
 	auto repeater = std::make_shared<RepeaterT>(g_loop);
+
+	auto generator = std::make_shared<SnapshotGenerator>(10,100,20);
+	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
+
+	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(repeat_count).WillRepeatedly(testing::Invoke(func));
+	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionNumber(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
 
 	int result;
 
@@ -40,6 +40,44 @@ void snapshot_testcase(size_t repeat_count) {
 	ASSERT_EQ(0,result);
 
 	ASSERT_EQ(repeat_count,repeater->success_count());
+	std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
+}
+
+template<typename RepeaterT>
+void snapshot_partfail_testcase(size_t repeat_count) {
+	auto snapshotable = std::make_shared<MockSnapshotable>();
+	auto builder = std::make_shared<MockSnapshotBuilder>();
+	auto server = std::make_shared<SnapshotService>(g_loop);
+	auto repeater = std::make_shared<RepeaterT>(g_loop);
+
+	auto generator = std::make_shared<SnapshotGenerator>(10,100,20);
+	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
+
+	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(testing::AtMost(repeat_count)).WillRepeatedly(testing::Invoke(func));
+	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionAtMost(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadAtMost(generator)).WillRepeatedly(testing::Return(0));
+	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceAtMost(generator)).WillRepeatedly(testing::Return(0));
+
+	int result;
+
+	result = server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS);
+	ASSERT_EQ(0,result);
+
+	result = repeater->start(repeat_count,builder,SS_SERVER_ADDRESS);
+	ASSERT_EQ(0,result);
+
+
+	zsys_interrupted = 0;
+	while(true) {
+		result = zloop_start(g_loop);
+		if( 0 == result )
+			break;
+	}
+	zsys_interrupted = 0;
+	ASSERT_EQ(0,result);
+
+	ASSERT_GT(repeater->success_count(),size_t(0));
+	ASSERT_LT(repeater->success_count(),repeat_count);
 }
 
 
@@ -57,34 +95,5 @@ TEST(Snapshot,Parallel) {
 }
 
 TEST(Snapshot,ParallelOverflow) {
-	const size_t repeat_count = 5;
-
-	auto snapshotable = std::make_shared<MockSnapshotable>();
-	auto builder = std::make_shared<MockSnapshotBuilder>();
-	SnapshotGenerator::reset_count();
-	SnapshotGenerator generator(10,100,20);
-
-	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(repeat_count).WillRepeatedly(testing::Invoke(generator));
-	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionCardinality()).WillRepeatedly(testing::Return(0));
-	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadCardinality()).WillRepeatedly(testing::Return(0));
-	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceCardinality()).WillRepeatedly(testing::Return(0));
-
-	auto server = std::make_shared<SnapshotService>(g_loop);
-	auto repeater = std::make_shared<SnapshotClientParallelRepeater>(g_loop);
-
-	int result;
-
-	result = server->start(snapshotable,SS_SERVER_ADDRESS,SS_WORKER_ADDRESS);
-	ASSERT_EQ(0,result);
-
-	result = repeater->start(repeat_count,builder,SS_SERVER_ADDRESS);
-	ASSERT_EQ(0,result);
-
-
-	zsys_interrupted = 0;
-	result = zloop_start(g_loop);
-	zsys_interrupted = 0;
-	ASSERT_EQ(0,result);
-
-	ASSERT_EQ(repeat_count,repeater->success_count());
+	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(5);
 }
