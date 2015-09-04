@@ -89,7 +89,7 @@ int RIRegionTable::rmPayload(const ri_uuid_t& pl) {
 
 		LOG(INFO) << "remove payload: " << pl << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onPayload(m_region.id,m_region.version,pl);
+			m_observer->onRmPayload(m_region.id,m_region.version,pl);
 		}
 		return 0;
 	} else {

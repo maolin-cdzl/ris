@@ -36,13 +36,14 @@ target_link_libraries(test_tracker
 # test
 
 add_executable(test_ris
+	snapshotgenerator.h
+	mock_defines.h
+	test_helper.h
 	main.cxx
 	snapshotgenerator.cxx
 	test_helper.cxx
 	test_snapshot.cxx
-	snapshotgenerator.h
-	mock_defines.h
-	test_helper.h
+	test_regiontable.cxx
 )
 
 target_include_directories(test_ris

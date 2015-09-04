@@ -1,4 +1,3 @@
-#include <uuid/uuid.h>
 #include <string>
 #include <memory>
 #include <random>
@@ -6,15 +5,8 @@
 #include <chrono>
 
 #include "snapshotgenerator.h"
+#include "test_helper.h"
 #include "ris/snapshot.pb.h"
-
-static std::string newUUID() {
-    uuid_t uuid;
-    uuid_generate_random ( uuid );
-    char s[37];
-    uuid_unparse( uuid, s );
-    return s;
-}
 
 // class EmptySnapshotGenerator
 snapshot_package_t EmptySnapshotGenerator::build() {

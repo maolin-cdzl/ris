@@ -6,6 +6,7 @@
 #include "snapshot/snapshotclient.h"
 #include "snapshot/snapshotbuilder.h"
 
+std::string newUUID();
 
 class ReadableHelper {
 public:

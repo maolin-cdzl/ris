@@ -1,6 +1,15 @@
 #include <iostream>
+#include <uuid/uuid.h>
 #include <gtest/gtest.h>
 #include "test_helper.h"
+
+std::string newUUID() {
+    uuid_t uuid;
+    uuid_generate_random ( uuid );
+    char s[37];
+    uuid_unparse( uuid, s );
+    return s;
+}
 
 
 // class ReadableHelper

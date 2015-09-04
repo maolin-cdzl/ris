@@ -114,30 +114,37 @@ void snapshot_fail_testcase() {
 
 
 TEST(Snapshot,Normal) {
+	SCOPED_TRACE("Normal");
 	snapshot_testcase<SnapshotClientRepeater>(1);
 }
 
 TEST(Snapshot,Repeat) {
+	SCOPED_TRACE("Repeat");
 	snapshot_testcase<SnapshotClientRepeater>(10);
 }
 
 TEST(Snapshot,Parallel) {
+	SCOPED_TRACE("Parallel");
 	snapshot_testcase<SnapshotClientParallelRepeater>(4);
 }
 
 TEST(Snapshot,ParallelOverflow) {
+	SCOPED_TRACE("ParallelOverflow");
 	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(5);
 }
 
 TEST(Snapshot,Empty) {
+	SCOPED_TRACE("Empty");
 	snapshot_fail_testcase<EmptySnapshotGenerator>();
 }
 
 TEST(Snapshot,UnmatchedRegion) {
+	SCOPED_TRACE("UnmatchedRegion");
 	snapshot_fail_testcase<UnmatchedRegionGenerator>();
 }
 
 TEST(Snapshot,UncompletedRegion) {
+	SCOPED_TRACE("UncompletedRegion");
 	snapshot_fail_testcase<UncompletedRegionGenerator>();
 }
 

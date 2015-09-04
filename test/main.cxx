@@ -21,6 +21,8 @@ public:
 
 int main(int argc,char* argv[]) {
 	google::InitGoogleLogging(argv[0]);
+	FLAGS_alsologtostderr = false;
+	FLAGS_stderrthreshold = google::GLOG_FATAL;
 	::testing::AddGlobalTestEnvironment(new RisEnv());
 	testing::InitGoogleMock(&argc,argv);
 
