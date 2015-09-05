@@ -14,7 +14,7 @@ RIPublisher::~RIPublisher() {
 }
 
 
-int RIPublisher::start(const std::string& pubaddr) {
+int RIPublisher::start(const std::string& pubaddr,bool bind) {
 	int result = -1;
 	assert( ! pubaddr.empty() );
 
@@ -25,9 +25,16 @@ int RIPublisher::start(const std::string& pubaddr) {
 
 		m_pub = zsock_new(ZMQ_PUB);
 		assert(m_pub);
-		if( -1 == zsock_connect(m_pub,"%s",pubaddr.c_str()) ) {
-			LOG(ERROR) << "RIPublisher can NOT connect to: " << pubaddr;
-			break;
+		if( bind ) {
+			if( -1 == zsock_bind(m_pub,"%s",pubaddr.c_str()) ) {
+				LOG(ERROR) << "RIPublisher can NOT bind to: " << pubaddr;
+				break;
+			}
+		} else {
+			if( -1 == zsock_connect(m_pub,"%s",pubaddr.c_str()) ) {
+				LOG(ERROR) << "RIPublisher can NOT connect to: " << pubaddr;
+				break;
+			}
 		}
 		
 		result = 0;

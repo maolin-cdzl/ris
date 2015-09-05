@@ -12,7 +12,7 @@ public:
 	RIPublisher(zloop_t* loop);
 	virtual ~RIPublisher();
 
-	int start(const std::string& pubaddr);
+	int start(const std::string& pubaddr,bool bind=false);
 	int stop();
 
 
