@@ -76,7 +76,7 @@ void RIPublisher::onService(const ri_uuid_t& reg,uint32_t version,const Service&
 	pubService(reg,version,svc);
 }
 
-void RIPublisher::onRmService(const ri_uuid_t& reg,uint32_t version,const ri_uuid_t& svc) {
+void RIPublisher::onRmService(const ri_uuid_t& reg,uint32_t version,const std::string& svc) {
 	pubRemoveService(reg,version,svc);
 }
 

@@ -20,7 +20,7 @@ public:
 	int pubRemoveRegion(const ri_uuid_t& reg);
 
 	int pubService(const ri_uuid_t& region,uint32_t version,const Service& svc);
-	int pubRemoveService(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& svc);
+	int pubRemoveService(const ri_uuid_t& region,uint32_t version,const std::string& svc);
 
 	int pubPayload(const ri_uuid_t& ri_uuid_t,uint32_t version,const Payload& pl);
 	int pubRemovePayload(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& pl);
