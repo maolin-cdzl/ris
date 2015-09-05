@@ -44,6 +44,7 @@ add_executable(test_ris
 	test_helper.cxx
 	test_snapshot.cxx
 	test_regiontable.cxx
+	test_pubsub.cxx
 )
 
 target_include_directories(test_ris
