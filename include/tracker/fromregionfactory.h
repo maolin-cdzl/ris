@@ -7,6 +7,7 @@
 #include "tracker/trackertable.h"
 #include "tracker/subscriber.h"
 #include "tracker/subcacher.h"
+#include "zmqx/zlooptimer.h"
 
 class TrackerFactoryProduct {
 public:
@@ -38,18 +39,17 @@ private:
 
 	static int timerAdapter(zloop_t* loop,int timerid,void* arg);
 private:
-	zloop_t*						m_loop;
+	zloop_t*										m_loop;
 	std::shared_ptr<TrackerFactoryProduct>			m_product;
 
-	std::shared_ptr<SubCacher>		m_sub_cacher;
-	std::shared_ptr<SnapshotClient>	m_ss_cli;
+	std::shared_ptr<SubCacher>						m_sub_cacher;
+	std::shared_ptr<SnapshotClient>					m_ss_cli;
 
-	std::unordered_set<ri_uuid_t>		m_bad_regions;
-	std::unordered_set<ri_uuid_t>		m_shoted_regions;
-	std::unordered_set<Region>		m_unshoted_regions;
+	std::unordered_set<ri_uuid_t>					m_bad_regions;
+	std::unordered_set<ri_uuid_t>					m_shoted_regions;
+	std::unordered_set<Region>						m_unshoted_regions;
 
-	int								m_tid;
-	ri_time_t						m_tv_timeout;
+	ZLoopTimeouter									m_timer;
 	std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>	m_observer;
 };
 

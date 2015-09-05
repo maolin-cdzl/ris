@@ -6,8 +6,7 @@ using namespace std::placeholders;
 
 FromRegionFactory::FromRegionFactory(zloop_t* loop) :
 	m_loop(loop),
-	m_tid(-1),
-	m_tv_timeout(0)
+	m_timer(loop)
 {
 }
 
@@ -27,18 +26,15 @@ int FromRegionFactory::start(const std::string& pub_address,const std::function<
 		m_sub_cacher = std::make_shared<SubCacher>(std::bind(&FromRegionFactory::onNewRegion,this,_1),std::bind(&FromRegionFactory::onRmRegion,this,_1));
 		m_ss_cli = std::make_shared<SnapshotClient>(m_loop);
 
-		m_tid = zloop_timer(m_loop,1000,0,timerAdapter,this);
-		if( -1 == m_tid ) {
-			LOG(FATAL) << "FromRegionFactory start timer failed";
-			break;
-		}
-
 		if( -1 == m_product->sub->start(pub_address,m_sub_cacher) ) {
 			LOG(FATAL) << "FromRegionFactory start subscriber failed";
 			break;
 		}
+		if( -1 == m_timer.start(1000,3000,std::bind<int>(&FromRegionFactory::onTimer,this))) {
+			LOG(FATAL) << "FromRegionFactory start timer failed";
+			break;
+		}
 
-		m_tv_timeout = ri_time_now() + 30000;
 		m_observer = ob;
 		return 0;
 	} while(0);
@@ -59,11 +55,7 @@ void FromRegionFactory::stop() {
 	m_bad_regions.clear();
 	m_shoted_regions.clear();
 	m_unshoted_regions.clear();
-	if( m_tid != -1 ) {
-		zloop_timer_end(m_loop,m_tid);
-		m_tid = -1;
-	}
-	m_tv_timeout = 0;
+	m_timer.stop();
 	m_observer = nullptr;
 }
 
@@ -88,7 +80,7 @@ void FromRegionFactory::onSnapshotDone(ri_uuid_t uuid,int err) {
 		}
 	}
 
-	m_tv_timeout = ri_time_now() + 30000;
+	m_timer.delay(30000);
 	nextSnapshot();
 }
 
@@ -98,6 +90,7 @@ void FromRegionFactory::onNewRegion(const Region& region) {
 		m_bad_regions.end() == m_bad_regions.find(region.id) )
 	{
 		m_unshoted_regions.insert(region);
+		m_timer.delay(30000);
 		if( ! m_ss_cli->isActive() ) {
 			nextSnapshot();
 		}
@@ -153,16 +146,16 @@ std::shared_ptr<TrackerFactoryProduct> FromRegionFactory::product() {
 }
 
 int FromRegionFactory::onTimer() {
-	if( m_unshoted_regions.empty() && ! m_ss_cli->isActive() ) {
-		if( ri_time_now() >= m_tv_timeout ) {
-			LOG(INFO) << "Factory idle for enough time,product it";
-			auto p = product();
-			auto ob = m_observer;
-			stop();
-			ob(0,p);
-		}
+	if( !m_unshoted_regions.empty() || m_ss_cli->isActive() ) {
+		m_timer.delay(30000);
+		return 0;
 	}
-	return 0;
+	LOG(INFO) << "Factory idle for enough time,product it";
+	auto p = product();
+	auto ob = m_observer;
+	stop();
+	ob(0,p);
+	return -1;
 }
 
 int FromRegionFactory::timerAdapter(zloop_t* loop,int timerid,void* arg) {

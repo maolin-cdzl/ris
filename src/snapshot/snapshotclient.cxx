@@ -248,7 +248,7 @@ int SnapshotClient::onTimeoutTimer() {
 	auto ob = m_observer;
 	stop();
 	ob(SNAPSHOT_CLIENT_ERROR);
-	return 0;
+	return -1;
 }
 
 int SnapshotClient::onReqReadable(zsock_t* sock) {
