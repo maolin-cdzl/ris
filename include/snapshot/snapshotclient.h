@@ -3,6 +3,8 @@
 #include <czmq.h>
 #include <functional>
 #include "snapshot/snapshotbuilder.h"
+#include "zmqx/zloopreader.h"
+#include "zmqx/zlooptimer.h"
 
 #define SNAPSHOT_CLIENT_ERROR			-1
 #define SNAPSHOT_CLIENT_TIMEOUT			-2
@@ -27,17 +29,11 @@ private:
 	int onTimeoutTimer();
 
 private:
-	static int readableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
-	static int timerAdapter(zloop_t* loop,int timer_id,void* arg);
-	
 	void cancelRegion();
 private:
 	zloop_t*								m_loop;
-	zsock_t*								m_sock;
-	int										m_tid;
-	ri_time_t								m_tv_timeout;
-	std::function<int(zsock_t*)>			m_fn_readable;
-	std::string								m_state;
+	ZLoopTimeouter							m_timer;
+	ZLoopReader								m_reader;
 
 	std::function<void(int)>				m_observer;
 	std::shared_ptr<ISnapshotBuilder>		m_builder;
