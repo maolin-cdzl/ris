@@ -10,12 +10,11 @@ public:
 	~RISubscriber();
 
 	int start(const std::string& address,const std::shared_ptr<IRIObserver>& ob);
-	int stop();
+	void stop();
 
 	int setObserver(const std::shared_ptr<IRIObserver>& ob);
 private:
-	int startLoop();
-	void stopLoop();
+	std::shared_ptr<Dispatcher> make_dispatcher();
 
 	void defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int err);
 	void onRegion(const std::shared_ptr<google::protobuf::Message>& msg);
@@ -26,7 +25,6 @@ private:
 	void onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg);
 private:
 	zloop_t*							m_loop;
-	zsock_t*							m_sub;
 	std::shared_ptr<IRIObserver>		m_observer;
 	std::shared_ptr<ZDispatcher>		m_disp;
 };

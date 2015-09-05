@@ -1,20 +1,13 @@
 #include <glog/logging.h>
 #include "region/regionactor.h"
 #include "zmqx/zprotobuf++.h"
+#include "zmqx/zloopreader.h"
 
 RIRegionActor::RIRegionActor() :
 	m_running(false),
 	m_actor(nullptr),
-	m_loop(nullptr),
-	m_rep(nullptr),
-	m_disp(new Dispatcher())
+	m_loop(nullptr)
 {
-	m_disp->set_member_default(&RIRegionActor::defaultOpt,this);
-
-	m_disp->register_member_processer(region::api::AddService::descriptor(),&RIRegionActor::addService,this);
-	m_disp->register_member_processer(region::api::RmService::descriptor(),&RIRegionActor::rmService,this);
-	m_disp->register_member_processer(region::api::AddPayload::descriptor(),&RIRegionActor::addPayload,this);
-	m_disp->register_member_processer(region::api::RmPayload::descriptor(),&RIRegionActor::rmPayload,this);
 }
 
 RIRegionActor::~RIRegionActor() {
@@ -51,21 +44,31 @@ int RIRegionActor::wait() {
 	return 0;
 }
 
+std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(zsock_t* reader) {
+	auto disp = std::make_shared<Dispatcher>();
+	disp->set_default(std::bind(&RIRegionActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(region::api::AddService::descriptor(),std::bind(&RIRegionActor::addService,this,reader,std::placeholders::_1));
+	disp->register_processer(region::api::RmService::descriptor(),std::bind(&RIRegionActor::rmService,this,reader,std::placeholders::_1));
+	disp->register_processer(region::api::AddPayload::descriptor(),std::bind(&RIRegionActor::addPayload,this,reader,std::placeholders::_1));
+	disp->register_processer(region::api::RmPayload::descriptor(),std::bind(&RIRegionActor::rmPayload,this,reader,std::placeholders::_1));
+
+	return disp;
+}
+
 void RIRegionActor::run(zsock_t* pipe) {
 	m_loop = zloop_new();
-	m_rep = zsock_new(ZMQ_REP);
+	zsock_t* rep = zsock_new(ZMQ_REP);
 
 	assert( m_ctx );
-	assert(m_loop && m_rep);
+	assert(m_loop && rep);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
 
 		m_table = std::make_shared<RIRegionTable>(m_ctx,m_loop);
 		m_pub = std::make_shared<RIPublisher>( m_loop );
 		m_ssvc = std::make_shared<SnapshotService>( m_loop );
-		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 
-		if( -1 == zsock_bind(m_rep,"%s",m_ctx->api_address.c_str()) ) {
+		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
 			break;
 		}
@@ -82,12 +85,14 @@ void RIRegionActor::run(zsock_t* pipe) {
 			break;
 		}
 
-		if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
-			LOG(FATAL) << "Register pipe reader error";
+		ZLoopReader pipe_reader(m_loop);
+		if( -1 == pipe_reader.start(pipe,std::bind<int>(&RIRegionActor::onPipeReadable,this,std::placeholders::_1)) ) {
+			LOG(FATAL) << "Start pipe reader error";
 			break;
 		}
 
-		if( -1 == zdisp->start(m_rep,m_disp) ) {
+		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
+		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
 			LOG(FATAL) << "Start dispatcher error";
 			break;
 		}
@@ -107,15 +112,14 @@ void RIRegionActor::run(zsock_t* pipe) {
 	} while(0);
 
 	
-	zloop_reader_end(m_loop,pipe);
 	m_pub.reset();
 	m_ssvc.reset();
 	m_table.reset();
 	if( m_loop ) {
 		zloop_destroy(&m_loop);
 	}
-	if( m_rep ) {
-		zsock_destroy(&m_rep);
+	if( rep ) {
+		zsock_destroy(&rep);
 	}
 	LOG(INFO) << "RIRegionActor shutdown";
 	zsock_signal(pipe,0);
@@ -125,12 +129,6 @@ void RIRegionActor::actorRunner(zsock_t* pipe,void* args) {
 	RIRegionActor* self = (RIRegionActor*)args;
 	self->run(pipe);
 }
-
-int RIRegionActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
-	RIRegionActor* self = (RIRegionActor*)arg;
-	return self->onPipeReadable(reader);
-}
-
 
 int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 	zmsg_t* msg = zmsg_recv(pipe);
@@ -164,7 +162,7 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int /*err*/) {
+void RIRegionActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int /*err*/) {
 	if( msg ) {
 		LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
 	} else {
@@ -173,10 +171,10 @@ void RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>&
 	region::api::Result ret;
 	ret.set_result(-1);
 
-	zpb_send(m_rep,ret);
+	zpb_send(reader,ret);
 }
 
-void RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg) {
+void RIRegionActor::addService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	assert(p);
 	region::api::Result result;
@@ -185,10 +183,10 @@ void RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>&
 	} else {
 		result.set_result(-1);
 	}
-	zpb_send(m_rep,result);
+	zpb_send(reader,result);
 }
 
-void RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& msg) {
+void RIRegionActor::rmService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
 	assert(p);
 	region::api::Result result;
@@ -197,10 +195,10 @@ void RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& 
 	} else {
 		result.set_result(-1);
 	}
-	zpb_send(m_rep,result);
+	zpb_send(reader,result);
 }
 
-void RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+void RIRegionActor::addPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	assert(p);
 	region::api::Result result;
@@ -210,10 +208,10 @@ void RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>&
 		result.set_result(-1);
 	}
 
-	zpb_send(m_rep,result);
+	zpb_send(reader,result);
 }
 
-void RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+void RIRegionActor::rmPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
 	assert(p);
 	region::api::Result result;
@@ -223,7 +221,7 @@ void RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& 
 		result.set_result(-1);
 	}
 
-	zpb_send(m_rep,result);
+	zpb_send(reader,result);
 }
 
 

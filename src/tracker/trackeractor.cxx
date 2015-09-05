@@ -6,11 +6,8 @@
 RITrackerActor::RITrackerActor() :
 	m_running(false),
 	m_actor(nullptr),
-	m_loop(nullptr),
-	m_rep(nullptr),
-	m_disp(new Dispatcher())
+	m_loop(nullptr)
 {
-	m_disp->set_member_default(&RITrackerActor::defaultOpt,this);
 }
 
 RITrackerActor::~RITrackerActor() {
@@ -43,27 +40,34 @@ int RITrackerActor::wait() {
 	return 0;
 }
 
+std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(zsock_t* reader) {
+	auto disp = std::make_shared<Dispatcher>();
+	disp->set_default(std::bind(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	return disp;
+}
 
 void RITrackerActor::run(zsock_t* pipe) {
 	assert( m_ctx );
-
+	
+	zsock_t* rep = nullptr;
 	do {
 		LOG(INFO) << "RITrackerActor initialize...";
 		m_loop = zloop_new();
 		assert(m_loop);
-		m_rep = zsock_new_rep(m_ctx->api_address.c_str());
-		if( nullptr == m_rep ) {
+		rep = zsock_new_rep(m_ctx->api_address.c_str());
+		if( nullptr == rep ) {
 			LOG(FATAL) << "Create rep socket failed";
 			break;
 		}
-
-		if( -1 == zloop_reader(m_loop,pipe,pipeReadableAdapter,this) ) {
+		
+		ZLoopReader pipe_reader(m_loop);
+		if( -1 == pipe_reader.start(pipe,std::bind<int>(&RITrackerActor::onPipeReadable,this,std::placeholders::_1)) ) {
 			LOG(FATAL) << "Register pipe reader error";
 			break;
 		}
 
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(m_rep,m_disp) ) {
+		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
 			LOG(FATAL) << "Start zdispatcher failed";
 			break;
 		}
@@ -87,8 +91,6 @@ void RITrackerActor::run(zsock_t* pipe) {
 
 	m_running = false;
 
-	zloop_reader_end(m_loop,pipe);
-
 	if( m_factory )
 		m_factory.reset();
 	if( m_ssvc )
@@ -98,8 +100,8 @@ void RITrackerActor::run(zsock_t* pipe) {
 	if( m_table )
 		m_table.reset();
 
-	if( m_rep ) {
-		zsock_destroy(&m_rep);
+	if( rep ) {
+		zsock_destroy(&rep);
 	}
 	if( m_loop ) {
 		zloop_destroy(&m_loop);
@@ -144,14 +146,7 @@ void RITrackerActor::actorRunner(zsock_t* pipe,void* args) {
 	self->run(pipe);
 }
 
-int RITrackerActor::pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
-	(void)loop;
-	RITrackerActor* self = (RITrackerActor*)arg;
-	return self->onPipeReadable(reader);
-}
-
-
-void RITrackerActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,int err) {
+void RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int) {
 	if( msg ) {
 		LOG(WARNING) << "TrackerActor Recv unexpected message: " << msg->GetTypeName();
 	} else {
@@ -160,7 +155,7 @@ void RITrackerActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>
 	tracker::api::Result ret;
 	ret.set_result(-1);
 
-	zpb_send(m_rep,ret);
+	zpb_send(reader,ret);
 }
 
 

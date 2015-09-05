@@ -6,7 +6,6 @@
 
 RISubscriber::RISubscriber(zloop_t* loop) :
 	m_loop(loop),
-	m_sub(nullptr),
 	m_disp(new ZDispatcher(loop))
 {
 
@@ -16,54 +15,47 @@ RISubscriber::~RISubscriber() {
 	stop();
 }
 
-int RISubscriber::startLoop() {
-	assert(m_sub);
-
+std::shared_ptr<Dispatcher> RISubscriber::make_dispatcher() {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_member_default(&RISubscriber::defaultProcess,this);
-	disp->register_member_processer(region::pub::Region::descriptor(),&RISubscriber::onRegion,this);
-	disp->register_member_processer(region::pub::RmRegion::descriptor(),&RISubscriber::onRmRegion,this);
-	disp->register_member_processer(region::pub::Service::descriptor(),&RISubscriber::onService,this);
-	disp->register_member_processer(region::pub::RmService::descriptor(),&RISubscriber::onRmService,this);
-	disp->register_member_processer(region::pub::Payload::descriptor(),&RISubscriber::onPayload,this);
-	disp->register_member_processer(region::pub::RmPayload::descriptor(),&RISubscriber::onRmPayload,this);
+	disp->set_default(std::bind(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(region::pub::Region::descriptor(),std::bind(&RISubscriber::onRegion,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmRegion::descriptor(),std::bind(&RISubscriber::onRmRegion,this,std::placeholders::_1));
+	disp->register_processer(region::pub::Service::descriptor(),std::bind(&RISubscriber::onService,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmService::descriptor(),std::bind(&RISubscriber::onRmService,this,std::placeholders::_1));
+	disp->register_processer(region::pub::Payload::descriptor(),std::bind(&RISubscriber::onPayload,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmPayload::descriptor(),std::bind(&RISubscriber::onRmPayload,this,std::placeholders::_1));
 
-	return m_disp->start(m_sub,disp);
+	return disp;
 }
 
-void RISubscriber::stopLoop() {
-	m_disp->stop();
-}
 
 int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObserver>& ob) {
 	int result = -1;
 	assert( ! address.empty() );
 	assert( ob );
 
+	zsock_t* sub = nullptr;
 	do {
-		if( m_sub )
-			break;
-		m_observer = ob;
-		m_sub = zsock_new_sub(address.c_str(),"");
-
-		if( nullptr == m_sub ) {
+		sub = zsock_new_sub(address.c_str(),"");
+		if( nullptr == sub ) {
 			LOG(FATAL) << "Subscriber can NOT connect to: " << address;
 			break;
 		} else {
 			DLOG(INFO) << "Subscriber connect to: " << address;
 		}
 
-		if( -1 == startLoop() ) {
+		if( -1 == m_disp->start(&sub,make_dispatcher()) ) {
 			LOG(FATAL) << "RISubscriber start dispatcher loop failed";
 			break;
 		}
+		m_observer = ob;
 		result = 0;
 	} while( 0 );
 
+	if( sub ) {
+		zsock_destroy(&sub);
+	}
 	if( -1 == result ) {
-		if( m_sub ) {
-			zsock_destroy(&m_sub);
-		}
 		if( m_observer ) {
 			m_observer.reset();
 		}
@@ -71,18 +63,14 @@ int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObse
 	return result;
 }
 
-int RISubscriber::stop() {
-	if( m_sub == nullptr )
-		return -1;
-
-	zloop_reader_end(m_loop,m_sub);
-	zsock_destroy(&m_sub);
-	return 0;
+void RISubscriber::stop() {
+	m_disp->stop();
+	m_observer.reset();
 }
 
 int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	assert( ob );
-	if( m_sub ) {
+	if( m_disp->isActive() ) {
 		m_observer = ob;
 		return 0;
 	} else {

@@ -7,7 +7,7 @@
 SnapshotService::SnapshotService(zloop_t* loop) :
 	m_loop(loop),
 	m_capacity(4),
-	m_sock(nullptr)
+	m_rep_reader(loop)
 {
 }
 
@@ -17,68 +17,58 @@ SnapshotService::~SnapshotService() {
 }
 
 int SnapshotService::start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity) {
+	if( m_rep_reader.isActive() )
+		return -1;
 	m_snapshotable = snapshotable;
 	m_svc_address = svcAddress;
 	m_worker_address = workerAddress;
 	m_capacity = capacity;
 
 	LOG(INFO) << "SnapshotService start listen on: " << svcAddress << " , limit " << capacity << " works address to: " << workerAddress;
-	return startLoop(m_loop);
+
+	zsock_t* rep = nullptr;
+	do {
+		rep = zsock_new(ZMQ_REP);
+		if( -1 == zsock_bind(rep,"%s",m_svc_address.c_str()) ) {
+			LOG(FATAL) << "SnapshotService can NOT bind to: " << m_svc_address;
+			break;
+		}
+
+		if( -1 == m_rep_reader.start(&rep,std::bind<int>(&SnapshotService::onRepReadable,this,std::placeholders::_1)) ) {
+			LOG(FATAL) << "SnapshotService start reader failed";
+			break;
+		}
+		return 0;
+	} while( 0 );
+
+	if( rep ) {
+		zsock_destroy(&rep);
+	}
+	return -1;
 }
 
 int SnapshotService::stop() {
-	if( m_sock ) {
+	if( m_rep_reader.isActive() ) {
 		LOG(INFO) << "SnapshotService stop";
-		stopLoop(m_loop);
+		m_rep_reader.stop();
+		while(! m_workers.empty() ) {
+			auto it = m_workers.front();
+			zloop_reader_end(m_loop,zactor_sock(it->actor()));
+			m_workers.pop_front();
+		}
 		return 0;
 	} else {
 		return -1;
 	}
 }
 
-int SnapshotService::startLoop(zloop_t* loop) {
-	if( m_sock != nullptr ) {
-		return -1;
-	}
-
-	do {
-		m_sock = zsock_new(ZMQ_REP);
-		if( -1 == zsock_bind(m_sock,"%s",m_svc_address.c_str()) ) {
-			LOG(FATAL) << "SnapshotService can NOT bind to: " << m_svc_address;
-			break;
-		}
-
-		if( -1 == zloop_reader(loop,m_sock,mainReaderAdapter,this) ) {
-			LOG(FATAL) << "SnapshotService register reader failed";
-			break;
-		}
-		return 0;
-	} while( 0 );
-
-	if( m_sock ) {
-		zsock_destroy(&m_sock);
-	}
-	return -1;
-}
-
-void SnapshotService::stopLoop(zloop_t* loop) {
-	while(! m_workers.empty() ) {
-		auto it = m_workers.front();
-		zloop_reader_end(loop,zactor_sock(it->actor()));
-		m_workers.pop_front();
-	}
-	
-	zloop_reader_end(loop,m_sock);
-	zsock_destroy(&m_sock);
-}
-
-int SnapshotService::onMainReadable(zloop_t* loop) {
+int SnapshotService::onRepReadable(zsock_t* reader) {
 	snapshot::SnapshotRep rep;
 	rep.set_result(-1);
 
 	do {
 		snapshot::SnapshotReq req;
-		if( -1 == zpb_recv(req,m_sock) ) {
+		if( -1 == zpb_recv(req,reader) ) {
 			LOG(ERROR) << "SnapshotService recv SnapshotReq error";
 			break;
 		}
@@ -98,7 +88,7 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 		if( 0 == worker->start(snapshot) ) {
 			auto endpoint = worker->endpoint();
 			m_workers.push_back(worker);
-			zloop_reader(loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
+			zloop_reader(m_loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
 
 			rep.set_result(0);
 			rep.set_address(endpoint);
@@ -107,7 +97,7 @@ int SnapshotService::onMainReadable(zloop_t* loop) {
 		}
 	} while(0);
 
-	zpb_send(m_sock,rep);
+	zpb_send(reader,rep);
 	return 0;
 }
 
@@ -144,16 +134,6 @@ std::shared_ptr<SnapshotServiceWorker> SnapshotService::popWorker(zsock_t* sock)
 /**
  * adapter method
  */
-
-int SnapshotService::mainReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
-	assert(loop);
-	assert(reader);
-	assert(arg);
-
-	SnapshotService* self = (SnapshotService*)arg;
-	assert(self->m_sock == reader);
-	return self->onMainReadable(loop);
-}
 
 int SnapshotService::workerReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
 	assert(loop);
