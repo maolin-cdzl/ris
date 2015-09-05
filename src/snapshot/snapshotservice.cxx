@@ -52,8 +52,6 @@ int SnapshotService::stop() {
 		LOG(INFO) << "SnapshotService stop";
 		m_rep_reader.stop();
 		while(! m_workers.empty() ) {
-			auto it = m_workers.front();
-			zloop_reader_end(m_loop,zactor_sock(it->actor()));
 			m_workers.pop_front();
 		}
 		return 0;
