@@ -122,6 +122,43 @@ void CompleteResultHelper::onComplete(int err) {
 	zsys_interrupted = 1;
 }
 
+// class TaskRunner
+
+TaskRunner::TaskRunner(zloop_t* loop) :
+	m_timer(loop)
+{
+}
+
+TaskRunner::~TaskRunner() {
+	stop();
+}
+
+void TaskRunner::push(const task_t& task) {
+	m_tasks.push_back(task);
+}
+
+int TaskRunner::start(uint64_t interval) {
+	if( m_timer.isActive() ) {
+		return -1;
+	}
+	return m_timer.start(interval,0,std::bind<int>(&TaskRunner::onTimer,this));
+}
+
+void TaskRunner::stop() {
+	m_timer.stop();
+	m_tasks.clear();
+}
+
+int TaskRunner::onTimer() {
+	if( m_tasks.empty() ) {
+		return -1;
+	}
+	auto task = m_tasks.front();
+	m_tasks.pop_front();
+	task();
+	return 0;
+}
+
 // class SnapshotClientRepeater
 
 SnapshotClientRepeater::SnapshotClientRepeater(zloop_t* loop) :

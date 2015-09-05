@@ -5,6 +5,7 @@
 #include "gmock/gmock-cardinalities.h"
 #include "snapshot/snapshotclient.h"
 #include "snapshot/snapshotbuilder.h"
+#include "zmqx/zlooptimer.h"
 
 std::string newUUID();
 
@@ -54,6 +55,23 @@ public:
 	}
 private:
 	int								m_result;
+};
+
+class TaskRunner {
+public:
+	typedef std::function<void()>			task_t;
+	TaskRunner(zloop_t* loop);
+	~TaskRunner();
+
+	void push(const task_t& task);
+
+	int start(uint64_t interval);
+	void stop();
+private:
+	int onTimer();
+private:
+	std::list<task_t>						m_tasks;
+	ZLoopTimer								m_timer;
 };
 
 
