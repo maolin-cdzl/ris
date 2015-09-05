@@ -70,13 +70,6 @@ void RITrackerActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "Register pipe reader error";
 			break;
 		}
-
-		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
-			LOG(FATAL) << "Start zdispatcher failed";
-			break;
-		}
-		
 		m_factory = std::make_shared<FromRegionFactory>(m_loop);
 		if( -1 == m_factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2)) ) {
 			LOG(FATAL) << "Start factory failed";
@@ -84,12 +77,37 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 		m_running = true;
 		zsock_signal(pipe,0);
+
+		zsys_interrupted = 0;
 		while( m_running ) {
-			int result = zloop_start(m_loop);
-			if( result == 0 ) {
-				LOG(INFO) << "RIRegionActor interrupted";
-				m_running = false;
+			if(  0 == zloop_start(m_loop) ) {
 				break;
+			} else {
+				LOG(WARNING) << "Loop error";
+			}
+		}
+
+		if( ! m_running ) {
+			break;
+		}
+
+		m_ssvc = std::make_shared<SnapshotService>(m_loop);
+		if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
+			LOG(FATAL) << "Tracker start snapshot service failed";
+			break;
+		}
+		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
+		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
+			LOG(FATAL) << "Start zdispatcher failed";
+			break;
+		}
+		
+		zsys_interrupted = 0;
+		while( m_running ) {
+			if(  0 == zloop_start(m_loop) ) {
+				break;
+			} else {
+				LOG(WARNING) << "Loop error";
 			}
 		}
 	} while(0);
@@ -245,16 +263,10 @@ void RITrackerActor::onFactoryDone(int err,const std::shared_ptr<TrackerFactoryP
 
 		LOG(INFO) << "Factory done success,region: " << m_table->region_size() << ", service: " << m_table->service_size() << ", payloads: " << m_table->payload_size();
 
-		m_ssvc = std::make_shared<SnapshotService>(m_loop);
-		if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
-			LOG(FATAL) << "Tracker start snapshot service failed";
-			zsys_interrupted = -1;
-			m_running = false;
-		}
 	} else {
 		LOG(FATAL) << "Factory product error: " << err;
-		zsys_interrupted = -1;
 		m_running = false;
 	}
+	zsys_interrupted = 1;
 }
 
