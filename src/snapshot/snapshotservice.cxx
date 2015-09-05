@@ -83,12 +83,11 @@ int SnapshotService::onRepReadable(zsock_t* reader) {
 			break;
 		}
 
-		std::shared_ptr<SnapshotServiceWorker> worker(new SnapshotServiceWorker(m_worker_address));
+		auto worker = std::make_shared<SnapshotServiceWorker>(m_loop);
 		LOG(INFO) << "SnapshotService start transform snapshot with " << snapshot.size() << " item";
-		if( 0 == worker->start(snapshot) ) {
+		if( 0 == worker->start(m_worker_address,snapshot,std::bind(&SnapshotService::onWorkerDone,this,worker,std::placeholders::_1)) ) {
 			auto endpoint = worker->endpoint();
 			m_workers.push_back(worker);
-			zloop_reader(m_loop,zactor_sock(worker->actor()),workerReaderAdapter,this);
 
 			rep.set_result(0);
 			rep.set_address(endpoint);
@@ -101,45 +100,15 @@ int SnapshotService::onRepReadable(zsock_t* reader) {
 	return 0;
 }
 
-int SnapshotService::onWorkerReadable(zloop_t* loop,zsock_t* reader) {
-	auto worker = popWorker(reader);
-	if( worker == nullptr ) {
-		LOG(FATAL) << "SnapshotService can NOT found worker in onWorkerReadable";
-		return -1;
-	}
-
-	zmsg_t* msg = zmsg_recv(worker->actor());
-	if( msg ) {
-		char* result = zframe_strdup( zmsg_first(msg) );
-		LOG(INFO) << "SnapshotServiceWorker done with result: " << result;
-		free(result);
-		zmsg_destroy(&msg);
-	}
-
-	return 0;
-}
-
-std::shared_ptr<SnapshotServiceWorker> SnapshotService::popWorker(zsock_t* sock) {
+void SnapshotService::onWorkerDone(const std::shared_ptr<SnapshotServiceWorker>& worker,int err) {
+	(void)err;
 	for(auto it=m_workers.begin(); it != m_workers.end(); ++it) {
-		if( zactor_sock((*it)->actor()) == sock ) {
-			auto p = *it;
+		if( *it == worker ) {
 			m_workers.erase(it);
-			zloop_reader_end(m_loop,sock);
-			return p;
+			return;
 		}
 	}
-	return std::shared_ptr<SnapshotServiceWorker>(nullptr);
+
+	LOG(FATAL) << "SnapshotService can NOT found worker when onWorkerDone";
 }
 
-/**
- * adapter method
- */
-
-int SnapshotService::workerReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg) {
-	assert(loop);
-	assert(reader);
-	assert(arg);
-
-	SnapshotService* self = (SnapshotService*)arg;
-	return self->onWorkerReadable(loop,reader);
-}

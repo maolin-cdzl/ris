@@ -14,13 +14,8 @@ public:
 	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity=4);
 	int stop();
 private:
-	static int workerReaderAdapter(zloop_t* loop,zsock_t* reader,void* arg);
-
 	int onRepReadable(zsock_t* reader);
-	int onWorkerReadable(zloop_t* loop,zsock_t* reader);
-	zactor_t* createWorker();
-
-	std::shared_ptr<SnapshotServiceWorker> popWorker(zsock_t* sock);
+	void onWorkerDone(const std::shared_ptr<SnapshotServiceWorker>& worker,int err);
 private:
 	zloop_t*						m_loop;
 	std::shared_ptr<ISnapshotable>	m_snapshotable;

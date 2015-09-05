@@ -2,9 +2,9 @@
 #include "snapshot/snapshotserviceworker.h"
 #include "zmqx/zprotobuf++.h"
 
-SnapshotServiceWorker::SnapshotServiceWorker(const std::string& address) :
-	m_address(address),
-	m_actor(nullptr)
+SnapshotServiceWorker::SnapshotServiceWorker(zloop_t* loop) :
+	m_actor(nullptr),
+	m_reader(loop)
 {
 }
 
@@ -13,26 +13,47 @@ SnapshotServiceWorker::~SnapshotServiceWorker() {
 }
 
 
-int SnapshotServiceWorker::start(const snapshot_package_t& snapshot) {
-	if( m_actor != nullptr )
+int SnapshotServiceWorker::start(const std::string& address,const snapshot_package_t& snapshot,const std::function<void(int)>& cb) {
+	if( m_actor != nullptr || snapshot.empty() )
 		return -1;
 
-	if( snapshot.empty() )
-		return -1;
-
+	m_address = address;
 	m_snapshot = snapshot;
+	m_cb = cb;
 	m_actor = zactor_new(actorAdapterFn,this);
 	if( nullptr == m_actor ) {
 		return -1;
 	}
+	m_reader.start(zactor_sock(m_actor),std::bind<int>(&SnapshotServiceWorker::onActorReadable,this,std::placeholders::_1));
 	return 0;
 }
 
 int SnapshotServiceWorker::stop() {
 	if( m_actor == nullptr )
 		return -1;
-
+	m_reader.stop();
 	zactor_destroy(&m_actor);
+	m_address.clear();
+	m_endpoint.clear();
+	m_cb = nullptr;
+	return 0;
+}
+
+int SnapshotServiceWorker::onActorReadable(zsock_t* sock) {
+	int err = -1;
+	zmsg_t* msg = zmsg_recv(sock);
+	if( msg ) {
+		char* result = zframe_strdup( zmsg_first(msg) );
+		LOG(INFO) << "SnapshotServiceWorker done with result: " << result;
+		zmsg_destroy(&msg);
+		if( strcmp(result,"ok") == 0 ) {
+			err = 0;
+		}
+		free(result);
+	}
+	auto cb = m_cb;
+	stop();
+	cb(err);
 	return 0;
 }
 
