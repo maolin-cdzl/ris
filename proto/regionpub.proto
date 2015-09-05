@@ -8,8 +8,8 @@ message RegionBase {
 message Region {
 	required RegionBase		region = 1;
 	optional string			idc = 2;
-	optional string			bus_address = 4;
-	optional string			snapshot_address = 5;
+	optional string			bus_address = 3;
+	optional string			snapshot_address = 4;
 }
 
 message RmRegion {

@@ -35,11 +35,13 @@ private:
 
 	std::shared_ptr<Dispatcher> make_dispatcher(zsock_t* reader);
 	static void actorRunner(zsock_t* pipe,void* args);
-	static int pipeReadableAdapter(zloop_t* loop,zsock_t* reader,void* arg);
-
-
+private:
 	void defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
-
+	void onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	void onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	void onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	void onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	void onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 private:
 	bool					m_running;
 	zactor_t*				m_actor;

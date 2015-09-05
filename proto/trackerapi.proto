@@ -5,3 +5,59 @@ message Result {
 	optional string			what = 2;
 }
 
+message Region {
+	required string			uuid = 1;
+	required uint32			version = 2;
+	required string			idc = 3;
+	required string			bus_address = 4;
+	required string			snapshot_address = 5;
+}
+
+message RouteInfo {
+	required string			target = 1;
+	optional string			region = 2;
+	optional string			address = 3;	
+}
+
+message StatisticsReq {
+}
+
+message StatisticsRep {
+	required uint32 region_count = 1;
+	required uint32 service_count = 2;
+	required uint32 payload_count = 3;
+}
+
+message RegionReq {
+	required string uuid = 1;
+}
+
+message RegionRep {
+	optional Region region = 1;
+}
+
+message ServiceRouteReq {
+	required string			svc = 1;
+}
+
+message ServiceRouteRep {
+	required RouteInfo route = 1;
+}
+
+message PayloadRouteReq {
+	required string			payload = 1;
+}
+
+message PayloadRouteRep {
+	required RouteInfo route = 1;
+}
+
+message PayloadsRouteReq {
+	repeated string			payloads = 1;
+}
+
+message PayloadsRouteRep {
+	repeated RouteInfo		routes = 1;
+}
+
+
