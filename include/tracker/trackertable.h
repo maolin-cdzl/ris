@@ -7,6 +7,7 @@
 #include "ris/riobserver.h"
 #include "snapshot/snapshotable.h"
 #include "snapshot/snapshotbuilder.h"
+#include "zmqx/zlooptimer.h"
 
 class RITrackerTable : public IRIObserver,public ISnapshotable, public ISnapshotBuilder {
 public:
@@ -82,10 +83,9 @@ private:
 	int doRmPayload(const ri_uuid_t& region,const ri_uuid_t& pl);
 	int onCheckTimer();
 
-	static int checkTimerAdapter(zloop_t *loop, int timer_id, void *arg);
 private:
 	zloop_t*										m_loop;
-	int												m_tid;
+	ZLoopTimer										m_timer;
 	region_container_t								m_regions;
 	region_index_t									m_regions_index;
 	service_container_t								m_services;

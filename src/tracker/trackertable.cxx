@@ -16,7 +16,7 @@
 
 RITrackerTable::RITrackerTable(zloop_t* loop) :
 	m_loop(loop),
-	m_tid(-1)
+	m_timer(loop)
 {
 }
 
@@ -26,22 +26,15 @@ RITrackerTable::~RITrackerTable() {
 
 
 int RITrackerTable::start() {
-	if( -1 != m_tid ) {
+	if( m_timer.isActive() ) {
 		return -1;
 	}
-
-	m_tid = zloop_timer(m_loop,20,0,checkTimerAdapter,this);
-	if( m_tid != -1 )
-		return 0;
-	else
-		return -1;
+	
+	return m_timer.start(20,0,std::bind(&RITrackerTable::onCheckTimer,this));
 }
 
 void RITrackerTable::stop() {
-	if( m_tid != -1 ) {
-		zloop_timer_end(m_loop,m_tid);
-		m_tid = -1;
-	}
+	m_timer.stop();
 }
 
 // access method
@@ -86,12 +79,6 @@ std::shared_ptr<Region> RITrackerTable::RobinRouteService(const std::string& svc
 		}
 	}
 	return nullptr;
-}
-
-int RITrackerTable::checkTimerAdapter(zloop_t *loop, int timer_id, void *arg) {
-	RITrackerTable* self = (RITrackerTable*) arg;
-	self->onCheckTimer();
-	return 0;
 }
 
 // method from IRIObserver

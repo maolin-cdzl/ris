@@ -7,6 +7,7 @@
 #include "ris/riobserver.h"
 #include "region/regionctx.h"
 #include "snapshot/snapshotable.h"
+#include "zmqx/zlooptimer.h"
 
 class RIRegionTable : public ISnapshotable {
 public:
@@ -73,8 +74,6 @@ private:
 
 	int pubRegion();
 	int pubRepeated();
-	static int onRegionPubTimer(zloop_t *loop, int timer_id, void *arg);
-	static int onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg);
 private:
 	zloop_t*						m_loop;
 	Region							m_region;
@@ -85,8 +84,8 @@ private:
 	payload_list_t		m_payloads;
 	payload_index_t		m_payloads_idx;
 
-	int								m_tid_reg;
-	int								m_tid_repeat;
+	ZLoopTimer						m_timer_reg;
+	ZLoopTimer						m_timer_repeat;
 	size_t							m_sec_repub_region;
 	size_t							m_sec_repub_service;
 	size_t							m_sec_repub_payload;

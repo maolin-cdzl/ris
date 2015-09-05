@@ -5,8 +5,8 @@ static const long RI_PUB_REPEAT_TIMER			= 20;
 
 RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop) :
 	m_loop(loop),
-	m_tid_reg(-1),
-	m_tid_repeat(-1),
+	m_timer_reg(loop),
+	m_timer_repeat(loop),
 	m_sec_repub_region(5),
 	m_sec_repub_service(60),
 	m_sec_repub_payload(60)
@@ -158,18 +158,17 @@ snapshot_package_t RIRegionTable::buildSnapshot() {
 }
 
 int RIRegionTable::start(const std::shared_ptr<IRIObserver>& ob) {
-	if( -1 != m_tid_reg || -1 != m_tid_repeat )
+	if( m_timer_reg.isActive() || m_timer_repeat.isActive() )
 		return -1;
-	m_observer = ob;
-	m_tid_reg = zloop_timer(m_loop,m_sec_repub_region * 1000,0,onRegionPubTimer,this);
-	if( -1 == m_tid_reg )
-		return -1;
-	m_tid_repeat = zloop_timer(m_loop,RI_PUB_REPEAT_TIMER,0,onRepeatPubTimer,this);
-	if( -1 == m_tid_repeat ) {
-		zloop_timer_end(m_loop,m_tid_reg);
-		m_tid_reg = -1;
+
+	if( -1 == m_timer_reg.start( m_sec_repub_region * 1000,0,std::bind<int>(&RIRegionTable::pubRegion,this)) ) {
 		return -1;
 	}
+	if( -1 == m_timer_repeat.start(RI_PUB_REPEAT_TIMER,0,std::bind<int>(&RIRegionTable::pubRepeated,this)) ) {
+		m_timer_reg.stop();
+		return -1;
+	}
+	m_observer = ob;
 	if( m_observer ) {
 		m_observer->onRegion(m_region);
 	}
@@ -177,14 +176,8 @@ int RIRegionTable::start(const std::shared_ptr<IRIObserver>& ob) {
 }
 
 void RIRegionTable::stop() {
-	if( m_tid_reg != -1 ) {
-		zloop_timer_end(m_loop,m_tid_reg);
-		m_tid_reg = -1;
-	}
-	if( m_tid_repeat != -1 ) {
-		zloop_timer_end(m_loop,m_tid_repeat);
-		m_tid_repeat = -1;
-	}
+	m_timer_reg.stop();
+	m_timer_repeat.stop();
 	if( m_observer ) {
 		m_observer->onRmRegion(m_region.id);
 	}
@@ -216,16 +209,6 @@ int RIRegionTable::pubRegion() {
 		m_observer->onRegion(m_region);
 	}
 	return 0;
-}
-
-int RIRegionTable::onRegionPubTimer(zloop_t *loop, int timer_id, void *arg) {
-	RIRegionTable* self = (RIRegionTable*)arg;
-	return self->pubRegion();
-}
-
-int RIRegionTable::onRepeatPubTimer(zloop_t *loop, int timer_id, void *arg) {
-	RIRegionTable* self = (RIRegionTable*)arg;
-	return self->pubRepeated();
 }
 
 
