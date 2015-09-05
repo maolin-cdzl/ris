@@ -68,17 +68,18 @@ std::shared_ptr<Region> RITrackerTable::routePayload(const ri_uuid_t& id)  const
 }
 
 // get region provide this service,this is round-robin
-std::shared_ptr<Region> RITrackerTable::RobinRouteService(const std::string& svc) {
+std::pair<std::shared_ptr<Region>,std::string> RITrackerTable::robinRouteService(const std::string& svc) {
+	std::pair<std::shared_ptr<Region>,std::string> result(nullptr,"");
 	auto siit = m_services_index.find(svc);
 	if( siit != m_services_index.end() ) {
 		auto& l = siit->second;
 		if( ! l.empty() ) {
-			auto regptr = l.front()->region;
+			result.first = l.front()->region;
+			result.second = l.front()->service.address;
 			l.splice(l.end(),l,l.begin());		// move first to end
-			return std::move(regptr);
 		}
 	}
-	return nullptr;
+	return std::move(result);
 }
 
 // method from IRIObserver

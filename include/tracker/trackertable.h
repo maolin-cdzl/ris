@@ -29,7 +29,7 @@ public:
 	std::shared_ptr<Region> routePayload(const ri_uuid_t& id)  const;
 
 	// get region provide this service,this is round-robin
-	std::shared_ptr<Region> RobinRouteService(const std::string& svc);
+	std::pair<std::shared_ptr<Region>,std::string> robinRouteService(const std::string& svc);
 public:
 	// method from IRIObserver
 	virtual void onRegion(const Region& reg);
