@@ -75,9 +75,10 @@ target_link_libraries(ris LINK_PUBLIC
 	snapshot
 )
 
-# region
+################### Target Region
 
-add_library(region STATIC
+# objects
+add_library(region_obj OBJECT
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
@@ -88,11 +89,42 @@ add_library(region STATIC
 	include/region/regionctx.h
 )
 
-target_include_directories(region
+target_include_directories(region_obj
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
 	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
+)
+
+# static library
+add_library(region_static STATIC
+	src/region/regionapi.cxx
+	include/region/regionapi.h
+	$<TARGET_OBJECTS:region_obj>
+)
+
+target_include_directories(region_static
+	PUBLIC $<TARGET_PROPERTY:region_obj,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(region_static LINK_PUBLIC
+	risproto
+	snapshot
+	ris
+	zmqx
+	config++
+)
+
+# shared library
+add_library(region STATIC
+	src/region/regionapi.cxx
+	include/region/regionapi.h
+	$<TARGET_OBJECTS:region_obj>
+)
+
+target_compile_definitions(region PRIVATE REGIONAPI_BUILDING)
+target_include_directories(region
+	PUBLIC $<TARGET_PROPERTY:region_obj,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(region LINK_PUBLIC
@@ -104,40 +136,10 @@ target_link_libraries(region LINK_PUBLIC
 )
 
 
-# regionapi
+### Target Tracker
 
-add_library(regionapi SHARED
-	regionapi/regionapi.h
-	regionapi/regionapi.cxx
-)
-
-target_include_directories(regionapi
-	PRIVATE $<TARGET_PROPERTY:region,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-target_compile_definitions(regionapi PRIVATE REGIONAPI_BUILDING)
-
-target_link_libraries(regionapi LINK_PUBLIC
-	region
-)
-
-add_library(regionapi_static STATIC 
-	regionapi/regionapi.h
-	regionapi/regionapi.cxx
-)
-
-target_include_directories(regionapi_static
-	PRIVATE $<TARGET_PROPERTY:region,INTERFACE_INCLUDE_DIRECTORIES>
-)
-
-target_compile_definitions(regionapi_static PRIVATE REGIONAPI_BUILDING)
-
-target_link_libraries(regionapi_static LINK_PUBLIC
-	region
-)
-
-# tracker
-add_library(tracker STATIC
+# tracker objects
+add_library(tracker_obj OBJECT
 	src/tracker/subscriber.cxx
 	src/tracker/subcacher.cxx
 	src/tracker/trackertable.cxx
@@ -152,12 +154,45 @@ add_library(tracker STATIC
 	include/tracker/trackerctx.h
 )
 
-target_include_directories(tracker
+target_include_directories(tracker_obj
 	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/include
 	PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include/ris
 )
+
+
+# tracker static library
+add_library(tracker_static STATIC
+	$<TARGET_OBJECTS:tracker_obj>
+	src/tracker/trackerapi.cxx
+	include/tracker/trackerapi.h
+)
+
+target_include_directories(tracker_static
+	PUBLIC $<TARGET_PROPERTY:tracker_obj,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(tracker_static LINK_PUBLIC
+	risproto
+	snapshot
+	ris
+	zmqx
+	config++
+)
+
+# tracker
+add_library(tracker SHARED 
+	$<TARGET_OBJECTS:tracker_obj>
+	src/tracker/trackerapi.cxx
+	include/tracker/trackerapi.h
+)
+
+target_include_directories(tracker
+	PUBLIC $<TARGET_PROPERTY:tracker_obj,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_compile_definitions(tracker PRIVATE TRACKERAPI_BUILDING)
 
 target_link_libraries(tracker LINK_PUBLIC
 	risproto
@@ -168,39 +203,35 @@ target_link_libraries(tracker LINK_PUBLIC
 )
 
 
-# trackerapi
-add_library(trackerapi SHARED
-	trackerapi/trackerapi.h
-	trackerapi/trackerapi.cxx
+# ritracker
+add_executable(ritracker
+	src/tracker/ritracker.cxx
 )
 
-target_include_directories(trackerapi
-	PRIVATE $<TARGET_PROPERTY:tracker,INTERFACE_INCLUDE_DIRECTORIES>
+target_include_directories(ritracker 
+	PRIVATE $<TARGET_PROPERTY:tracker_static,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-target_compile_definitions(trackerapi PRIVATE TRACKERAPI_BUILDING)
+target_link_libraries(ritracker LINK_PRIVATE tracker_static)
 
-target_link_libraries(trackerapi LINK_PUBLIC
-	tracker
+# trackercli
+add_library(trackercli SHARED
+	trackercli/trackersession.h
+	trackercli/trackersession.cxx
 )
 
-add_library(trackerapi_static STATIC
-	trackerapi/trackerapi.h
-	trackerapi/trackerapi.cxx
-	trackerapi/trackersession.h
-	trackerapi/trackersession.cxx
+target_include_directories(trackercli
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
-target_include_directories(trackerapi_static
-	PRIVATE $<TARGET_PROPERTY:tracker,INTERFACE_INCLUDE_DIRECTORIES>
+
+target_link_libraries(trackercli LINK_PUBLIC
+	risproto
+	zmqx
+	zmq
+	czmq
 )
-
-target_compile_definitions(trackerapi_static PRIVATE TRACKERAPI_BUILDING)
-
-target_link_libraries(trackerapi_static LINK_PUBLIC
-	tracker
-)
-
 
 # broker
 add_executable(ribroker src/broker/ribroker.cxx)

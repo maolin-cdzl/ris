@@ -8,13 +8,13 @@ add_executable(test_region
 )
 
 target_include_directories(test_region
-	PRIVATE $<TARGET_PROPERTY:regionapi,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:region_static,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_definitions(test_region PRIVATE CONFI_FILE="${CMAKE_CURRENT_SOURCE_DIR}/region.conf")
 
 target_link_libraries(test_region
-	LINK_PRIVATE regionapi
+	LINK_PRIVATE region_static
 )
 
 # test tracker
@@ -23,13 +23,13 @@ add_executable(test_tracker
 )
 
 target_include_directories(test_tracker
-	PRIVATE $<TARGET_PROPERTY:trackerapi,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:tracker_static,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_compile_definitions(test_tracker PRIVATE CONFI_FILE="${CMAKE_CURRENT_SOURCE_DIR}/tracker.conf")
 
 target_link_libraries(test_tracker
-	LINK_PRIVATE trackerapi
+	LINK_PRIVATE tracker_static
 )
 
 
@@ -48,10 +48,10 @@ add_executable(test_ris
 )
 
 target_include_directories(test_ris
-	PRIVATE $<TARGET_PROPERTY:trackerapi_static,INTERFACE_INCLUDE_DIRECTORIES>
-	PRIVATE $<TARGET_PROPERTY:regionapi_static,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:tracker_static,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:region_static,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(test_ris
-	LINK_PRIVATE trackerapi_static regionapi_static gmock gtest uuid
+	LINK_PRIVATE tracker_static region_static gmock gtest uuid
 )

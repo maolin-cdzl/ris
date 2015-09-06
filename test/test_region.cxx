@@ -1,7 +1,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <iostream>
-#include "../regionapi/regionapi.h"
+#include "region/regionapi.h"
 
 static const size_t PAYLOAD_SIZE = 100;
 static uint64_t t_time_now();

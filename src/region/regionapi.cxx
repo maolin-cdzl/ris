@@ -1,7 +1,7 @@
 #include <czmq.h>
 #include <glog/logging.h>
 
-#include "regionapi.h"
+#include "region/regionapi.h"
 #include "region/regionactor.h"
 #include "region/regionctx.h"
 #include "ris/regionapi.pb.h"

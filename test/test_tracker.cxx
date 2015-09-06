@@ -1,10 +1,10 @@
 #include <unistd.h>
 #include <iostream>
-#include "../trackerapi/trackerapi.h"
+#include "tracker/trackerapi.h"
 
 
 int main(int argc,char* argv[]) {
-	int result = tracker_start(CONFI_FILE,1);
+	int result = tracker_start(CONFI_FILE);
 	if( -1 == result )
 		return -1;
 

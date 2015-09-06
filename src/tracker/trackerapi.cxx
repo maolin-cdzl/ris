@@ -1,7 +1,7 @@
 #include <czmq.h>
 #include <glog/logging.h>
 
-#include "trackerapi.h"
+#include "tracker/trackerapi.h"
 #include "tracker/trackeractor.h"
 
 static RITrackerActor* g_actor = nullptr;
