@@ -187,6 +187,8 @@ target_link_libraries(trackerapi LINK_PUBLIC
 add_library(trackerapi_static STATIC
 	trackerapi/trackerapi.h
 	trackerapi/trackerapi.cxx
+	trackerapi/trackersession.h
+	trackerapi/trackersession.cxx
 )
 
 target_include_directories(trackerapi_static

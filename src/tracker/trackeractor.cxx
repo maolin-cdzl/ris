@@ -43,6 +43,7 @@ int RITrackerActor::wait() {
 std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(zsock_t* reader) {
 	auto disp = std::make_shared<Dispatcher>();
 	disp->set_default(std::bind(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(tracker::api::HandShake::descriptor(),std::bind(&RITrackerActor::onHandShake,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::StatisticsReq::descriptor(),std::bind(&RITrackerActor::onStaticsReq,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::RegionReq::descriptor(),std::bind(&RITrackerActor::onRegionReq,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::ServiceRouteReq::descriptor(),std::bind(&RITrackerActor::onServiceRouteReq,this,reader,std::placeholders::_1));
@@ -175,10 +176,15 @@ void RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::pr
 	} else {
 		LOG(WARNING) << "TrackerActor Recv no protobuf message";
 	}
-	tracker::api::Result ret;
-	ret.set_result(-1);
+	tracker::api::Error ret;
+	ret.set_code(-1);
 
 	zpb_send(reader,ret);
+}
+
+void RITrackerActor::onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+	auto p = std::dynamic_pointer_cast<tracker::api::HandShake>(msg);
+	zpb_send(reader,*p);
 }
 
 void RITrackerActor::onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {

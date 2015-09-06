@@ -4,19 +4,11 @@
 #include "trackerapi.h"
 #include "tracker/trackeractor.h"
 
-int g_standalone = 0;
 static RITrackerActor* g_actor = nullptr;
 
-extern "C" TRACKERAPI_EXPORT int tracker_start(const char* confile,int standalone) {
+extern "C" TRACKERAPI_EXPORT int tracker_start(const char* confile) {
 	if( confile == nullptr )
 		return -1;
-
-	g_standalone = standalone;
-	if( g_standalone ) {
-		google::InitGoogleLogging("tracker");
-		FLAGS_log_dir = "./log";
-		zsys_init();
-	}
 
 	auto ctx = loadTrackerCtx(confile);
 	if( nullptr == ctx )
@@ -39,9 +31,6 @@ extern "C" TRACKERAPI_EXPORT int tracker_stop() {
 		g_actor = nullptr;
 	}
 
-	if( g_standalone ) {
-		zsys_shutdown();
-	}
 	return 0;
 }
 

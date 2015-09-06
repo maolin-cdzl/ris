@@ -1,7 +1,7 @@
 package tracker.api;
 
-message Result {
-	required int32			result = 1;
+message Error {
+	required int32			code = 1;
 	optional string			what = 2;
 }
 
@@ -17,6 +17,9 @@ message RouteInfo {
 	required string			target = 1;
 	optional string			region = 2;
 	optional string			address = 3;	
+}
+
+message HandShake {
 }
 
 message StatisticsReq {

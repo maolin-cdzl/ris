@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-TRACKERAPI_EXPORT int tracker_start(const char* confile,int standalone);
+TRACKERAPI_EXPORT int tracker_start(const char* confile);
 
 TRACKERAPI_EXPORT int tracker_stop();
 
