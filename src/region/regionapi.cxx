@@ -5,6 +5,7 @@
 #include "region/regionactor.h"
 #include "region/regionctx.h"
 #include "ris/regionapi.pb.h"
+#include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
 
 int g_standalone = 0;
@@ -81,9 +82,24 @@ extern "C" REGIONAPI_EXPORT void* region_open() {
 			zsock_destroy(&req);
 			break;
 		}
+
+		region::api::HandShake hs;
+		if( -1 == zpb_send(req,hs) )
+			break;
+		
+		if( zmq_wait_readable(req,1000) <= 0 )
+			break;
+
+		if( -1 == zpb_recv(hs,req) )
+			break;
+		return req;
 	} while( 0 );
 
-	return req;
+	if( req ) {
+		zsock_destroy(&req);
+	}
+
+	return nullptr;
 }
 
 extern "C" REGIONAPI_EXPORT void region_close(void* s) {
@@ -98,14 +114,18 @@ extern "C" REGIONAPI_EXPORT int region_new_payload(void* s,const char* uuid) {
 	assert(s);
 	assert(uuid);
 
-	region::api::AddPayload msg;
-	msg.set_uuid(uuid);
-	if( 0 == zpb_send(s,msg) ) {
+	do {
+		region::api::AddPayload msg;
+		msg.set_uuid(uuid);
+		if( -1 == zpb_send(s,msg) )
+			break;
+		if( zmq_wait_readable(s,1000) <= 0 )
+			break;
 		region::api::Result result;
-		if( 0 == zpb_recv(result,s) ) {
-			return result.result();
-		}
-	}
+		if( -1 == zpb_recv(result,s) )
+			break;
+		return result.result();
+	} while(0);
 	return -1;
 }
 
@@ -113,14 +133,18 @@ extern "C" REGIONAPI_EXPORT int region_rm_payload(void* s,const char* uuid) {
 	assert(s);
 	assert(uuid);
 
-	region::api::RmPayload msg;
-	msg.set_uuid(uuid);
-	if( 0 == zpb_send(s,msg) ) {
+	do {
+		region::api::RmPayload msg;
+		msg.set_uuid(uuid);
+		if( -1 == zpb_send(s,msg) )
+			break;
+		if( zmq_wait_readable(s,1000) <= 0 )
+			break;
 		region::api::Result result;
-		if( 0 == zpb_recv(result,s) ) {
-			return result.result();
-		}
-	}
+		if( -1 == zpb_recv(result,s) )
+			break;
+		return result.result();
+	} while(0);
 	return -1;
 }
 
@@ -129,15 +153,19 @@ extern "C" REGIONAPI_EXPORT int region_new_service(void* s,const char* name,cons
 	assert(name);
 	assert(address);
 
-	region::api::AddService msg;
-	msg.set_name(name);
-	msg.set_address(address);
-	if( 0 == zpb_send(s,msg) ) {
+	do {
+		region::api::AddService msg;
+		msg.set_name(name);
+		msg.set_address(address);
+		if( -1 == zpb_send(s,msg) )
+			break;
+		if( zmq_wait_readable(s,1000) <= 0 )
+			break;
 		region::api::Result result;
-		if( 0 == zpb_recv(result,s) ) {
-			return result.result();
-		}
-	}
+		if( -1 == zpb_recv(result,s) )
+			break;
+		return result.result();
+	} while(0);
 	return -1;
 }
 
@@ -145,14 +173,18 @@ extern "C" REGIONAPI_EXPORT int region_rm_service(void* s,const char* name) {
 	assert(s);
 	assert(name);
 
-	region::api::RmService msg;
-	msg.set_name(name);
-	if( 0 == zpb_send(s,msg) ) {
+	do {
+		region::api::RmService msg;
+		msg.set_name(name);
+		if( -1 == zpb_send(s,msg) )
+			break;
+		if( zmq_wait_readable(s,1000) <= 0 )
+			break;
 		region::api::Result result;
-		if( 0 == zpb_recv(result,s) ) {
-			return result.result();
-		}
-	}
+		if( -1 == zpb_recv(result,s) )
+			break;
+		return result.result();
+	} while(0);
 	return -1;
 }
 
