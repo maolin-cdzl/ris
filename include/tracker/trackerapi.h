@@ -22,6 +22,8 @@ extern "C" {
 
 TRACKERAPI_EXPORT int tracker_start(const char* confile);
 
+TRACKERAPI_EXPORT int tracker_start_str(const char* confstr);
+
 TRACKERAPI_EXPORT int tracker_stop();
 
 // wait tracker shutdown,it will block caller

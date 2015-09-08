@@ -11,6 +11,31 @@
 int g_standalone = 0;
 static RIRegionActor* g_actor = nullptr;
 
+extern "C" REGIONAPI_EXPORT int region_start_str(const char* confstr,int standalone) {
+	if( confstr == nullptr )
+		return -1;
+
+	g_standalone = standalone;
+	if( g_standalone ) {
+		google::InitGoogleLogging("region");
+		FLAGS_log_dir = "./log";
+		zsys_init();
+	}
+
+	auto ctx = RegionCtx::loadStr(confstr);
+	if( nullptr == ctx )
+		return -1;
+
+	g_actor = new RIRegionActor();
+	if( -1 == g_actor->start(ctx) ) {
+		delete g_actor;
+		g_actor = nullptr;
+		return -1;
+	} else {
+		return 0;
+	}
+}
+
 extern "C" REGIONAPI_EXPORT int region_start(const char* confile,int standalone) {
 	if( confile == nullptr )
 		return -1;
@@ -22,7 +47,7 @@ extern "C" REGIONAPI_EXPORT int region_start(const char* confile,int standalone)
 		zsys_init();
 	}
 
-	auto ctx = loadRegionCtx(confile);
+	auto ctx = RegionCtx::loadFile(confile);
 	if( nullptr == ctx )
 		return -1;
 

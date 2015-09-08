@@ -14,7 +14,8 @@ public:
 	std::string					snapshot_worker_address;
 
 	RegionCtx() = default;
-	int loadConfig(const std::string& file);
+
+	static std::shared_ptr<RegionCtx> loadFile(const std::string& file);
+	static std::shared_ptr<RegionCtx> loadStr(const std::string& str);
 };
 
-std::shared_ptr<RegionCtx> loadRegionCtx(const std::string& file);

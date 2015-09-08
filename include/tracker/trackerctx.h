@@ -11,8 +11,10 @@ public:
 	std::string					snapshot_svc_address;
 	std::string					snapshot_worker_address;
 
-	int loadConfig(const std::string& file);
+	TrackerCtx() = default;
+
+	static std::shared_ptr<TrackerCtx> loadFile(const std::string& file);
+	static std::shared_ptr<TrackerCtx> loadStr(const std::string& str);
 };
 
-std::shared_ptr<TrackerCtx> loadTrackerCtx(const std::string& file);
 

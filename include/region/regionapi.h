@@ -23,6 +23,8 @@ extern "C" {
 
 REGIONAPI_EXPORT int region_start(const char* confile,int standalone);
 
+REGIONAPI_EXPORT int region_start_str(const char* confstr,int standalone);
+
 REGIONAPI_EXPORT int region_stop();
 
 // wait tracker shutdown,it will block caller

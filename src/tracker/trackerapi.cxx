@@ -10,7 +10,25 @@ extern "C" TRACKERAPI_EXPORT int tracker_start(const char* confile) {
 	if( confile == nullptr )
 		return -1;
 
-	auto ctx = loadTrackerCtx(confile);
+	auto ctx = TrackerCtx::loadFile(confile);
+	if( nullptr == ctx )
+		return -1;
+
+	g_actor = new RITrackerActor();
+	if( -1 == g_actor->start(ctx) ) {
+		delete g_actor;
+		g_actor = nullptr;
+		return -1;
+	} else {
+		return 0;
+	}
+}
+
+extern "C" TRACKERAPI_EXPORT int tracker_start_str(const char* confstr) {
+	if( confstr == nullptr )
+		return -1;
+
+	auto ctx = TrackerCtx::loadStr(confstr);
 	if( nullptr == ctx )
 		return -1;
 

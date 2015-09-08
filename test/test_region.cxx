@@ -1,11 +1,20 @@
-#include <unistd.h>
-#include <time.h>
-#include <iostream>
+#include "mock_defines.h"
+
 #include "region/regionapi.h"
 
-static const size_t PAYLOAD_SIZE = 100;
-static uint64_t t_time_now();
+extern zloop_t* g_loop;
 
+class RegionTest : public testing::Test {
+protected:
+	static void SetUpTestCase() {
+	}
+	static void TearDownTestCase() {
+	}
+
+
+};
+
+/*
 int main(int argc,char* argv[]) {
 	int result = region_start(CONFI_FILE,1);
 	if( -1 == result )
@@ -25,13 +34,5 @@ int main(int argc,char* argv[]) {
 	region_wait();
 	return 0;
 }
-
-static uint64_t t_time_now() {
-	uint64_t now;
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC,&ts);
-
-	now = ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
-	return now;
-}
+*/
 
