@@ -60,11 +60,6 @@ void RITrackerActor::run(zsock_t* pipe) {
 		LOG(INFO) << "RITrackerActor initialize...";
 		m_loop = zloop_new();
 		assert(m_loop);
-		rep = zsock_new_rep(m_ctx->api_address.c_str());
-		if( nullptr == rep ) {
-			LOG(FATAL) << "Create rep socket failed";
-			break;
-		}
 		
 		ZLoopReader pipe_reader(m_loop);
 		if( -1 == pipe_reader.start(pipe,std::bind<int>(&RITrackerActor::onPipeReadable,this,std::placeholders::_1)) ) {
@@ -80,13 +75,7 @@ void RITrackerActor::run(zsock_t* pipe) {
 		zsock_signal(pipe,0);
 
 		zsys_interrupted = 0;
-		while( m_running ) {
-			if(  0 == zloop_start(m_loop) ) {
-				break;
-			} else {
-				LOG(WARNING) << "Loop error";
-			}
-		}
+		zloop_start(m_loop);
 
 		if( ! m_running ) {
 			break;
@@ -97,12 +86,19 @@ void RITrackerActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "Tracker start snapshot service failed";
 			break;
 		}
+
+		rep = zsock_new(ZMQ_REP);
+		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
+			LOG(FATAL) << "Error when binding rep socket to: " << m_ctx->api_address;
+			break;
+		}
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
 		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
 			LOG(FATAL) << "Start zdispatcher failed";
 			break;
 		}
 		
+		m_running = true;
 		zsys_interrupted = 0;
 		while( m_running ) {
 			if(  0 == zloop_start(m_loop) ) {

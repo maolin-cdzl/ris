@@ -100,6 +100,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		zsock_signal(pipe,0);
 
 		m_running = true;
+		zsys_interrupted = 0;
 		while( m_running ) {
 			int result = zloop_start(m_loop);
 			if( result == 0 ) {
@@ -110,8 +111,8 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 	} while(0);
-
 	
+	m_running = false;
 	m_pub.reset();
 	m_ssvc.reset();
 	m_table.reset();

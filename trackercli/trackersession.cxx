@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "trackersession.h"
 #include "ris/trackerapi.pb.h"
 #include "zmqx/zprotobuf++.h"
@@ -18,20 +19,27 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 
 	do {
 		m_req = zsock_new(ZMQ_REQ);
-		if( nullptr == m_req )
+		assert(m_req);
+		if( -1 == zsock_connect(m_req,"%s",api_address.c_str()) ) {
+			LOG(ERROR) << "Error when connect to: " << api_address;
 			break;
-		if( -1 == zsock_connect(m_req,"%s",api_address.c_str()) )
-			break;
+		}
 
 		tracker::api::HandShake hs;
-		if( -1 == zpb_send(m_req,hs) )
+		if( -1 == zpb_send(m_req,hs) ) {
+			LOG(ERROR) << "Error when sending HandShake to tracker";
 			break;
+		}
 		
-		if( zmq_wait_readable(m_req,timeout) <= 0 )
+		if( zmq_wait_readable(m_req,timeout) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
+		}
 
-		if( -1 == zpb_recv(hs,m_req) )
+		if( -1 == zpb_recv(hs,m_req) ) {
+			LOG(ERROR) << "Error when recv HandShake from req";
 			break;
+		}
 		return 0;
 	} while(0);
 
