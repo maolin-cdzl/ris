@@ -12,6 +12,11 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 			ctx->api_address = region["api_address"].c_str();
 			ctx->bus_address = region["bus_address"].c_str();
 			ctx->pub_address = region["pub_address"].c_str();
+			if( region.exists("bind_pub") ) {
+				ctx->bind_pub = region["bind_pub"];
+			} else {
+				ctx->bind_pub = false;
+			}
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;

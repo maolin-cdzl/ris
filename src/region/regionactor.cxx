@@ -72,7 +72,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
 			break;
 		}
-		if( -1 == m_pub->start(m_ctx->pub_address) ) {
+		if( -1 == m_pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
 			break;
 		}
