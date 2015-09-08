@@ -12,7 +12,7 @@ TrackerSession::~TrackerSession() {
 	disconnect();
 }
 
-int TrackerSession::connect(const std::string& api_address) {
+int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 	if( m_req )
 		return -1;
 
@@ -27,7 +27,7 @@ int TrackerSession::connect(const std::string& api_address) {
 		if( -1 == zpb_send(m_req,hs) )
 			break;
 		
-		if( zmq_wait_readable(m_req,1000) <= 0 )
+		if( zmq_wait_readable(m_req,timeout) <= 0 )
 			break;
 
 		if( -1 == zpb_recv(hs,m_req) )

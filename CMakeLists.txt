@@ -221,12 +221,32 @@ add_library(trackercli SHARED
 )
 
 target_include_directories(trackercli
-	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/trackercli
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 
 target_link_libraries(trackercli LINK_PUBLIC
+	risproto
+	zmqx
+	zmq
+	czmq
+)
+
+add_library(trackercli_static STATIC
+	trackercli/trackersession.h
+	trackercli/trackersession.cxx
+)
+
+target_include_directories(trackercli_static
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/trackercli
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+
+target_link_libraries(trackercli_static LINK_PUBLIC
 	risproto
 	zmqx
 	zmq

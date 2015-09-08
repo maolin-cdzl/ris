@@ -29,7 +29,7 @@ public:
 	TrackerSession();
 	~TrackerSession();
 
-	int connect(const std::string& api_address);
+	int connect(const std::string& api_address,uint64_t timeout=60000);
 	void disconnect();
 
 	int getStatistics(RouteInfoStatistics* statistics);

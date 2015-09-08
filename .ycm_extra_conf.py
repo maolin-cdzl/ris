@@ -56,6 +56,8 @@ flags = [
 './googletest/googlemock/include',
 '-I',
 './buildir/include',
+'-I',
+'./trackercli',
 ]
 
 
