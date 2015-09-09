@@ -66,18 +66,25 @@ void RITrackerActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "Register pipe reader error";
 			break;
 		}
-		m_factory = std::make_shared<FromRegionFactory>(m_loop);
-		if( -1 == m_factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2)) ) {
-			LOG(FATAL) << "Start factory failed";
-			break;
+
+		{
+			auto factory = std::make_shared<FromRegionFactory>(m_loop);
+			if( -1 == factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2)) ) {
+				LOG(FATAL) << "Start factory failed";
+				break;
+			}
+			zsock_signal(pipe,0);
+
+			m_running = true;
+			while( m_running ) {
+				if( 0 == zloop_start(m_loop) ) {
+					LOG(INFO) << "RITrackerActor interrupted";
+					break;
+				}
+			}
 		}
-		m_running = true;
-		zsock_signal(pipe,0);
 
-		zsys_interrupted = 0;
-		zloop_start(m_loop);
-
-		if( ! m_running ) {
+		if( 0 != zsys_interrupted ) {
 			break;
 		}
 
@@ -99,20 +106,16 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 		
 		m_running = true;
-		zsys_interrupted = 0;
 		while( m_running ) {
 			if(  0 == zloop_start(m_loop) ) {
+				LOG(INFO) << "RITrackerActor interrupted";
 				break;
-			} else {
-				LOG(WARNING) << "Loop error";
 			}
 		}
 	} while(0);
 
 	m_running = false;
 
-	if( m_factory )
-		m_factory.reset();
 	if( m_ssvc )
 		m_ssvc.reset();
 	if( m_sub )
@@ -268,14 +271,12 @@ void RITrackerActor::onFactoryDone(int err,const std::shared_ptr<TrackerFactoryP
 		m_sub = product->sub;
 		assert( m_table );
 		assert( m_sub );
-		m_factory.reset();
 
 		LOG(INFO) << "Factory done success,region: " << m_table->region_size() << ", service: " << m_table->service_size() << ", payloads: " << m_table->payload_size();
 
 	} else {
 		LOG(FATAL) << "Factory product error: " << err;
-		m_running = false;
 	}
-	zsys_interrupted = 1;
+	m_running = false;
 }
 

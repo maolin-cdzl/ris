@@ -93,11 +93,12 @@ TEST_F(RISTest,Functional) {
 	for(auto it=payloads.begin(); it != payloads.end(); ++it) {
 		region_new_payload(region,it->c_str());
 	}
+	region_close(region);
 
 	sleep(1);
 
 	RouteInfoStatistics stat;
-	ASSERT_EQ(0,tracker->getStatistics(&stat));
+	ASSERT_EQ(1,tracker->getStatistics(&stat));
 	ASSERT_EQ(size_t(1),stat.region_size);
 	ASSERT_EQ(services.size(),stat.service_size);
 	ASSERT_EQ(payloads.size(),stat.payload_size);

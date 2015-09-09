@@ -52,6 +52,5 @@ private:
 	std::shared_ptr<RITrackerTable>			m_table;
 	std::shared_ptr<RISubscriber>			m_sub;
 	std::shared_ptr<SnapshotService>		m_ssvc;
-	std::shared_ptr<FromRegionFactory>		m_factory;
 };
 
