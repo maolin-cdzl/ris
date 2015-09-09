@@ -4,6 +4,7 @@
 #include "region/regionapi.h"
 #include "tracker/trackerapi.h"
 #include "trackersession.h"
+#include "regionsession.h"
 
 extern zloop_t* g_loop;
 
@@ -82,18 +83,17 @@ TEST_F(RISTest,Functional) {
 	auto tracker = std::make_shared<TrackerSession>();
 	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
 
-	void* region = region_open();
-	ASSERT_NE(nullptr,region);
+	auto region = std::make_shared<RegionSession>();
+	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
 
 
 	for(auto it=services.begin(); it != services.end(); ++it) {
-		region_new_service(region,it->c_str(),"Unexists");
+		region->newService(*it,"Unexists");
 	}
 
 	for(auto it=payloads.begin(); it != payloads.end(); ++it) {
-		region_new_payload(region,it->c_str());
+		region->newPayload(*it);
 	}
-	region_close(region);
 
 	sleep(1);
 
@@ -104,26 +104,4 @@ TEST_F(RISTest,Functional) {
 	ASSERT_EQ(payloads.size(),stat.payload_size);
 }
 
-
-/*
-int main(int argc,char* argv[]) {
-	int result = region_start(CONFI_FILE,1);
-	if( -1 == result )
-		return -1;
-
-	void* s = region_open();
-
-	char id[32];
-	const uint64_t tv_start = t_time_now();
-	for(size_t i=1; i <= PAYLOAD_SIZE; ++i) {
-		sprintf(id,"%lu",i);
-		region_new_payload(s,id);
-	}
-	const uint64_t tv_end = t_time_now();
-	std::cout << "Cost " << tv_end - tv_start << " msec" << std::endl;
-	region_close(s);
-	region_wait();
-	return 0;
-}
-*/
 

@@ -20,9 +20,10 @@ add_executable(test_ris
 target_include_directories(test_ris
 	PRIVATE $<TARGET_PROPERTY:trackercli_static,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:tracker_static,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:regioncli_static,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:region_static,INTERFACE_INCLUDE_DIRECTORIES>
 )
 
 target_link_libraries(test_ris
-	LINK_PRIVATE tracker_static trackercli_static region_static gmock gtest uuid
+	LINK_PRIVATE tracker_static trackercli_static region_static regioncli_static gmock gtest uuid
 )

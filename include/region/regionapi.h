@@ -30,18 +30,6 @@ REGIONAPI_EXPORT int region_stop();
 // wait tracker shutdown,it will block caller
 REGIONAPI_EXPORT int region_wait();
 
-REGIONAPI_EXPORT void* region_open();
-
-REGIONAPI_EXPORT void region_close(void* s);
-
-REGIONAPI_EXPORT int region_new_payload(void* s,const char* uuid);
-
-REGIONAPI_EXPORT int region_rm_payload(void* s,const char* uuid);
-
-REGIONAPI_EXPORT int region_new_service(void* s,const char* name,const char* address);
-
-REGIONAPI_EXPORT int region_rm_service(void* s,const char* name);
-
 #ifdef __cplusplus
 }
 #endif

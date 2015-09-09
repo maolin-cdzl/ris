@@ -253,6 +253,44 @@ target_link_libraries(trackercli_static LINK_PUBLIC
 	czmq
 )
 
+## regioncli
+add_library(regioncli SHARED
+	regioncli/regionsession.h
+	regioncli/regionsession.cxx
+)
+
+target_include_directories(regioncli
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/regioncli
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(regioncli LINK_PUBLIC
+	risproto
+	zmqx
+	zmq
+	czmq
+)
+
+# regioncli static
+add_library(regioncli_static STATIC
+	regioncli/regionsession.h
+	regioncli/regionsession.cxx
+)
+
+target_include_directories(regioncli_static
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/regioncli
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(regioncli_static LINK_PUBLIC
+	risproto
+	zmqx
+	zmq
+	czmq
+)
+
 # broker
 add_executable(ribroker src/broker/ribroker.cxx)
 target_link_libraries(ribroker PRIVATE zmq gflags)
