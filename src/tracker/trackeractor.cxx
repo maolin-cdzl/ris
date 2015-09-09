@@ -69,7 +69,7 @@ void RITrackerActor::run(zsock_t* pipe) {
 
 		{
 			auto factory = std::make_shared<FromRegionFactory>(m_loop);
-			if( -1 == factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2)) ) {
+			if( -1 == factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,std::placeholders::_1,std::placeholders::_2),m_ctx->factory_timeout) ) {
 				LOG(FATAL) << "Start factory failed";
 				break;
 			}

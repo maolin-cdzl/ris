@@ -10,6 +10,7 @@ public:
 	std::string					pub_address;					
 	std::string					snapshot_svc_address;
 	std::string					snapshot_worker_address;
+	uint64_t					factory_timeout;
 
 	TrackerCtx() = default;
 

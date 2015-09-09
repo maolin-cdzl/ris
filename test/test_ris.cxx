@@ -33,6 +33,7 @@ static const char* TRACKER_CONFIG =
 "	idc = \"test-idc\";\n"
 "	api_address = \"inproc://tracker-test-001\";\n"
 "	pub_address = \"tcp://127.0.0.1:2015\";\n"
+"	factory_timeout = 6000;\n"
 "	snapshot:\n"
 "	{\n"
 "		address = \"tcp://127.0.0.1:7500\";\n"
@@ -78,7 +79,7 @@ TEST_F(RISTest,Functional) {
 	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
 	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
 
-	sleep(40);
+	sleep(10);
 
 	auto tracker = std::make_shared<TrackerSession>();
 	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));

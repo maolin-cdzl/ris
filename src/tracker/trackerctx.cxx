@@ -10,6 +10,11 @@ static std::shared_ptr<TrackerCtx> loadTrackerCtx(libconfig::Config& cfg) {
 			ctx->idc = tracker["idc"].c_str();
 			ctx->api_address = tracker["api_address"].c_str();
 			ctx->pub_address = tracker["pub_address"].c_str();
+			if( tracker.exists("factory_timeout") ) {
+				ctx->factory_timeout = (uint32_t) tracker["factory_timeout"];
+			} else {
+				ctx->factory_timeout = 30000;
+			}
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;
