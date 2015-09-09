@@ -6,7 +6,8 @@ using namespace std::placeholders;
 
 FromRegionFactory::FromRegionFactory(zloop_t* loop) :
 	m_loop(loop),
-	m_timer(loop)
+	m_timer(loop),
+	m_tv_timeout(0)
 {
 }
 
@@ -15,9 +16,10 @@ FromRegionFactory::~FromRegionFactory() {
 	stop();
 }
 
-int FromRegionFactory::start(const std::string& pub_address,const std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>& ob) {
+int FromRegionFactory::start(const std::string& pub_address,const std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>& ob,uint64_t timeout) {
 	assert(! pub_address.empty() );
 	assert( ob );
+	assert( timeout > 0 );
 
 	if( m_product )
 		return -1;
@@ -30,12 +32,13 @@ int FromRegionFactory::start(const std::string& pub_address,const std::function<
 			LOG(FATAL) << "FromRegionFactory start subscriber failed";
 			break;
 		}
-		if( -1 == m_timer.start(1000,30000,std::bind<int>(&FromRegionFactory::onTimer,this))) {
+		if( -1 == m_timer.start(1000,timeout,std::bind<int>(&FromRegionFactory::onTimer,this))) {
 			LOG(FATAL) << "FromRegionFactory start timer failed";
 			break;
 		}
 
 		m_observer = ob;
+		m_tv_timeout = timeout;
 		return 0;
 	} while(0);
 
@@ -80,7 +83,6 @@ void FromRegionFactory::onSnapshotDone(ri_uuid_t uuid,int err) {
 		}
 	}
 
-	m_timer.delay(30000);
 	nextSnapshot();
 }
 
@@ -90,7 +92,6 @@ void FromRegionFactory::onNewRegion(const Region& region) {
 		m_bad_regions.end() == m_bad_regions.find(region.id) )
 	{
 		m_unshoted_regions.insert(region);
-		m_timer.delay(30000);
 		if( ! m_ss_cli->isActive() ) {
 			nextSnapshot();
 		}
@@ -146,8 +147,7 @@ std::shared_ptr<TrackerFactoryProduct> FromRegionFactory::product() {
 }
 
 int FromRegionFactory::onTimer() {
-	if( !m_unshoted_regions.empty() || m_ss_cli->isActive() ) {
-		m_timer.delay(30000);
+	if( m_ss_cli->isActive() ) {
 		return 0;
 	}
 	LOG(INFO) << "Factory idle for enough time,product it";

@@ -58,6 +58,8 @@ flags = [
 './buildir/include',
 '-I',
 './trackercli',
+'-I',
+'./regioncli',
 ]
 
 
