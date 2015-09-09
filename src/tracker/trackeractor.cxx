@@ -42,13 +42,13 @@ int RITrackerActor::wait() {
 
 std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(zsock_t* reader) {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
-	disp->register_processer(tracker::api::HandShake::descriptor(),std::bind(&RITrackerActor::onHandShake,this,reader,std::placeholders::_1));
-	disp->register_processer(tracker::api::StatisticsReq::descriptor(),std::bind(&RITrackerActor::onStaticsReq,this,reader,std::placeholders::_1));
-	disp->register_processer(tracker::api::RegionReq::descriptor(),std::bind(&RITrackerActor::onRegionReq,this,reader,std::placeholders::_1));
-	disp->register_processer(tracker::api::ServiceRouteReq::descriptor(),std::bind(&RITrackerActor::onServiceRouteReq,this,reader,std::placeholders::_1));
-	disp->register_processer(tracker::api::PayloadRouteReq::descriptor(),std::bind(&RITrackerActor::onPayloadRouteReq,this,reader,std::placeholders::_1));
-	disp->register_processer(tracker::api::PayloadsRouteReq::descriptor(),std::bind(&RITrackerActor::onPayloadsRouteReq,this,reader,std::placeholders::_1));
+	disp->set_default(std::bind<int>(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(tracker::api::HandShake::descriptor(),std::bind<int>(&RITrackerActor::onHandShake,this,reader,std::placeholders::_1));
+	disp->register_processer(tracker::api::StatisticsReq::descriptor(),std::bind<int>(&RITrackerActor::onStaticsReq,this,reader,std::placeholders::_1));
+	disp->register_processer(tracker::api::RegionReq::descriptor(),std::bind<int>(&RITrackerActor::onRegionReq,this,reader,std::placeholders::_1));
+	disp->register_processer(tracker::api::ServiceRouteReq::descriptor(),std::bind<int>(&RITrackerActor::onServiceRouteReq,this,reader,std::placeholders::_1));
+	disp->register_processer(tracker::api::PayloadRouteReq::descriptor(),std::bind<int>(&RITrackerActor::onPayloadRouteReq,this,reader,std::placeholders::_1));
+	disp->register_processer(tracker::api::PayloadsRouteReq::descriptor(),std::bind<int>(&RITrackerActor::onPayloadsRouteReq,this,reader,std::placeholders::_1));
 	return disp;
 }
 
@@ -166,7 +166,7 @@ void RITrackerActor::actorRunner(zsock_t* pipe,void* args) {
 	self->run(pipe);
 }
 
-void RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int) {
+int RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int) {
 	if( msg ) {
 		LOG(WARNING) << "TrackerActor Recv unexpected message: " << msg->GetTypeName();
 	} else {
@@ -176,23 +176,26 @@ void RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::pr
 	ret.set_code(-1);
 
 	zpb_send(reader,ret);
+	return 0;
 }
 
-void RITrackerActor::onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::HandShake>(msg);
 	zpb_send(reader,*p);
+	return 0;
 }
 
-void RITrackerActor::onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::StatisticsReq>(msg);
 	tracker::api::StatisticsRep rep;
 	rep.set_region_count( m_table->region_size() );
 	rep.set_service_count( m_table->service_size() );
 	rep.set_payload_count( m_table->payload_size() );
 	zpb_send(reader,rep);
+	return 0;
 }
 
-void RITrackerActor::onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::RegionReq>(msg);
 	tracker::api::RegionRep rep;
 	auto region = m_table->getRegion(p->uuid());
@@ -205,9 +208,10 @@ void RITrackerActor::onRegionReq(zsock_t* reader,const std::shared_ptr<google::p
 		pr->set_snapshot_address( region->snapshot_address );
 	}
 	zpb_send(reader,rep);
+	return 0;
 }
 
-void RITrackerActor::onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::ServiceRouteReq>(msg);
 	tracker::api::ServiceRouteRep rep;
 	
@@ -219,9 +223,10 @@ void RITrackerActor::onServiceRouteReq(zsock_t* reader,const std::shared_ptr<goo
 		ri->set_address(result.second);
 	}
 	zpb_send(reader,rep);
+	return 0;
 }
 
-void RITrackerActor::onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::PayloadRouteReq>(msg);
 	tracker::api::PayloadRouteRep rep;
 
@@ -233,9 +238,10 @@ void RITrackerActor::onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<goo
 		ri->set_address(region->bus_address);
 	}
 	zpb_send(reader,rep);
+	return 0;
 }
 
-void RITrackerActor::onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RITrackerActor::onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<tracker::api::PayloadsRouteReq>(msg);
 	tracker::api::PayloadsRouteRep rep;
 
@@ -252,6 +258,7 @@ void RITrackerActor::onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<go
 	}
 
 	zpb_send(reader,rep);
+	return 0;
 }
 
 

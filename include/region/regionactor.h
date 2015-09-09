@@ -33,11 +33,12 @@ private:
 
 	static void actorRunner(zsock_t* pipe,void* args);
 
-	void defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
-	void addService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void rmService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void addPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void rmPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	int addService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int rmService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int addPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int rmPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int handshake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 
 private:
 	bool						m_running;

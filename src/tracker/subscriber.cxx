@@ -17,13 +17,13 @@ RISubscriber::~RISubscriber() {
 
 std::shared_ptr<Dispatcher> RISubscriber::make_dispatcher() {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
-	disp->register_processer(region::pub::Region::descriptor(),std::bind(&RISubscriber::onRegion,this,std::placeholders::_1));
-	disp->register_processer(region::pub::RmRegion::descriptor(),std::bind(&RISubscriber::onRmRegion,this,std::placeholders::_1));
-	disp->register_processer(region::pub::Service::descriptor(),std::bind(&RISubscriber::onService,this,std::placeholders::_1));
-	disp->register_processer(region::pub::RmService::descriptor(),std::bind(&RISubscriber::onRmService,this,std::placeholders::_1));
-	disp->register_processer(region::pub::Payload::descriptor(),std::bind(&RISubscriber::onPayload,this,std::placeholders::_1));
-	disp->register_processer(region::pub::RmPayload::descriptor(),std::bind(&RISubscriber::onRmPayload,this,std::placeholders::_1));
+	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(region::pub::Region::descriptor(),std::bind<int>(&RISubscriber::onRegion,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmRegion::descriptor(),std::bind<int>(&RISubscriber::onRmRegion,this,std::placeholders::_1));
+	disp->register_processer(region::pub::Service::descriptor(),std::bind<int>(&RISubscriber::onService,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmService::descriptor(),std::bind<int>(&RISubscriber::onRmService,this,std::placeholders::_1));
+	disp->register_processer(region::pub::Payload::descriptor(),std::bind<int>(&RISubscriber::onPayload,this,std::placeholders::_1));
+	disp->register_processer(region::pub::RmPayload::descriptor(),std::bind<int>(&RISubscriber::onRmPayload,this,std::placeholders::_1));
 
 	return disp;
 }
@@ -78,15 +78,16 @@ int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	}
 }
 
-void RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int) {
+int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int) {
 	if( msg ) {
 		LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName();
 	} else {
 		LOG(WARNING) << "RISubscribe recv no protobuf message";
 	}
+	return 0;
 }
 
-void RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::Region>(msg);
 	assert(p);
 
@@ -106,17 +107,19 @@ void RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& ms
 
 	DLOG(INFO) << "RISubscriber recv region: " << region.id << "(" << region.version << ")";
 	m_observer->onRegion(region);
+	return 0;
 }
 
-void RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::RmRegion>(msg);
 	assert(p);
 
 	DLOG(INFO) << "RISubscriber recv rm region: " << p->uuid();
 	m_observer->onRmRegion(p->uuid());
+	return 0;
 }
 
-void RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::Service>(msg);
 	assert(p);
 
@@ -127,17 +130,19 @@ void RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& m
 
 	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onService(p->region().uuid(),p->region().version(),svc);
+	return 0;
 }
 
-void RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::RmService>(msg);
 	assert(p);
 
 	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmService(p->region().uuid(),p->region().version(),p->name());
+	return 0;
 }
 
-void RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::Payload>(msg);
 	assert(p);
 
@@ -147,14 +152,16 @@ void RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& m
 
 	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onPayload(p->region().uuid(),p->region().version(),pl);
+	return 0;
 }
 
-void RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::pub::RmPayload>(msg);
 	assert(p);
 
 	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmPayload(p->region().uuid(),p->region().version(),p->uuid());
+	return 0;
 }
 
 

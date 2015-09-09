@@ -36,13 +36,13 @@ private:
 	std::shared_ptr<Dispatcher> make_dispatcher(zsock_t* reader);
 	static void actorRunner(zsock_t* pipe,void* args);
 private:
-	void defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
-	void onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	void onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	int onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 private:
 	bool					m_running;
 	zactor_t*				m_actor;
