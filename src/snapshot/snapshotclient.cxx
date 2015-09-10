@@ -97,15 +97,9 @@ int SnapshotClient::pullRegionBegin(zsock_t* sock) {
 		Region region;
 		region.id = msg.uuid();
 		region.version = msg.version();
-		if( msg.has_idc() ) {
-			region.idc = msg.idc();
-		}
-		if( msg.has_bus_address() ) {
-			region.bus_address = msg.bus_address();
-		}
-		if( msg.has_snapshot_address() ) {
-			region.snapshot_address = msg.snapshot_address();
-		}
+		region.idc = msg.idc();
+		region.bus_address = msg.bus_address();
+		region.snapshot_address = msg.snapshot_address();
 
 		const ri_time_t now = ri_time_now();
 		region.timeval = now;

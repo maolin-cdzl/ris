@@ -13,9 +13,9 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -Wall -fvisibility=hidden ${CMAKE_CXX_FLAG
 set(PROTOBUF_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 
 set(RIS_PROTO 
-	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionapi.proto 
-	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionpub.proto 
+	${CMAKE_CURRENT_SOURCE_DIR}/proto/pub.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/snapshot.proto 
+	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionapi.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/trackerapi.proto 
 )
 

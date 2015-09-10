@@ -17,9 +17,9 @@ message SnapshotEnd {
 message RegionBegin {
 	required string				uuid = 1;
 	required uint32				version = 2;
-	optional string				idc = 3;
-	optional string				bus_address = 4;
-	optional string				snapshot_address = 5;
+	required string				idc = 3;
+	required string				bus_address = 4;
+	required string				snapshot_address = 5;
 }
 
 message RegionEnd {

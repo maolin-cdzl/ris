@@ -1,4 +1,4 @@
-package region.pub;
+package pub;
 
 message RegionBase {
 	required string			uuid = 1;
@@ -7,9 +7,9 @@ message RegionBase {
 
 message Region {
 	required RegionBase		region = 1;
-	optional string			idc = 2;
-	optional string			bus_address = 3;
-	optional string			snapshot_address = 4;
+	required string			idc = 2;
+	required string			bus_address = 3;
+	required string			snapshot_address = 4;
 }
 
 message RmRegion {
