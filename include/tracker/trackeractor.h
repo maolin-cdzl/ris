@@ -36,7 +36,7 @@ private:
 	std::shared_ptr<Dispatcher> make_dispatcher(zsock_t* reader);
 	static void actorRunner(zsock_t* pipe,void* args);
 private:
-	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);

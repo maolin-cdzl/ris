@@ -16,7 +16,7 @@ public:
 private:
 	std::shared_ptr<Dispatcher> make_dispatcher();
 
-	int defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	int defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg);
 	int onRegion(const std::shared_ptr<google::protobuf::Message>& msg);
 	int onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg);
 	int onService(const std::shared_ptr<google::protobuf::Message>& msg);

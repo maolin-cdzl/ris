@@ -42,7 +42,7 @@ int RITrackerActor::wait() {
 
 std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(zsock_t* reader) {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	disp->set_default(std::bind<int>(&RITrackerActor::defaultOpt,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::HandShake::descriptor(),std::bind<int>(&RITrackerActor::onHandShake,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::StatisticsReq::descriptor(),std::bind<int>(&RITrackerActor::onStaticsReq,this,reader,std::placeholders::_1));
 	disp->register_processer(tracker::api::RegionReq::descriptor(),std::bind<int>(&RITrackerActor::onRegionReq,this,reader,std::placeholders::_1));
@@ -169,12 +169,8 @@ void RITrackerActor::actorRunner(zsock_t* pipe,void* args) {
 	self->run(pipe);
 }
 
-int RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int) {
-	if( msg ) {
-		LOG(WARNING) << "TrackerActor Recv unexpected message: " << msg->GetTypeName();
-	} else {
-		LOG(WARNING) << "TrackerActor Recv no protobuf message";
-	}
+int RITrackerActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+	LOG(WARNING) << "TrackerActor Recv unexpected message: " << msg->GetTypeName();
 	tracker::api::Error ret;
 	ret.set_code(-1);
 

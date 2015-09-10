@@ -11,20 +11,20 @@ message Result {
 message AddService {
 	required string			name = 1;
 	required string			address = 2;
-	optional bool			need_result = 3 [default = true];
+	optional bool			rep = 3 [default = true];
 }
 
 message RmService {
 	required string			name = 1;
-	optional bool			need_result = 3 [default = true];
+	optional bool			req = 3 [default = true];
 }
 
 message AddPayload {
 	required string			uuid = 1;
-	optional bool			need_result = 3 [default = true];
+	optional bool			rep = 3 [default = true];
 }
 
 message RmPayload {
 	required string			uuid = 1;
-	optional bool			need_result = 3 [default = true];
+	optional bool			rep = 3 [default = true];
 }

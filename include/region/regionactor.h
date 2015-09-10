@@ -33,7 +33,7 @@ private:
 
 	static void actorRunner(zsock_t* pipe,void* args);
 
-	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int err);
+	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int addService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int rmService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
 	int addPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);

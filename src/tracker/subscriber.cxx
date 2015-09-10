@@ -17,7 +17,7 @@ RISubscriber::~RISubscriber() {
 
 std::shared_ptr<Dispatcher> RISubscriber::make_dispatcher() {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
+	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1));
 	disp->register_processer(pub::Region::descriptor(),std::bind<int>(&RISubscriber::onRegion,this,std::placeholders::_1));
 	disp->register_processer(pub::RmRegion::descriptor(),std::bind<int>(&RISubscriber::onRmRegion,this,std::placeholders::_1));
 	disp->register_processer(pub::Service::descriptor(),std::bind<int>(&RISubscriber::onService,this,std::placeholders::_1));
@@ -78,12 +78,8 @@ int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	}
 }
 
-int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,int) {
-	if( msg ) {
-		LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName();
-	} else {
-		LOG(WARNING) << "RISubscribe recv no protobuf message";
-	}
+int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg) {
+	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName();
 	return 0;
 }
 

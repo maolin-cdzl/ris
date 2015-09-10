@@ -46,7 +46,7 @@ int RIRegionActor::wait() {
 
 std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(zsock_t* reader) {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,reader,std::placeholders::_1,std::placeholders::_2));
+	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,reader,std::placeholders::_1));
 	disp->register_processer(region::api::HandShake::descriptor(),std::bind<int>(&RIRegionActor::handshake,this,reader,std::placeholders::_1));
 	disp->register_processer(region::api::AddService::descriptor(),std::bind<int>(&RIRegionActor::addService,this,reader,std::placeholders::_1));
 	disp->register_processer(region::api::RmService::descriptor(),std::bind<int>(&RIRegionActor::rmService,this,reader,std::placeholders::_1));
@@ -164,12 +164,8 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-int RIRegionActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg,int /*err*/) {
-	if( msg ) {
-		LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
-	} else {
-		LOG(WARNING) << "RegionActor Recv no protobuf message";
-	}
+int RIRegionActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+	LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
 	region::api::Result ret;
 	ret.set_result(-1);
 
