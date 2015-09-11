@@ -103,6 +103,21 @@ TEST_F(RISTest,Functional) {
 	ASSERT_EQ(size_t(1),stat.region_size);
 	ASSERT_EQ(services.size(),stat.service_size);
 	ASSERT_EQ(payloads.size(),stat.payload_size);
+
+	RegionInfo reginfo;
+	ASSERT_EQ(1,tracker->getRegion(&reginfo,"test-001"));
+
+	for(auto it=services.begin(); it != services.end(); ++it) {
+		RouteInfo ri;
+		ASSERT_EQ(1,tracker->getServiceRouteInfo(&ri,*it));
+		ASSERT_EQ(reginfo.uuid,ri.region);
+	}
+
+	for(auto it=payloads.begin(); it != payloads.end(); ++it) {
+		RouteInfo ri;
+		ASSERT_EQ(1,tracker->getPayloadRouteInfo(&ri,*it));
+		ASSERT_EQ(reginfo.uuid,ri.region);
+	}
 }
 
 
