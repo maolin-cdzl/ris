@@ -97,7 +97,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp),std::bind<std::string>(read_router_source,std::placeholders::_1)) ) {
+		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp),true) ) {
 			LOG(FATAL) << "Start dispatcher error";
 			break;
 		}
@@ -180,8 +180,7 @@ int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::p
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
-		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
-		zpb_send(zdisp.socket(),result);
+		zdisp.sendback(result);
 	}
 	return 0;
 }
@@ -195,8 +194,7 @@ int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
-		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
-		zpb_send(zdisp.socket(),result);
+		zdisp.sendback(result);
 	}
 	return 0;
 }
@@ -209,8 +207,7 @@ int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::p
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
-		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
-		zpb_send(zdisp.socket(),result);
+		zdisp.sendback(result);
 	}
 	return 0;
 }
@@ -223,8 +220,7 @@ int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
-		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
-		zpb_send(zdisp.socket(),result);
+		zdisp.sendback(result);
 	}
 	return 0;
 }
@@ -233,8 +229,7 @@ int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	assert(p);
 
-	zstr_sendm(zdisp.socket(),zdisp.source().c_str());
-	zpb_send(zdisp.socket(),*p);
+	zdisp.sendback(*p);
 	return 0;
 }
 

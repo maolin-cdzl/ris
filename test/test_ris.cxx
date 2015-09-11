@@ -81,9 +81,6 @@ TEST_F(RISTest,Functional) {
 
 	sleep(10);
 
-	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
-
 	auto region = std::make_shared<RegionSession>();
 	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
 
@@ -97,6 +94,9 @@ TEST_F(RISTest,Functional) {
 	}
 
 	sleep(1);
+
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
 
 	RouteInfoStatistics stat;
 	ASSERT_EQ(1,tracker->getStatistics(&stat));
