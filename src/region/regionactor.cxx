@@ -44,14 +44,14 @@ int RIRegionActor::wait() {
 	return 0;
 }
 
-std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(zsock_t* reader) {
+std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(ZDispatcher& zdisp) {
 	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,reader,std::placeholders::_1));
-	disp->register_processer(region::api::HandShake::descriptor(),std::bind<int>(&RIRegionActor::handshake,this,reader,std::placeholders::_1));
-	disp->register_processer(region::api::AddService::descriptor(),std::bind<int>(&RIRegionActor::addService,this,reader,std::placeholders::_1));
-	disp->register_processer(region::api::RmService::descriptor(),std::bind<int>(&RIRegionActor::rmService,this,reader,std::placeholders::_1));
-	disp->register_processer(region::api::AddPayload::descriptor(),std::bind<int>(&RIRegionActor::addPayload,this,reader,std::placeholders::_1));
-	disp->register_processer(region::api::RmPayload::descriptor(),std::bind<int>(&RIRegionActor::rmPayload,this,reader,std::placeholders::_1));
+	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,std::ref(zdisp),std::placeholders::_1));
+	disp->register_processer(region::api::HandShake::descriptor(),std::bind<int>(&RIRegionActor::handshake,this,std::ref(zdisp),std::placeholders::_1));
+	disp->register_processer(region::api::AddService::descriptor(),std::bind<int>(&RIRegionActor::addService,this,std::ref(zdisp),std::placeholders::_1));
+	disp->register_processer(region::api::RmService::descriptor(),std::bind<int>(&RIRegionActor::rmService,this,std::ref(zdisp),std::placeholders::_1));
+	disp->register_processer(region::api::AddPayload::descriptor(),std::bind<int>(&RIRegionActor::addPayload,this,std::ref(zdisp),std::placeholders::_1));
+	disp->register_processer(region::api::RmPayload::descriptor(),std::bind<int>(&RIRegionActor::rmPayload,this,std::ref(zdisp),std::placeholders::_1));
 
 	return disp;
 }
@@ -66,22 +66,24 @@ void RIRegionActor::run(zsock_t* pipe) {
 		LOG(INFO) << "RIRegionActor initialize...";
 
 		m_table = std::make_shared<RIRegionTable>(m_ctx,m_loop);
-		m_pub = std::make_shared<RIPublisher>( m_loop );
-		m_ssvc = std::make_shared<SnapshotService>( m_loop );
 
 		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
 			break;
 		}
-		if( -1 == m_pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
+
+		auto pub = std::make_shared<RIPublisher>( m_loop );
+		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
 			break;
 		}
-		if( -1 == m_table->start(m_pub) ) {
+		if( -1 == m_table->start(pub) ) {
 			LOG(FATAL) << "Start RIRegionTable failed";
 			break;
 		}
-		if( -1 == m_ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
+
+		auto ssvc = std::make_shared<SnapshotService>( m_loop );
+		if( -1 == ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
 			LOG(FATAL) << "Start SnapshotService failed";
 			break;
 		}
@@ -93,7 +95,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(&rep,make_dispatcher(rep)) ) {
+		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp)) ) {
 			LOG(FATAL) << "Start dispatcher error";
 			break;
 		}
@@ -114,8 +116,6 @@ void RIRegionActor::run(zsock_t* pipe) {
 	} while(0);
 	
 	m_running = false;
-	m_pub.reset();
-	m_ssvc.reset();
 	m_table.reset();
 	if( m_loop ) {
 		zloop_destroy(&m_loop);
@@ -164,16 +164,16 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-int RIRegionActor::defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
 	region::api::Result ret;
 	ret.set_result(-1);
 
-	zpb_send(reader,ret);
+	zpb_send(zdisp.socket(),ret);
 	return 0;
 }
 
-int RIRegionActor::addService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	assert(p);
 	region::api::Result result;
@@ -182,11 +182,11 @@ int RIRegionActor::addService(zsock_t* reader,const std::shared_ptr<google::prot
 	} else {
 		result.set_result(-1);
 	}
-	zpb_send(reader,result);
+	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
-int RIRegionActor::rmService(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
 	assert(p);
 	region::api::Result result;
@@ -195,11 +195,11 @@ int RIRegionActor::rmService(zsock_t* reader,const std::shared_ptr<google::proto
 	} else {
 		result.set_result(-1);
 	}
-	zpb_send(reader,result);
+	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
-int RIRegionActor::addPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	assert(p);
 	region::api::Result result;
@@ -209,11 +209,11 @@ int RIRegionActor::addPayload(zsock_t* reader,const std::shared_ptr<google::prot
 		result.set_result(-1);
 	}
 
-	zpb_send(reader,result);
+	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
-int RIRegionActor::rmPayload(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
 	assert(p);
 	region::api::Result result;
@@ -223,15 +223,15 @@ int RIRegionActor::rmPayload(zsock_t* reader,const std::shared_ptr<google::proto
 		result.set_result(-1);
 	}
 
-	zpb_send(reader,result);
+	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
-int RIRegionActor::handshake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	assert(p);
 
-	zpb_send(reader,*p);
+	zpb_send(zdisp.socket(),*p);
 	return 0;
 }
 
