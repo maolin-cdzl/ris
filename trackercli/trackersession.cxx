@@ -3,6 +3,7 @@
 #include "ris/trackerapi.pb.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zhelper.h"
+#include "zmqx/zprepend.h"
 
 TrackerSession::TrackerSession() :
 	m_req(nullptr)
@@ -18,13 +19,16 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 		return -1;
 
 	do {
-		m_req = zsock_new(ZMQ_REQ);
+		m_req = zsock_new(ZMQ_DEALER);
 		assert(m_req);
 		if( -1 == zsock_connect(m_req,"%s",api_address.c_str()) ) {
 			LOG(ERROR) << "Error when connect to: " << api_address;
 			break;
 		}
 
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::HandShake hs;
 		if( -1 == zpb_send(m_req,hs) ) {
 			LOG(ERROR) << "Error when sending HandShake to tracker";
@@ -36,6 +40,10 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 			break;
 		}
 
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		if( -1 == zpb_recv(hs,m_req) ) {
 			LOG(ERROR) << "Error when recv HandShake from req";
 			break;
@@ -61,11 +69,18 @@ int TrackerSession::getStatistics(RouteInfoStatistics* statistics) {
 		return -1;
 
 	do {
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::StatisticsReq req;
 		if( -1 == zpb_send(m_req,req)  )
 			break;
 		if( zmq_wait_readable(m_req,1000) <= 0 )
 			break;
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		tracker::api::StatisticsRep rep;
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
@@ -84,12 +99,19 @@ int TrackerSession::getRegion(RegionInfo* region,const std::string& uuid) {
 		return -1;
 
 	do {
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::RegionReq req;
 		req.set_uuid(uuid);
 		if( -1 == zpb_send(m_req,req)  )
 			break;
 		if( zmq_wait_readable(m_req,1000) <= 0 )
 			break;
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		tracker::api::RegionRep rep;
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
@@ -118,6 +140,9 @@ int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
 	if( nullptr == m_req )
 		return -1;
 	do {
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::ServiceRouteReq req;
 		req.set_svc(svc);
 
@@ -125,6 +150,10 @@ int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
 			break;
 		if( zmq_wait_readable(m_req,1000) <= 0 )
 			break;
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		tracker::api::ServiceRouteRep rep;
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
@@ -148,6 +177,9 @@ int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload
 	if( nullptr == m_req )
 		return -1;
 	do {
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::PayloadRouteReq req;
 		req.set_payload(payload);
 
@@ -155,6 +187,10 @@ int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload
 			break;
 		if( zmq_wait_readable(m_req,1000) <= 0 )
 			break;
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		tracker::api::PayloadRouteRep rep;
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
@@ -178,6 +214,9 @@ int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::li
 	if( nullptr == m_req )
 		return -1;
 	do {
+		if( -1 == ZPrepend::send_delimiter(m_req) ) {
+			break;
+		}	
 		tracker::api::PayloadsRouteReq req;
 		for(auto it=payloads.begin(); it != payloads.end(); ++it) {
 			req.add_payloads(*it);
@@ -187,6 +226,10 @@ int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::li
 			break;
 		if( zmq_wait_readable(m_req,1000) <= 0 )
 			break;
+		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
+			DLOG(ERROR) << "Error when drop delimiter from req";
+			break;
+		}
 		tracker::api::PayloadsRouteRep rep;
 		if( -1 == zpb_recv(rep,m_req) )
 			break;

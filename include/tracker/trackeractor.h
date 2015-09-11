@@ -33,16 +33,16 @@ private:
 	int onPipeReadable(zsock_t* pipe);
 	void onFactoryDone(int err,const std::shared_ptr<TrackerFactoryProduct>& product);
 
-	std::shared_ptr<Dispatcher> make_dispatcher(zsock_t* reader);
+	std::shared_ptr<Dispatcher> make_dispatcher(ZDispatcher& zdisp);
 	static void actorRunner(zsock_t* pipe,void* args);
 private:
-	int defaultOpt(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onHandShake(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onStaticsReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onRegionReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onServiceRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onPayloadRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
-	int onPayloadsRouteReq(zsock_t* reader,const std::shared_ptr<google::protobuf::Message>& msg);
+	int defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onHandShake(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onStaticsReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onRegionReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onServiceRouteReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onPayloadRouteReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onPayloadsRouteReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
 private:
 	bool					m_running;
 	zactor_t*				m_actor;
@@ -51,6 +51,5 @@ private:
 	std::shared_ptr<TrackerCtx>				m_ctx;
 	std::shared_ptr<RITrackerTable>			m_table;
 	std::shared_ptr<RISubscriber>			m_sub;
-	std::shared_ptr<SnapshotService>		m_ssvc;
 };
 
