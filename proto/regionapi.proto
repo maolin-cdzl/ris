@@ -16,7 +16,7 @@ message AddService {
 
 message RmService {
 	required string			name = 1;
-	optional bool			req = 3 [default = true];
+	optional bool			rep = 3 [default = true];
 }
 
 message AddPayload {
