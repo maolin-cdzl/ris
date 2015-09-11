@@ -32,7 +32,8 @@ int FromRegionFactory::start(const std::string& pub_address,const std::function<
 			LOG(FATAL) << "FromRegionFactory start subscriber failed";
 			break;
 		}
-		if( -1 == m_timer.start(1000,timeout,std::bind<int>(&FromRegionFactory::onTimer,this))) {
+		const uint64_t period = ( timeout / 10 > 1000 ? 1000 : timeout / 10 );
+		if( -1 == m_timer.start(period,timeout,std::bind<int>(&FromRegionFactory::onTimer,this))) {
 			LOG(FATAL) << "FromRegionFactory start timer failed";
 			break;
 		}

@@ -30,8 +30,9 @@ public:
 
 private:
 	void run(zsock_t* pipe);
+	int initialize(zsock_t* pipe);
 	int onPipeReadable(zsock_t* pipe);
-	void onFactoryDone(int err,const std::shared_ptr<TrackerFactoryProduct>& product);
+	void onFactoryDone(int* result,int err,const std::shared_ptr<TrackerFactoryProduct>& product);
 
 	std::shared_ptr<Dispatcher> make_dispatcher(ZDispatcher& zdisp);
 	static void actorRunner(zsock_t* pipe,void* args);
