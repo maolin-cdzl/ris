@@ -1,5 +1,6 @@
 #include <glog/logging.h>
 #include "region/regionactor.h"
+#include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zloopreader.h"
 
@@ -58,25 +59,20 @@ std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(ZDispatcher& zdisp) {
 
 void RIRegionActor::run(zsock_t* pipe) {
 	m_loop = zloop_new();
-	zsock_t* rep = zsock_new(ZMQ_REP);
+	zsock_t* rep = nullptr;
 
 	assert( m_ctx );
-	assert(m_loop && rep);
+	assert(m_loop);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
-
-		m_table = std::make_shared<RIRegionTable>(m_ctx,m_loop);
-
-		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
-			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
-			break;
-		}
 
 		auto pub = std::make_shared<RIPublisher>( m_loop );
 		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
 			break;
 		}
+
+		m_table = std::make_shared<RIRegionTable>(m_ctx,m_loop);
 		if( -1 == m_table->start(pub) ) {
 			LOG(FATAL) << "Start RIRegionTable failed";
 			break;
@@ -94,8 +90,14 @@ void RIRegionActor::run(zsock_t* pipe) {
 			break;
 		}
 
+		rep = zsock_new(ZMQ_ROUTER);
+		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
+			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
+			break;
+		}
+
 		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp)) ) {
+		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp),std::bind<std::string>(read_router_source,std::placeholders::_1)) ) {
 			LOG(FATAL) << "Start dispatcher error";
 			break;
 		}
@@ -165,65 +167,65 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 
 
 int RIRegionActor::defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+	(void)zdisp;
 	LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
-	region::api::Result ret;
-	ret.set_result(-1);
-
-	zpb_send(zdisp.socket(),ret);
 	return 0;
 }
 
 int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	assert(p);
-	region::api::Result result;
-	if( 0 == m_table->addService(p->name(),p->address()) ) {
-		result.set_result(0);
-	} else {
-		result.set_result(-1);
+	int err = m_table->addService(p->name(),p->address());
+
+	if( p->rep() ) {
+		region::api::Result result;
+		result.set_result(err);
+		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
+		zpb_send(zdisp.socket(),result);
 	}
-	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
 int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
 	assert(p);
-	region::api::Result result;
-	if( 0 == m_table->rmService(p->name()) ) {
-		result.set_result(0);
-	} else {
-		result.set_result(-1);
+
+	int err = m_table->rmService(p->name());
+
+	if( p->rep() ) {
+		region::api::Result result;
+		result.set_result(err);
+		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
+		zpb_send(zdisp.socket(),result);
 	}
-	zpb_send(zdisp.socket(),result);
 	return 0;
 }
 
 int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	assert(p);
-	region::api::Result result;
-	if( 0 == m_table->addPayload(p->uuid()) ) {
-		result.set_result(0);
-	} else {
-		result.set_result(-1);
-	}
+	int err = m_table->addPayload(p->uuid());
 
-	zpb_send(zdisp.socket(),result);
+	if( p->rep() ) {
+		region::api::Result result;
+		result.set_result(err);
+		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
+		zpb_send(zdisp.socket(),result);
+	}
 	return 0;
 }
 
 int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
 	assert(p);
-	region::api::Result result;
-	if( 0 == m_table->rmPayload(p->uuid()) ) {
-		result.set_result(0);
-	} else {
-		result.set_result(-1);
-	}
+	int err = m_table->rmPayload(p->uuid());
 
-	zpb_send(zdisp.socket(),result);
+	if( p->rep() ) {
+		region::api::Result result;
+		result.set_result(err);
+		zstr_sendm(zdisp.socket(),zdisp.source().c_str());
+		zpb_send(zdisp.socket(),result);
+	}
 	return 0;
 }
 
@@ -231,6 +233,7 @@ int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	assert(p);
 
+	zstr_sendm(zdisp.socket(),zdisp.source().c_str());
 	zpb_send(zdisp.socket(),*p);
 	return 0;
 }

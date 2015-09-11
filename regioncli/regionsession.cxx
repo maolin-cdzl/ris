@@ -18,7 +18,7 @@ int RegionSession::connect(const std::string& api_address,uint64_t timeout) {
 		return -1;
 
 	do {
-		m_req = zsock_new(ZMQ_REQ);
+		m_req = zsock_new(ZMQ_DEALER);
 		assert(m_req);
 		if( -1 == zsock_connect(m_req,"%s",api_address.c_str()) ) {
 			LOG(ERROR) << "Error when connect to: " << api_address;
