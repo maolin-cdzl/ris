@@ -1,29 +1,39 @@
 #pragma once
 
+#include <unordered_map>
+#include <czmq.h>
 #include "snapshot/snapshotable.h"
 #include "snapshot/snapshotserviceworker.h"
 #include "zmqx/zloopreader.h"
+#include "zmqx/zdispatcher.h"
 
 
 class SnapshotService {
 public:
-	SnapshotService(zloop_t* loop);
-
+	SnapshotService();
 	~SnapshotService();
 
-	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& svcAddress,const std::string& workerAddress,size_t capacity=4);
-	int stop();
+	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& address,size_t capacity=4,size_t period_count=100,ri_time_t timeout=3000);
+	void stop();
 private:
-	int onRepReadable(zsock_t* reader);
-	void onWorkerDone(const std::shared_ptr<SnapshotServiceWorker>& worker,int err);
-private:
-	zloop_t*						m_loop;
-	std::shared_ptr<ISnapshotable>	m_snapshotable;
-	std::string						m_svc_address;
-	std::string						m_worker_address;
-	size_t							m_capacity;
+	int onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int onSyncSignal(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
 
-	ZLoopReader						m_rep_reader;
-	std::list<std::shared_ptr<SnapshotServiceWorker>>			m_workers;
+	std::shared_ptr<Dispatcher> make_dispatcher(ZDispatcher& zdisp);
+
+	int onPipeReadable(zsock_t* reader);
+	int onTimer();
+	void run(zsock_t* pipe);
+	static void actorAdapter(zsock_t* pipe,void* arg);
+private:
+	bool							m_running;
+	zactor_t*						m_actor;
+	std::shared_ptr<ISnapshotable>	m_snapshotable;
+	std::string						m_address;
+	size_t							m_capacity;
+	size_t							m_period_count;
+	ri_time_t						m_tv_timeout;
+
+	std::unordered_map<std::string,std::shared_ptr<SnapshotServiceWorker>>			m_workers;
 };
 

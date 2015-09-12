@@ -1,11 +1,18 @@
 package snapshot;
 
+message SyncSignalReq {
+}
+
+message SyncSignalRep {
+	required string				uuid = 1;
+}
+
 message SnapshotReq {
+	required string				uuid = 1;
 }
 
 message SnapshotRep {
 	required int32				result = 1;
-	optional string				address = 2;
 }
 
 message SnapshotBegin {
