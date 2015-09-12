@@ -2,10 +2,10 @@
 
 #include "snapshot/snapshotbuilder.h"
 
-class RegionFactory : public ISnapshotBuilder {
+class RegionProduct : public ISnapshotBuilder {
 public:
-	RegionFactory();
-	virtual ~RegionFactory();
+	RegionProduct();
+	virtual ~RegionProduct();
 
 protected:
 	virtual int addRegion(const Region& region);
