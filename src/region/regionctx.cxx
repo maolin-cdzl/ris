@@ -28,11 +28,9 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 		try {
 			if( cfg.exists("region.snapshot") ) {
 				const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
-				ctx->snapshot_svc_address = snapshot["address"].c_str();
-				ctx->snapshot_worker_address = snapshot["worker_address"].c_str();
+				ctx->snapshot_address = snapshot["address"].c_str();
 			} else {
-				ctx->snapshot_svc_address.clear();
-				ctx->snapshot_worker_address.clear();
+				ctx->snapshot_address.clear();
 			}
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Snapshot setting: " << e.what();

@@ -11,8 +11,7 @@ public:
 	std::string					pub_address;					
 	bool						bind_pub;
 	std::string					bus_address;
-	std::string					snapshot_svc_address;
-	std::string					snapshot_worker_address;
+	std::string					snapshot_address;
 
 	RegionCtx() = default;
 

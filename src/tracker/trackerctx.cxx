@@ -26,11 +26,9 @@ static std::shared_ptr<TrackerCtx> loadTrackerCtx(libconfig::Config& cfg) {
 		try {
 			if( cfg.exists("tracker.snapshot") ) {
 				const libconfig::Setting& snapshot = cfg.lookup("tracker.snapshot");
-				ctx->snapshot_svc_address = snapshot["address"].c_str();
-				ctx->snapshot_worker_address = snapshot["worker_address"].c_str();
+				ctx->snapshot_address = snapshot["address"].c_str();
 			} else {
-				ctx->snapshot_svc_address.clear();
-				ctx->snapshot_worker_address.clear();
+				ctx->snapshot_address.clear();
 			}
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Snapshot setting: " << e.what();

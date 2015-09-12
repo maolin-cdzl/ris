@@ -14,7 +14,7 @@ RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop
 	m_region.id = ctx->uuid;
 	m_region.idc = ctx->idc;
 	m_region.bus_address = ctx->bus_address;
-	m_region.snapshot_address = ctx->snapshot_svc_address;
+	m_region.snapshot_address = ctx->snapshot_address;
 	m_region.version = 0;
 	m_region.timeval = 0;
 }

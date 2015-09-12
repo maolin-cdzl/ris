@@ -38,10 +38,12 @@ add_library(snapshot STATIC
 	src/snapshot/snapshotservice.cxx
 	src/snapshot/snapshotserviceworker.cxx
 	src/snapshot/snapshotclient.cxx
+	src/snapshot/snapshotfeature.cxx
 	include/snapshot/snapshotable.h
 	include/snapshot/snapshotservice.h
 	include/snapshot/snapshotserviceworker.h
 	include/snapshot/snapshotbuilder.h
+	include/snapshot/snapshotfeature.h
 )
 
 target_include_directories(snapshot

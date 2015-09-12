@@ -32,6 +32,7 @@ private:
 	void cancelRegion();
 private:
 	zloop_t*								m_loop;
+	std::string								m_uuid;
 	ZLoopTimeouter							m_timer;
 	ZLoopReader								m_reader;
 

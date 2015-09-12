@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include "snapshot/snapshotfeature.h"
 #include "region/regionactor.h"
 #include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
@@ -78,8 +79,14 @@ void RIRegionActor::run(zsock_t* pipe) {
 			break;
 		}
 
-		auto ssvc = std::make_shared<SnapshotService>( m_loop );
-		if( -1 == ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
+		auto feature = std::make_shared<SnapshotFeature>(m_loop);
+		if( -1 == feature->start(m_table) ) {
+			LOG(FATAL) << "Start SnapshotFeature failed";
+			break;
+		}
+
+		auto ssvc = std::make_shared<SnapshotService>();
+		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
 			LOG(FATAL) << "Start SnapshotService failed";
 			break;
 		}
