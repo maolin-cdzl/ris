@@ -17,7 +17,7 @@ SnapshotClient::~SnapshotClient() {
 	stop();
 }
 
-int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
+int SnapshotClient::start(const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
 	if( m_reader.isActive() )
 		return -1;
 	
@@ -49,7 +49,6 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 		}
 		LOG(INFO) << "SnapshotClient send request to address: " << address;
 		m_builder = builder;
-		m_observer = ob;
 		m_last_region.clear();
 		return 0;
 	} while( 0 );
@@ -65,7 +64,6 @@ int SnapshotClient::start(const std::function<void(int)>& ob,const std::shared_p
 void SnapshotClient::stop() {
 	m_reader.stop();
 	m_timer.stop();
-	m_observer = nullptr;
 	m_builder.reset();
 	m_last_region.clear();
 	m_uuid.clear();
@@ -84,9 +82,7 @@ int SnapshotClient::pullSnapshotBegin(zsock_t* sock) {
 		return 0;
 	} while(0);
 
-	auto ob = m_observer;
-	stop();
-	ob(SNAPSHOT_CLIENT_ERROR);
+	finish(-1);
 	return -1;
 }
 
@@ -119,9 +115,7 @@ int SnapshotClient::pullRegionBegin(zsock_t* sock) {
 		return 0;
 	} while(0);
 
-	auto ob = m_observer;
-	stop();
-	ob(SNAPSHOT_CLIENT_ERROR);
+	finish(-1);
 	return -1;
 }
 
@@ -164,9 +158,7 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 			DLOG(INFO) << "SnapshotClient recv SnapshotEnd"; 
 			m_reader.stop();
 			m_timer.stop();
-			auto ob = m_observer;
-			stop();
-			ob(0);
+			finish(0);
 		} else if( msg->GetDescriptor() == snapshot::SyncSignalReq::descriptor() ) {
 			DLOG(INFO) << "SnapshotClient recv sync signal";
 			snapshot::SyncSignalRep sync;
@@ -180,15 +172,12 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 		return 0;
 	} while(0);
 
-	auto ob = m_observer;
-	stop();
-	ob(SNAPSHOT_CLIENT_ERROR);
+	finish(-1);
 	return -1;
 }
 
 int SnapshotClient::pullRegionBody(zsock_t* sock) {
 	assert( ! m_last_region.empty() );
-	int result = -1;
 	do {
 		auto msg = zpb_recv(sock);
 		if( msg == nullptr ) {
@@ -208,7 +197,6 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 				break;
 			}
 			m_timer.delay(3000);
-			result = 0;
 		} else if( msg->GetDescriptor() == snapshot::Service::descriptor() ) {
 			auto p = std::dynamic_pointer_cast<snapshot::Service>(msg);
 			Service svc;
@@ -222,7 +210,6 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 				break;
 			}
 			m_timer.delay(3000);
-			result = 0;
 		} else if( msg->GetDescriptor() == snapshot::RegionEnd::descriptor() ) {
 			DLOG(INFO) << "SnapshotClient recv RegionEnd: ";
 			auto p = std::dynamic_pointer_cast<snapshot::RegionEnd>(msg);
@@ -231,7 +218,6 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 			m_last_region.clear();
 			m_reader.rebind(std::bind<int>(&SnapshotClient::pullRegionOrFinish,this,std::placeholders::_1),"pullRegionOrFinish");
 			m_timer.delay(3000);
-			result = 0;
 		} else if( msg->GetDescriptor() == snapshot::SyncSignalReq::descriptor() ) {
 			DLOG(INFO) << "SnapshotClient recv sync signal";
 			snapshot::SyncSignalRep sync;
@@ -239,33 +225,24 @@ int SnapshotClient::pullRegionBody(zsock_t* sock) {
 
 			zpb_send(m_reader.socket(),sync,true);
 			m_timer.delay(3000);
-			result = 0;
 		} else {
 			LOG(ERROR) << "SnapshotClient pullRegionBody recv unexpect message: " << msg->GetTypeName();
 			break;
 		}
+		return 0;
 	} while(0);
 
-	if( -1 == result ) {
-		cancelRegion();
-		auto ob = m_observer;
-		stop();
-		ob(SNAPSHOT_CLIENT_ERROR);
-	}
-	return result;
+	finish(-1);
+	return -1;
 }
 
 int SnapshotClient::onTimeoutTimer() {
 	LOG(ERROR) << "SnapshotClient timeout,state: " << state();
-	cancelRegion();
-	auto ob = m_observer;
-	stop();
-	ob(SNAPSHOT_CLIENT_ERROR);
+	finish(-1);
 	return -1;
 }
 
 int SnapshotClient::onReqReadable(zsock_t* sock) {
-	int err = SNAPSHOT_CLIENT_ERROR;
 	do {
 		snapshot::SnapshotRep rep;
 		if( -1 == zpb_recv(rep,sock) ) {
@@ -283,9 +260,7 @@ int SnapshotClient::onReqReadable(zsock_t* sock) {
 		return 0;
 	} while( 0 );
 
-	auto ob = m_observer;
-	stop();
-	ob(err);
+	finish(-1);
 	return -1;
 }
 
@@ -297,10 +272,9 @@ std::string SnapshotClient::state() const {
 	return m_reader.state();
 }
 
-void SnapshotClient::cancelRegion() {
-	if( ! m_last_region.empty() ) {
-		m_builder->rmRegion(m_last_region);
-		m_last_region.clear();
-	}
+void SnapshotClient::finish(int err) {
+	auto builder = m_builder;
+	stop();
+	builder->onCompleted(err);
 }
 

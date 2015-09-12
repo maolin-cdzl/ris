@@ -6,15 +6,12 @@
 #include "zmqx/zloopreader.h"
 #include "zmqx/zlooptimer.h"
 
-#define SNAPSHOT_CLIENT_ERROR			-1
-#define SNAPSHOT_CLIENT_TIMEOUT			-2
-
 class SnapshotClient {
 public:
 	SnapshotClient(zloop_t* loop);
 	~SnapshotClient();
 
-	int start(const std::function<void(int)>& ob,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
+	int start(const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
 	void stop();
 
 	bool isActive() const;
@@ -29,14 +26,13 @@ private:
 	int onTimeoutTimer();
 
 private:
-	void cancelRegion();
+	void finish(int err);
 private:
 	zloop_t*								m_loop;
 	std::string								m_uuid;
 	ZLoopTimeouter							m_timer;
 	ZLoopReader								m_reader;
 
-	std::function<void(int)>				m_observer;
 	std::shared_ptr<ISnapshotBuilder>		m_builder;
 	ri_uuid_t								m_last_region;
 };
