@@ -17,6 +17,9 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 			} else {
 				ctx->bind_pub = false;
 			}
+
+			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
+			ctx->snapshot_address = snapshot["address"].c_str();
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;
@@ -25,20 +28,6 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 			break;
 		}
 
-		try {
-			if( cfg.exists("region.snapshot") ) {
-				const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
-				ctx->snapshot_address = snapshot["address"].c_str();
-			} else {
-				ctx->snapshot_address.clear();
-			}
-		} catch( const libconfig::SettingNotFoundException& e ) {
-			LOG(FATAL) << "Can not found Snapshot setting: " << e.what();
-			break;
-		} catch( const libconfig::SettingTypeException& e ) {
-			LOG(FATAL) << "Error when parse Snapshot: " << e.what();
-			break;
-		}
 		return ctx;
 	} while(0);
 
