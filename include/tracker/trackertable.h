@@ -5,11 +5,12 @@
 #include <memory>
 #include <czmq.h>
 #include "ris/riobserver.h"
+#include "ris/responsechain.hpp"
 #include "snapshot/snapshotable.h"
 #include "snapshot/snapshotbuilder.h"
 #include "zmqx/zlooptimer.h"
 
-class RITrackerTable : public IRIObserver,public ISnapshotable, public ISnapshotBuilder {
+class RITrackerTable : public ResponseChainHandler<IRIObserver>,public ISnapshotable {
 public:
 	RITrackerTable(zloop_t* loop);
 	virtual ~RITrackerTable();
@@ -42,12 +43,6 @@ public:
 	// method from ISnapshotable
 	virtual snapshot_package_t buildSnapshot();
 
-	// method from ISnapshotBuilder
-	virtual int addRegion(const Region& region);
-	virtual int addService(const ri_uuid_t& region,const Service& svc);
-	virtual int addPayload(const ri_uuid_t& region,const Payload& pl);
-	virtual int rmRegion(const ri_uuid_t& region);
-
 private:
 	struct RegionService {
 		std::shared_ptr<Region>						region;
@@ -75,12 +70,9 @@ private:
 	void updateRegionVersion(const ri_uuid_t& region,uint32_t version);
 	std::list<service_iterator_t>::iterator findRegionService(std::list<service_iterator_t>& l,const ri_uuid_t& region);
 
-	int doAddRegion(const Region& region);
-	int doRmRegion(const ri_uuid_t& region);
-	int doAddService(const ri_uuid_t& region,const Service& svc);
-	int doRmService(const ri_uuid_t& region,const std::string& svc);
-	int doAddPayload(const ri_uuid_t& region,const Payload& pl);
-	int doRmPayload(const ri_uuid_t& region,const ri_uuid_t& pl);
+	void doRmRegion(const ri_uuid_t& region);
+	void doRmService(const ri_uuid_t& region,const std::string& svc);
+	void doRmPayload(const ri_uuid_t& region,const ri_uuid_t& pl);
 	int onCheckTimer();
 
 private:
