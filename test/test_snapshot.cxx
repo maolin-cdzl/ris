@@ -100,8 +100,8 @@ void snapshot_fail_testcase() {
 }
 
 
-TEST(Snapshot,Normal) {
-	SCOPED_TRACE("Normal");
+TEST(Snapshot,Functional) {
+	SCOPED_TRACE("Functional");
 	snapshot_testcase<SnapshotClientRepeater>(1);
 }
 

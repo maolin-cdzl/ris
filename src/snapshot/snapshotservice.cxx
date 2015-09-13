@@ -64,6 +64,11 @@ void SnapshotService::run(zsock_t* pipe) {
 		router = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(router);
 
+		if( (size_t) zsock_sndhwm(router) < m_capacity * m_period_count * 2 ) {
+			LOG(INFO) << "Set router socket send hwm from " << zsock_sndhwm(router) << " to " << m_capacity * m_period_count * 2;
+			zsock_set_sndhwm(router,m_capacity * m_period_count * 2);
+		}
+
 		if( -1 == zsock_bind(router,"%s",m_address.c_str()) ) {
 			LOG(FATAL) << "SnapshotService can not bind to " << m_address;
 			break;
@@ -127,7 +132,11 @@ int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<goog
 		zdisp.shadow_sendback(rep);
 
 		auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
-		if( worker->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count) > 0 ) {
+		const size_t left = worker->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count);
+		if( left == 0 ) {
+			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
+		} else {
+			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
 			m_workers.insert( std::make_pair(p->uuid(),worker) );
 			snapshot::SyncSignalReq sync;
 			zdisp.sendback(sync);
@@ -147,9 +156,17 @@ int SnapshotService::onSyncSignal(ZDispatcher& zdisp,const std::shared_ptr<googl
 	CHECK(p);
 	auto it = m_workers.find(p->uuid());
 	if( it != m_workers.end() ) {
-		if( it->second->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count) == 0 ) {
+		const size_t left = it->second->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count);
+		if( left == 0 ) {
+			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
 			m_workers.erase(it);
+		} else {
+			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
+			snapshot::SyncSignalReq sync;
+			zdisp.sendback(sync);
 		}
+	} else {
+		LOG(WARNING) << "Recv unknown client id: " << p->uuid();
 	}
 	return 0;
 }
@@ -169,6 +186,7 @@ int SnapshotService::onTimer() {
 	const ri_time_t now = ri_time_now();
 	for(auto it=m_workers.begin(); it != m_workers.end();) {
 		if( now - it->second->lastSend() > m_tv_timeout ) {
+			LOG(WARNING) << "Client timeout: " << it->first;
 			it = m_workers.erase(it);
 		} else {
 			++it;
