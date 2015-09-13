@@ -22,8 +22,7 @@ protected:
 		ctx->api_address = "inproc://region-test";
 		ctx->bus_address = "tcp://127.0.0.1:6600";
 		ctx->pub_address = "tcp://127.0.0.1:2015";
-		ctx->snapshot_svc_address = "tcp://127.0.0.1:6500";
-		ctx->snapshot_worker_address = "tcp://127.0.0.1:![6501-6599]";
+		ctx->snapshot_address = "tcp://127.0.0.1:6500";
 	}
 	static void TearDownTestCase() {
 		ctx.reset();
