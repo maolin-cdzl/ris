@@ -118,11 +118,14 @@ int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<goog
 	snapshot::SnapshotRep rep;
 	auto it = m_workers.find(p->uuid());
 	if( it != m_workers.end() ) {
+		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->uuid();
 		rep.set_result(-1);
 		zdisp.sendback(rep);
-	} else {
+	} else if( m_workers.size() < m_capacity ) {
+		LOG(INFO) << "Accept client snapshot request: " << p->uuid();
 		rep.set_result(0);
 		zdisp.shadow_sendback(rep);
+
 		auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
 		if( worker->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count) > 0 ) {
 			m_workers.insert( std::make_pair(p->uuid(),worker) );
@@ -130,6 +133,10 @@ int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<goog
 			zdisp.sendback(sync);
 		}
 		
+	} else {
+		LOG(WARNING) << "Too many client ask for service";
+		rep.set_result(-1);
+		zdisp.sendback(rep);
 	}
 
 	return 0;
