@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 #include "tracker/trackeractor.h"
 #include "ris/trackerapi.pb.h"
+#include "snapshot/snapshotfeature.h"
 #include "zmqx/zprotobuf++.h"
 
 RITrackerActor::RITrackerActor() :
@@ -52,28 +53,6 @@ std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(ZDispatcher& zdisp) 
 	return disp;
 }
 
-int RITrackerActor::initialize(zsock_t* pipe) {
-	int result = 0;
-	LOG(INFO) << "RITrackerActor initialize...";
-	do {
-		auto factory = std::make_shared<FromRegionFactory>(m_loop);
-		if( -1 == factory->start(m_ctx->pub_address,std::bind(&RITrackerActor::onFactoryDone,this,&result,std::placeholders::_1,std::placeholders::_2),m_ctx->factory_timeout) ) {
-			LOG(FATAL) << "Start factory failed";
-			break;
-		}
-
-		while( 0 == result ) {
-			if( 0 == zloop_start(m_loop) ) {
-				LOG(INFO) << "RITrackerActor interrupted when track snapshot";
-				break;
-			}
-		}
-	} while(0);
-
-	zsock_signal(pipe,0);
-	return (result == 1 ? 0 : -1);
-}
-
 void RITrackerActor::run(zsock_t* pipe) {
 	assert( m_ctx );
 
@@ -83,20 +62,9 @@ void RITrackerActor::run(zsock_t* pipe) {
 	m_running = true;
 	zsock_t* rep = nullptr;
 	do {
-		if( -1 == initialize(pipe) ) {
-			LOG(ERROR) << "RITrackerActor initialize failed";
-			break;
-		}
-		
 		ZLoopReader pipe_reader(m_loop);
 		if( -1 == pipe_reader.start(pipe,std::bind<int>(&RITrackerActor::onPipeReadable,this,std::placeholders::_1)) ) {
 			LOG(FATAL) << "Register pipe reader error";
-			break;
-		}
-
-		auto ssvc = std::make_shared<SnapshotService>(m_loop);
-		if( -1 == ssvc->start(m_table,m_ctx->snapshot_svc_address,m_ctx->snapshot_worker_address) ) {
-			LOG(FATAL) << "Tracker start snapshot service failed";
 			break;
 		}
 
@@ -110,7 +78,38 @@ void RITrackerActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "Start zdispatcher failed";
 			break;
 		}
+
+		m_table = std::make_shared<RITrackerTable>(m_loop);
+		if( -1 == m_table->start() ) {
+			LOG(FATAL) << "Start table failed";
+			break;
+		}
+
+		m_tracker = std::make_shared<PubTracker>(m_loop);
+		if( -1 == m_tracker->start(m_table) ) {
+			LOG(FATAL) << "Start subscriber failed";
+		}
+
+		m_table->setNextHandler(m_tracker);
+
+		m_sub = std::make_shared<RISubscriber>(m_loop);
+		if( -1 == m_sub->start(m_ctx->pub_address,m_table) ) {
+			LOG(FATAL) << "Start subscriber failed";
+			break;
+		}
 		
+		auto feature = std::make_shared<SnapshotFeature>(m_loop);
+		if( -1 == feature->start(m_table) ) {
+			LOG(FATAL) << "Start SnapshotFeature failed";
+			break;
+		}
+
+		auto ssvc = std::make_shared<SnapshotService>();
+		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
+			LOG(FATAL) << "Tracker start snapshot service failed";
+			break;
+		}
+
 		while( m_running ) {
 			if(  0 == zloop_start(m_loop) ) {
 				LOG(INFO) << "RITrackerActor interrupted";
@@ -125,6 +124,9 @@ void RITrackerActor::run(zsock_t* pipe) {
 		m_sub.reset();
 	if( m_table )
 		m_table.reset();
+	if( m_tracker ) {
+		m_tracker.reset();
+	}
 
 	if( rep ) {
 		zsock_destroy(&rep);
@@ -239,21 +241,5 @@ int RITrackerActor::onPayloadsRouteReq(ZDispatcher& zdisp,const std::shared_ptr<
 
 	zdisp.sendback(rep);
 	return 0;
-}
-
-
-void RITrackerActor::onFactoryDone(int* result,int err,const std::shared_ptr<TrackerFactoryProduct>& product) {
-	if( 0 == err && product ) {
-		m_table = product->table;
-		m_sub = product->sub;
-		assert( m_table );
-		assert( m_sub );
-		*result = 1;
-		LOG(INFO) << "Factory done success,region: " << m_table->region_size() << ", service: " << m_table->service_size() << ", payloads: " << m_table->payload_size();
-
-	} else {
-		*result = -1;
-		LOG(FATAL) << "Factory product error: " << err;
-	}
 }
 

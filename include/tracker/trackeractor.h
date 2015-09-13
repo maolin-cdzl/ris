@@ -10,7 +10,7 @@
 #include "tracker/trackertable.h"
 #include "tracker/subscriber.h"
 #include "snapshot/snapshotservice.h"
-#include "tracker/fromregionfactory.h"
+#include "tracker/pubtracker.h"
 
 
 class RITrackerActor {
@@ -30,9 +30,7 @@ public:
 
 private:
 	void run(zsock_t* pipe);
-	int initialize(zsock_t* pipe);
 	int onPipeReadable(zsock_t* pipe);
-	void onFactoryDone(int* result,int err,const std::shared_ptr<TrackerFactoryProduct>& product);
 
 	std::shared_ptr<Dispatcher> make_dispatcher(ZDispatcher& zdisp);
 	static void actorRunner(zsock_t* pipe,void* args);
@@ -52,5 +50,6 @@ private:
 	std::shared_ptr<TrackerCtx>				m_ctx;
 	std::shared_ptr<RITrackerTable>			m_table;
 	std::shared_ptr<RISubscriber>			m_sub;
+	std::shared_ptr<PubTracker>				m_tracker;
 };
 
