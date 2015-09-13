@@ -6,6 +6,19 @@ RegionProduct::RegionProduct() {
 RegionProduct::~RegionProduct() {
 }
 
+const Region& RegionProduct::getRegion() const {
+	return m_region;
+}
+
+const std::list<Service>& RegionProduct::getServicesOrderByLRU() const {
+	return m_services;
+}
+
+const std::list<Payload>& RegionProduct::getPayloadsOrderByLRU() const {
+	return m_payloads;
+}
+
+
 int RegionProduct::addRegion(const Region& region) {
 	if( m_region.id.empty() || m_region.id == region.id ) {
 		m_region = region;

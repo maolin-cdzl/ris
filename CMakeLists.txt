@@ -67,6 +67,7 @@ add_library(ris STATIC
 	src/ritypes.cxx
 	include/ris/ritypes.h
 	include/ris/riobserver.h
+	include/ris/regionlrureader.h
 )
 
 target_include_directories(ris

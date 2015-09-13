@@ -4,12 +4,19 @@
 #include <unordered_map>
 
 #include "ris/riobserver.h"
+#include "ris/regionlrureader.h"
 #include "snapshot/snapshotbuilder.h"
 
-class RegionProduct : public ISnapshotBuilder, public IRIObserver {
+class RegionProduct : public ISnapshotBuilder, public IRIObserver , public IRegionLRUReader {
 public:
 	RegionProduct();
 	virtual ~RegionProduct();
+
+public:
+	// from IRegionLRUReader
+	virtual const Region& getRegion() const;
+	virtual const std::list<Service>& getServicesOrderByLRU() const;
+	virtual const std::list<Payload>& getPayloadsOrderByLRU() const;
 
 protected:
 	// from ISnapshotBuilder
