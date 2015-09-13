@@ -143,6 +143,7 @@ target_link_libraries(region LINK_PUBLIC
 
 # tracker objects
 add_library(tracker_obj OBJECT
+	src/tracker/pubtracker.cxx
 	src/tracker/regionfactory.cxx
 	src/tracker/regionproduct.cxx
 	src/tracker/subscriber.cxx
@@ -152,6 +153,7 @@ add_library(tracker_obj OBJECT
 	src/tracker/fromregionfactory.cxx
 	src/tracker/trackeractor.cxx
 	src/tracker/trackerctx.cxx
+	include/tracker/pubtracker.h
 	include/tracker/regionfactory.h
 	include/tracker/regionproduct.h
 	include/tracker/subscriber.h

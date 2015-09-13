@@ -11,7 +11,8 @@ public:
 	virtual ~RegionSubCacher();
 
 	int present(uint32_t version,const std::shared_ptr<IRIObserver>& observer);
-protected:
+
+public:
 	virtual void onRegion(const Region& reg);
 	virtual void onRmRegion(const ri_uuid_t& reg);
 	virtual void onService(const ri_uuid_t& reg,uint32_t version,const Service& svc);

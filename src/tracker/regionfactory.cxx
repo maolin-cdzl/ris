@@ -10,7 +10,7 @@ RegionFactory::~RegionFactory() {
 	stop();
 }
 
-int RegionFactory::start(const std::function<void(const std::shared_ptr<IRegionLRUReader>&)>& completed,const Region& region) {
+int RegionFactory::start(const std::function<void(const ri_uuid_t&,const std::shared_ptr<IRegionLRUReader>&)>& completed,const Region& region) {
 	if( m_client )
 		return -1;
 
@@ -48,8 +48,9 @@ void RegionFactory::onSnapshotCompleted(int err) {
 	}
 
 	auto completed = m_completed;
+	auto region_id = m_region_id;
 	stop();
-	completed(product);
+	completed(region_id,product);
 }
 
 
