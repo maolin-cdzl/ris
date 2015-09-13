@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include "ris/riobserver.h"
 #include "tracker/pubdata.h"
 
@@ -9,6 +10,7 @@ public:
 	RegionSubCacher(const ri_uuid_t& region_id);
 	virtual ~RegionSubCacher();
 
+	int present(uint32_t version,const std::shared_ptr<IRIObserver>& observer);
 protected:
 	virtual void onRegion(const Region& reg);
 	virtual void onRmRegion(const ri_uuid_t& reg);
@@ -19,6 +21,6 @@ protected:
 
 private:
 	ri_uuid_t								m_region_id;
-	std::list<std::shared_ptr<PubData>>		m_updates;
+	std::queue<std::shared_ptr<PubData>>	m_updates;
 };
 
