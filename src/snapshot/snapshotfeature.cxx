@@ -33,6 +33,7 @@ int SnapshotFeature::start(const std::shared_ptr<ISnapshotable>& impl) {
 			break;
 		}
 		m_impl = impl;
+		return 0;
 	} while(0);
 
 	stop();
