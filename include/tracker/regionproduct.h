@@ -23,7 +23,6 @@ protected:
 	virtual int addRegion(const Region& region);
 	virtual int addService(const ri_uuid_t& region,const Service& svc);
 	virtual int addPayload(const ri_uuid_t& region,const Payload& pl);
-	virtual void onCompleted(int err);
 
 protected:
 	// from IRIObserver

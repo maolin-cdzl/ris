@@ -48,17 +48,6 @@ int RegionProduct::addPayload(const ri_uuid_t& region,const Payload& pl) {
 	}
 }
 
-void RegionProduct::onCompleted(int err) {
-	if( -1 == err ) {
-		m_services_index.clear();
-		m_payloads_index.clear();
-		m_services.clear();
-		m_payloads.clear();
-		m_region.id.clear();
-	}
-}
-
-
 void RegionProduct::onRegion(const Region& region) {
 	if( region.id == m_region.id ) {
 		m_region = region;
