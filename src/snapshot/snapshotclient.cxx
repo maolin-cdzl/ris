@@ -17,7 +17,7 @@ SnapshotClient::~SnapshotClient() {
 	stop();
 }
 
-int SnapshotClient::start(const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
+int SnapshotClient::start(const std::function<void(int)>& completed,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address) {
 	if( m_reader.isActive() )
 		return -1;
 	
@@ -48,6 +48,7 @@ int SnapshotClient::start(const std::shared_ptr<ISnapshotBuilder>& builder,const
 			break;
 		}
 		LOG(INFO) << "SnapshotClient send request to address: " << address;
+		m_completed = completed;
 		m_builder = builder;
 		m_last_region.clear();
 		return 0;
@@ -65,6 +66,7 @@ void SnapshotClient::stop() {
 	m_reader.stop();
 	m_timer.stop();
 	m_builder.reset();
+	m_completed = nullptr;
 	m_last_region.clear();
 	m_uuid.clear();
 }
@@ -273,8 +275,8 @@ std::string SnapshotClient::state() const {
 }
 
 void SnapshotClient::finish(int err) {
-	auto builder = m_builder;
+	auto completed = m_completed;
 	stop();
-	builder->onCompleted(err);
+	completed(err);
 }
 

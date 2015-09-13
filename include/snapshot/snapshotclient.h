@@ -11,7 +11,7 @@ public:
 	SnapshotClient(zloop_t* loop);
 	~SnapshotClient();
 
-	int start(const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
+	int start(const std::function<void(int)>& completed,const std::shared_ptr<ISnapshotBuilder>& builder,const std::string& address);
 	void stop();
 
 	bool isActive() const;
@@ -33,6 +33,7 @@ private:
 	ZLoopTimeouter							m_timer;
 	ZLoopReader								m_reader;
 
+	std::function<void(int)>				m_completed;
 	std::shared_ptr<ISnapshotBuilder>		m_builder;
 	ri_uuid_t								m_last_region;
 };
