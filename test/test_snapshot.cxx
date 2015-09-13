@@ -29,7 +29,10 @@ void snapshot_testcase(size_t repeat_count) {
 
 
 	zsys_interrupted = 0;
-	ASSERT_EQ(0,zloop_start(g_loop));
+	do {
+		if( 0 == zloop_start(g_loop) )
+			break;
+	} while(1);
 
 	ASSERT_EQ(repeat_count,repeater->success_count());
 	//std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
@@ -82,13 +85,11 @@ void snapshot_fail_testcase() {
 	auto generator = std::make_shared<GeneratorT>();
 	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
 
-	ON_CALL(*builder,rmRegion(testing::_)).WillByDefault(testing::Return(0));
 
 	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(1).WillRepeatedly(testing::Invoke(func));
 	EXPECT_CALL(*builder,addRegion(testing::_)).Times(RegionNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
-	EXPECT_CALL(*builder,rmRegion(testing::_)).Times(generator->region_size());
 
 	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS));
 	ASSERT_EQ(0,repeater->start(1,builder,SS_SERVER_ADDRESS));
@@ -117,7 +118,7 @@ TEST(Snapshot,Parallel) {
 
 TEST(Snapshot,ParallelOverflow) {
 	SCOPED_TRACE("ParallelOverflow");
-	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(5);
+	snapshot_partfail_testcase<SnapshotClientParallelRepeater>(10);
 }
 
 TEST(Snapshot,Empty) {
