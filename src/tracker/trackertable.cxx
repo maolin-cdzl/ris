@@ -82,6 +82,88 @@ std::pair<std::shared_ptr<Region>,std::string> RITrackerTable::robinRouteService
 	return std::move(result);
 }
 
+int RITrackerTable::merge(const std::shared_ptr<IRegionLRUReader>& reader) {
+	auto region = reader->getRegion();
+
+	if( m_regions_index.end() != m_regions_index.find(region.id) ) {
+		LOG(ERROR) << "Merged region already exists: " << region.id;
+		return -1;
+	}
+
+	// insert region
+	m_regions.push_back(std::make_shared<Region>(region));
+	auto regit = std::prev(m_regions.end());
+	m_regions_index.insert( std::make_pair(region.id,regit) );
+
+	// insert service
+	auto services = reader->getServicesOrderByLRU();
+	for(auto it=services.begin(); it != services.end(); ++it) {
+		const Service& svc = *it;
+		auto siit = m_services_index.find(svc.name);
+		if( siit == m_services_index.end() ) {
+			// if never have this service before,create new.
+			RegionService rs;
+			rs.region = (*regit);
+			rs.service = svc;
+
+			auto scit = m_services.insert(m_services.end(),rs);
+			std::list<service_iterator_t> l;
+			l.push_back(scit);
+			m_services_index.insert( std::make_pair(svc.name,l) );
+			LOG(INFO) << "Add full new service: " << svc.name << " to region: " << region.id;
+		} else {
+			std::list<service_iterator_t>& l = siit->second;
+			auto lit = findRegionService(l,region.id);
+			if( lit != l.end() ) {
+				// update the service info of this region
+				(*lit)->service = svc;
+				auto scit = (*lit);
+				m_services.splice(m_services.end(),m_services,scit); // move latest updated to end
+			} else {
+				// if this region has no this service yet.
+				RegionService rs;
+				rs.region = (*regit);
+				rs.service = svc;
+				auto scit = m_services.insert(m_services.end(),rs);
+				l.push_back(scit);
+				
+				LOG(INFO) << "Add service: " << svc.name << " to region: " << region.id;
+			}
+		}
+	}
+
+	auto payloads = reader->getPayloadsOrderByLRU();
+	for( auto it = payloads.begin(); it != payloads.end(); ++it ) {
+		const Payload& pl = *it;
+		auto piit = m_payloads_index.find(pl.id);
+		if( piit == m_payloads_index.end() ) {
+			// new payload
+			RegionPayload rp;
+			rp.region = *regit;
+			rp.payload = pl;
+
+			auto pcit = m_payloads.insert(m_payloads.end(),rp);
+			m_payloads_index.insert( std::make_pair(pl.id,pcit) );
+			
+			LOG(INFO) << "New payload: " << pl.id << " to region: " << region.id;
+		} else {
+			// update payload info
+			auto pcit = piit->second;
+			auto regptr = pcit->region;
+			if( regptr != *regit ) {
+				LOG(WARNING) << "Region: " << region.id << " replace region: " << regptr->id << " with payload: " << pl.id;
+				pcit->region = *regit;
+			}
+			pcit->payload = pl;
+			m_payloads.splice(m_payloads.end(),m_payloads,pcit);	// move latest updated to end
+		}
+	}
+
+	return 0;
+}
+
+
+
 // method from IRIObserver
 void RITrackerTable::onRegion(const Region& reg) {
 	auto riit = m_regions_index.find(reg.id);

@@ -5,6 +5,7 @@
 #include <memory>
 #include <czmq.h>
 #include "ris/riobserver.h"
+#include "ris/regionlrureader.h"
 #include "ris/responsechain.hpp"
 #include "snapshot/snapshotable.h"
 #include "snapshot/snapshotbuilder.h"
@@ -31,6 +32,8 @@ public:
 
 	// get region provide this service,this is round-robin
 	std::pair<std::shared_ptr<Region>,std::string> robinRouteService(const std::string& svc);
+
+	int merge(const std::shared_ptr<IRegionLRUReader>& reader);
 public:
 	// method from IRIObserver
 	virtual void onRegion(const Region& reg);
@@ -53,8 +56,8 @@ private:
 		Payload										payload;
 	};
 
-	typedef std::list<std::shared_ptr<Region>>		region_container_t;
-	typedef typename region_container_t::iterator	region_iterator_t;
+	typedef std::list<std::shared_ptr<Region>>				region_container_t;
+	typedef typename region_container_t::iterator			region_iterator_t;
 	typedef std::unordered_map<ri_uuid_t,region_iterator_t>	region_index_t;
 
 	typedef std::list<RegionService>				service_container_t;
