@@ -1,9 +1,10 @@
 #include <glog/logging.h>
 #include "tracker/regionsubcacher.h"
 
-RegionSubCacher::RegionSubCacher(const ri_uuid_t& region_id) :
-	m_region_id(region_id)
+RegionSubCacher::RegionSubCacher(const Region& region) :
+	m_region_id(region.id)
 {
+	onRegion(region);
 }
 
 RegionSubCacher::~RegionSubCacher() {

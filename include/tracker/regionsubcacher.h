@@ -7,7 +7,7 @@
 
 class RegionSubCacher : public IRIObserver {
 public:
-	RegionSubCacher(const ri_uuid_t& region_id);
+	RegionSubCacher(const Region& region);
 	virtual ~RegionSubCacher();
 
 	int present(uint32_t version,const std::shared_ptr<IRIObserver>& observer);
