@@ -31,8 +31,8 @@ std::shared_ptr<Dispatcher> RISubscriber::make_dispatcher() {
 
 int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObserver>& ob) {
 	int result = -1;
-	assert( ! address.empty() );
-	assert( ob );
+	CHECK( ! address.empty() );
+	CHECK( ob );
 
 	zsock_t* sub = nullptr;
 	do {
@@ -69,7 +69,7 @@ void RISubscriber::stop() {
 }
 
 int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
-	assert( ob );
+	CHECK( ob );
 	if( m_disp->isActive() ) {
 		m_observer = ob;
 		return 0;
@@ -85,7 +85,7 @@ int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message
 
 int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::Region>(msg);
-	assert(p);
+	CHECK(p);
 
 	Region region;
 	region.id = p->region().uuid();
@@ -102,7 +102,7 @@ int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg
 
 int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::RmRegion>(msg);
-	assert(p);
+	CHECK(p);
 
 	DLOG(INFO) << "RISubscriber recv rm region: " << p->uuid();
 	m_observer->onRmRegion(p->uuid());
@@ -111,7 +111,7 @@ int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& m
 
 int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::Service>(msg);
-	assert(p);
+	CHECK(p);
 
 	Service svc;
 	svc.name = p->name();
@@ -125,7 +125,7 @@ int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& ms
 
 int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::RmService>(msg);
-	assert(p);
+	CHECK(p);
 
 	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmService(p->region().uuid(),p->region().version(),p->name());
@@ -134,7 +134,7 @@ int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& 
 
 int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::Payload>(msg);
-	assert(p);
+	CHECK(p);
 
 	Payload pl;
 	pl.id = p->uuid();
@@ -147,7 +147,7 @@ int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& ms
 
 int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<pub::RmPayload>(msg);
-	assert(p);
+	CHECK(p);
 
 	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
 	m_observer->onRmPayload(p->region().uuid(),p->region().version(),p->uuid());

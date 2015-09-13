@@ -54,10 +54,10 @@ std::shared_ptr<Dispatcher> RITrackerActor::make_dispatcher(ZDispatcher& zdisp) 
 }
 
 void RITrackerActor::run(zsock_t* pipe) {
-	assert( m_ctx );
+	CHECK( m_ctx );
 
 	m_loop = zloop_new();
-	assert(m_loop);
+	CHECK_NOTNULL(m_loop);
 
 	m_running = true;
 	zsock_t* rep = nullptr;
@@ -141,8 +141,8 @@ int RITrackerActor::onPipeReadable(zsock_t* pipe) {
 	zmsg_t* msg = zmsg_recv(pipe);
 	DLOG(INFO) << "TrackerActor interrupte by pipe command";
 #ifndef NDEBUG
-	assert(1 == zmsg_size(msg));
-	assert(zframe_streq(zmsg_first(msg),"$TERM"));
+	CHECK_EQ(1,zmsg_size(msg));
+	CHECK(zframe_streq(zmsg_first(msg),"$TERM"));
 #endif
 
 	if( msg ) {

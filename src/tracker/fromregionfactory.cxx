@@ -17,9 +17,9 @@ FromRegionFactory::~FromRegionFactory() {
 }
 
 int FromRegionFactory::start(const std::string& pub_address,const std::function<void(int,const std::shared_ptr<TrackerFactoryProduct>&)>& ob,uint64_t timeout) {
-	assert(! pub_address.empty() );
-	assert( ob );
-	assert( timeout > 0 );
+	CHECK(! pub_address.empty() );
+	CHECK( ob );
+	CHECK_GT(timeout,0 );
 
 	if( m_product )
 		return -1;

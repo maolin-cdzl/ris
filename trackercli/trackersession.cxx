@@ -20,7 +20,7 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 
 	do {
 		m_req = zsock_new(ZMQ_DEALER);
-		assert(m_req);
+		CHECK_NOTNULL(m_req);
 		if( -1 == zsock_connect(m_req,"%s",api_address.c_str()) ) {
 			LOG(ERROR) << "Error when connect to: " << api_address;
 			break;
@@ -64,7 +64,7 @@ void TrackerSession::disconnect() {
 }
 
 int TrackerSession::getStatistics(RouteInfoStatistics* statistics) {
-	assert( statistics );
+	CHECK_NOTNULL( statistics );
 	if( nullptr == m_req )
 		return -1;
 

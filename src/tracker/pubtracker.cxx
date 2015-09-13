@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "tracker/pubtracker.h"
 
 
@@ -76,7 +77,7 @@ void PubTracker::onRmPayload(const ri_uuid_t& reg,uint32_t version,const ri_uuid
 
 void PubTracker::onFactoryCompleted(const ri_uuid_t& reg,const std::shared_ptr<IRegionLRUReader>& product) {
 	auto it = m_factories.find(reg);
-	assert( it != m_factories.end() );
+	CHECK(m_factories.end() != it);
 
 	if( product ) {
 		auto table = m_table.lock();

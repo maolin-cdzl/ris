@@ -59,10 +59,10 @@ void SnapshotService::run(zsock_t* pipe) {
 	
 	do {
 		loop = zloop_new();
-		assert(loop);
+		CHECK_NOTNULL(loop);
 
 		router = zsock_new(ZMQ_ROUTER);
-		assert(router);
+		CHECK_NOTNULL(router);
 
 		if( -1 == zsock_bind(router,"%s",m_address.c_str()) ) {
 			LOG(FATAL) << "SnapshotService can not bind to " << m_address;
@@ -113,7 +113,7 @@ std::shared_ptr<Dispatcher> SnapshotService::make_dispatcher(ZDispatcher& zdisp)
 
 int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<snapshot::SnapshotReq>(msg);
-	assert(p);
+	CHECK(p);
 
 	snapshot::SnapshotRep rep;
 	auto it = m_workers.find(p->uuid());
@@ -144,7 +144,7 @@ int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<goog
 
 int SnapshotService::onSyncSignal(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<snapshot::SyncSignalRep>(msg);
-	assert(p);
+	CHECK(p);
 	auto it = m_workers.find(p->uuid());
 	if( it != m_workers.end() ) {
 		if( it->second->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count) == 0 ) {

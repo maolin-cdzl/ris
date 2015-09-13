@@ -368,7 +368,7 @@ std::list<RITrackerTable::service_iterator_t>::iterator RITrackerTable::findRegi
 
 void RITrackerTable::doRmRegion(const ri_uuid_t& region) {
 	auto riit = m_regions_index.find(region);
-	assert( riit != m_regions_index.end() );
+	CHECK(m_regions_index.end() != riit);
 
 	LOG(INFO) << "Remove region: " << region;
 	auto rcit = riit->second;
@@ -379,7 +379,7 @@ void RITrackerTable::doRmRegion(const ri_uuid_t& region) {
 	for(auto scit=m_services.begin(); scit != m_services.end(); ) {
 		if( scit->region == regptr ) {
 			auto siit = m_services_index.find(scit->service.name);
-			assert(siit != m_services_index.end());
+			CHECK(m_services_index.end() != siit);
 			std::list<service_iterator_t>& l = siit->second;
 			for(auto lit = l.begin(); lit != l.end(); ++lit) {
 				if( *lit == scit ) {
@@ -399,7 +399,7 @@ void RITrackerTable::doRmRegion(const ri_uuid_t& region) {
 	for(auto pcit=m_payloads.begin(); pcit != m_payloads.end(); ) {
 		if( pcit->region == regptr ) {
 			auto piit = m_payloads_index.find(pcit->payload.id);
-			assert(piit != m_payloads_index.end());
+			CHECK(m_payloads_index.end() != piit);
 			m_payloads_index.erase(piit);
 			pcit = m_payloads.erase(pcit);
 		} else {

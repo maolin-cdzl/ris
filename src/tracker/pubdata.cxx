@@ -43,8 +43,8 @@ PubData::~PubData() {
 }
 
 void PubData::present(const ri_uuid_t& region,const std::shared_ptr<IRIObserver>& ob) {
-	assert( type != UNKNOWN );
-	assert( data );
+	CHECK_NE( type , UNKNOWN );
+	CHECK_NOTNULL( data );
 
 	switch( type )
 	{

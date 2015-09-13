@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "snapshot/snapshotfeature.h"
 
 
@@ -14,7 +15,7 @@ SnapshotFeature::~SnapshotFeature() {
 }
 
 snapshot_package_t SnapshotFeature::buildSnapshot() {
-	assert( m_frontend );
+	CHECK_NOTNULL( m_frontend );
 
 	zsock_signal(m_frontend,0);
 	zsock_wait(m_frontend);

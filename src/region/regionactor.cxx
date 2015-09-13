@@ -59,11 +59,13 @@ std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(ZDispatcher& zdisp) {
 }
 
 void RIRegionActor::run(zsock_t* pipe) {
+	CHECK( m_ctx );
+
 	m_loop = zloop_new();
+	CHECK_NOTNULL(m_loop);
+
 	zsock_t* rep = nullptr;
 
-	assert( m_ctx );
-	assert(m_loop);
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
 
@@ -112,7 +114,6 @@ void RIRegionActor::run(zsock_t* pipe) {
 		zsock_signal(pipe,0);
 
 		m_running = true;
-		zsys_interrupted = 0;
 		while( m_running ) {
 			int result = zloop_start(m_loop);
 			if( result == 0 ) {
@@ -181,7 +182,7 @@ int RIRegionActor::defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::p
 
 int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
-	assert(p);
+	CHECK(p);
 	int err = m_table->addService(p->name(),p->address());
 
 	if( p->rep() ) {
@@ -194,7 +195,7 @@ int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::p
 
 int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
-	assert(p);
+	CHECK(p);
 
 	int err = m_table->rmService(p->name());
 
@@ -208,7 +209,7 @@ int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 
 int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
-	assert(p);
+	CHECK(p);
 	int err = m_table->addPayload(p->uuid());
 
 	if( p->rep() ) {
@@ -221,7 +222,7 @@ int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::p
 
 int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
-	assert(p);
+	CHECK(p);
 	int err = m_table->rmPayload(p->uuid());
 
 	if( p->rep() ) {
@@ -234,7 +235,7 @@ int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 
 int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
-	assert(p);
+	CHECK(p);
 
 	zdisp.sendback(*p);
 	return 0;

@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "ris/ritypes.h"
 
 /**
@@ -35,7 +36,7 @@ bool Region::operator == (const Region& ref) const {
 }
 
 std::shared_ptr<pub::Region> Region::toPublish() const {
-	assert( ! id.empty() );
+	CHECK( ! id.empty() );
 	std::shared_ptr<pub::Region> msg(new pub::Region());
 
 	toPublishBase(msg->mutable_region());
@@ -53,13 +54,13 @@ std::shared_ptr<pub::Region> Region::toPublish() const {
 }
 
 void Region::toPublishBase(pub::RegionBase* region) const {
-	assert( ! id.empty() );
+	CHECK( ! id.empty() );
 	region->set_uuid( id );
 	region->set_version( version );
 }
 
 std::shared_ptr<pub::RmRegion> Region::toPublishRm(const ri_uuid_t& uuid) {
-	assert( ! uuid.empty() );
+	CHECK( ! uuid.empty() );
 	std::shared_ptr<pub::RmRegion> msg(new pub::RmRegion());
 	msg->set_uuid(uuid);
 	return msg;
@@ -118,8 +119,8 @@ std::shared_ptr<snapshot::Service> Service::toSnapshot() const {
 }
 
 std::shared_ptr<pub::Service> Service::toPublish(const ri_uuid_t& region,uint32_t version) const {
-	assert( ! name.empty() );
-	assert( ! address.empty() );
+	CHECK( ! name.empty() );
+	CHECK( ! address.empty() );
 
 	std::shared_ptr<pub::Service> msg(new pub::Service());
 	msg->mutable_region()->set_uuid(region);
@@ -130,7 +131,7 @@ std::shared_ptr<pub::Service> Service::toPublish(const ri_uuid_t& region,uint32_
 }
 
 std::shared_ptr<pub::RmService> Service::toPublishRm(const ri_uuid_t& region,uint32_t version,const std::string& name) {
-	assert( ! name.empty() );
+	CHECK( ! name.empty() );
 
 	std::shared_ptr<pub::RmService> msg(new pub::RmService());
 	msg->mutable_region()->set_uuid(region);
@@ -168,7 +169,7 @@ bool Payload::operator == (const Payload& ref) const {
 }
 
 std::shared_ptr<pub::Payload> Payload::toPublish(const ri_uuid_t& region,uint32_t version) const {
-	assert( ! id.empty() );
+	CHECK( ! id.empty() );
 	
 	std::shared_ptr<pub::Payload> msg(new pub::Payload());
 	msg->mutable_region()->set_uuid(region);
@@ -178,7 +179,7 @@ std::shared_ptr<pub::Payload> Payload::toPublish(const ri_uuid_t& region,uint32_
 }
 
 std::shared_ptr<pub::RmPayload> Payload::toPublishRm(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& id) {
-	assert( ! id.empty() );
+	CHECK( ! id.empty() );
 	
 	std::shared_ptr<pub::RmPayload> msg(new pub::RmPayload());
 	msg->mutable_region()->set_uuid(region);

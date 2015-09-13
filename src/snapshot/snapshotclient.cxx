@@ -25,7 +25,7 @@ int SnapshotClient::start(const std::function<void(int)>& completed,const std::s
 	do {
 		m_uuid = new_uuid();
 		sock = zsock_new(ZMQ_DEALER);
-		assert(sock);
+		CHECK_NOTNULL(sock);
 		if( -1 == zsock_connect(sock,"%s",address.c_str()) ) {
 			LOG(ERROR) << "SnapshotClient can not connect to: " << address;
 			break;
@@ -122,7 +122,7 @@ int SnapshotClient::pullRegionBegin(zsock_t* sock) {
 }
 
 int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
-	assert( m_last_region.empty() );
+	CHECK( m_last_region.empty() );
 
 	do {
 		auto msg = zpb_recv(sock);
@@ -179,7 +179,7 @@ int SnapshotClient::pullRegionOrFinish(zsock_t* sock) {
 }
 
 int SnapshotClient::pullRegionBody(zsock_t* sock) {
-	assert( ! m_last_region.empty() );
+	CHECK( ! m_last_region.empty() );
 	do {
 		auto msg = zpb_recv(sock);
 		if( msg == nullptr ) {
