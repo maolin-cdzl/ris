@@ -63,7 +63,7 @@ void RegionSession::disconnect() {
 	}
 }
 
-int RegionSession::newPayload(const std::string& uuid) {
+int RegionSession::newPayload(const std::string& uuid,uint64_t timeout) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -74,9 +74,15 @@ int RegionSession::newPayload(const std::string& uuid) {
 		}	
 		region::api::AddPayload msg;
 		msg.set_uuid(uuid);
+		msg.set_rep( timeout != 0 );
 		if( -1 == zpb_send(m_req,msg) )
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
+
+		if( 0 == timeout ) {
+			return 0;
+		}
+
+		if( zmq_wait_readable(m_req,timeout) <= 0 )
 			break;
 		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
 			DLOG(ERROR) << "Error when drop delimiter from req";
@@ -90,7 +96,7 @@ int RegionSession::newPayload(const std::string& uuid) {
 	return -1;
 }
 
-int RegionSession::rmPayload(const std::string& uuid) {
+int RegionSession::rmPayload(const std::string& uuid,uint64_t timeout) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -101,9 +107,15 @@ int RegionSession::rmPayload(const std::string& uuid) {
 		}	
 		region::api::RmPayload msg;
 		msg.set_uuid(uuid);
+		msg.set_rep( timeout != 0 );
 		if( -1 == zpb_send(m_req,msg) )
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
+
+		if( 0 == timeout ) {
+			return 0;
+		}
+
+		if( zmq_wait_readable(m_req,timeout) <= 0 )
 			break;
 		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
 			DLOG(ERROR) << "Error when drop delimiter from req";
@@ -117,7 +129,7 @@ int RegionSession::rmPayload(const std::string& uuid) {
 	return -1;
 }
 
-int RegionSession::newService(const std::string& name,const std::string& address) {
+int RegionSession::newService(const std::string& name,const std::string& address,uint64_t timeout) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -129,9 +141,14 @@ int RegionSession::newService(const std::string& name,const std::string& address
 		region::api::AddService msg;
 		msg.set_name(name);
 		msg.set_address(address);
+		msg.set_rep( timeout != 0 );
 		if( -1 == zpb_send(m_req,msg) )
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
+
+		if( 0 == timeout ) {
+			return 0;
+		}
+		if( zmq_wait_readable(m_req,timeout) <= 0 )
 			break;
 		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
 			DLOG(ERROR) << "Error when drop delimiter from req";
@@ -145,7 +162,7 @@ int RegionSession::newService(const std::string& name,const std::string& address
 	return -1;
 }
 
-int RegionSession::rmService(const std::string& name) {
+int RegionSession::rmService(const std::string& name,uint64_t timeout) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -156,9 +173,13 @@ int RegionSession::rmService(const std::string& name) {
 		}	
 		region::api::RmService msg;
 		msg.set_name(name);
+		msg.set_rep( timeout != 0 );
 		if( -1 == zpb_send(m_req,msg) )
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
+		if( 0 == timeout ) {
+			return 0;
+		}
+		if( zmq_wait_readable(m_req,timeout) <= 0 )
 			break;
 		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
 			DLOG(ERROR) << "Error when drop delimiter from req";

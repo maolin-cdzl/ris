@@ -11,13 +11,14 @@ public:
 	int connect(const std::string& api_address,uint64_t timeout=60000);
 	void disconnect();
 
-	int newPayload(const std::string& uuid);
+	// if timeout is 0,it will not wait response from region actor
+	int newPayload(const std::string& uuid,uint64_t timeout=0);
 
-	int rmPayload(const std::string& uuid);
+	int rmPayload(const std::string& uuid,uint64_t timeout=0);
 
-	int newService(const std::string& name,const std::string& address);
+	int newService(const std::string& name,const std::string& address,uint64_t timeout=0);
 
-	int rmService(const std::string& name);
+	int rmService(const std::string& name,uint64_t timeout=0);
 private:
 	zsock_t*			m_req;
 };
