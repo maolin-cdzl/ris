@@ -6,7 +6,8 @@
 #include "zmqx/zprepend.h"
 
 RegionSession::RegionSession() :
-	m_req(nullptr)
+	m_req(nullptr),
+	m_timeout(1000)
 {
 }
 
@@ -14,7 +15,7 @@ RegionSession::~RegionSession() {
 	disconnect();
 }
 
-int RegionSession::connect(const std::string& api_address,uint64_t timeout) {
+int RegionSession::connect(const std::string& api_address,uint32_t* version) {
 	if( m_req )
 		return -1;
 
@@ -32,7 +33,7 @@ int RegionSession::connect(const std::string& api_address,uint64_t timeout) {
 			break;
 		}
 		
-		if( zmq_wait_readable(m_req,timeout) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -40,6 +41,9 @@ int RegionSession::connect(const std::string& api_address,uint64_t timeout) {
 		if( -1 == zpb_recv(hs,m_req) ) {
 			LOG(ERROR) << "Error when recv HandShake from req";
 			break;
+		}
+		if( version ) {
+			*version = hs.version();
 		}
 		return 0;
 	} while(0);
@@ -56,7 +60,7 @@ void RegionSession::disconnect() {
 	}
 }
 
-int RegionSession::newPayload(const std::string& uuid,uint64_t timeout) {
+int RegionSession::newPayload(const std::string& uuid,uint32_t* version) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -64,25 +68,24 @@ int RegionSession::newPayload(const std::string& uuid,uint64_t timeout) {
 			break;
 		region::api::AddPayload msg;
 		msg.set_uuid(uuid);
-		msg.set_rep( timeout != 0 );
+		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
 
-		if( 0 == timeout ) {
-			return 0;
-		}
-
-		if( zmq_wait_readable(m_req,timeout) <= 0 )
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 )
 			break;
 		region::api::Result result;
 		if( -1 == zpb_recv(result,m_req) )
 			break;
+		if( version ) {
+			*version = result.version();
+		}
 		return result.result();
 	} while(0);
 	return -1;
 }
 
-int RegionSession::rmPayload(const std::string& uuid,uint64_t timeout) {
+int RegionSession::rmPayload(const std::string& uuid,uint32_t* version) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -90,25 +93,24 @@ int RegionSession::rmPayload(const std::string& uuid,uint64_t timeout) {
 			break;
 		region::api::RmPayload msg;
 		msg.set_uuid(uuid);
-		msg.set_rep( timeout != 0 );
+		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
 
-		if( 0 == timeout ) {
-			return 0;
-		}
-
-		if( zmq_wait_readable(m_req,timeout) <= 0 )
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 )
 			break;
 		region::api::Result result;
 		if( -1 == zpb_recv(result,m_req) )
 			break;
+		if( version ) {
+			*version = result.version();
+		}
 		return result.result();
 	} while(0);
 	return -1;
 }
 
-int RegionSession::newService(const std::string& name,const std::string& address,uint64_t timeout) {
+int RegionSession::newService(const std::string& name,const std::string& address,uint32_t* version) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -117,24 +119,23 @@ int RegionSession::newService(const std::string& name,const std::string& address
 		region::api::AddService msg;
 		msg.set_name(name);
 		msg.set_address(address);
-		msg.set_rep( timeout != 0 );
+		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
-
-		if( 0 == timeout ) {
-			return 0;
-		}
-		if( zmq_wait_readable(m_req,timeout) <= 0 )
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 )
 			break;
 		region::api::Result result;
 		if( -1 == zpb_recv(result,m_req) )
 			break;
+		if( version ) {
+			*version = result.version();
+		}
 		return result.result();
 	} while(0);
 	return -1;
 }
 
-int RegionSession::rmService(const std::string& name,uint64_t timeout) {
+int RegionSession::rmService(const std::string& name,uint32_t* version) {
 	do {
 		if( nullptr == m_req )
 			break;
@@ -142,18 +143,84 @@ int RegionSession::rmService(const std::string& name,uint64_t timeout) {
 			break;
 		region::api::RmService msg;
 		msg.set_name(name);
-		msg.set_rep( timeout != 0 );
+		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
-		if( 0 == timeout ) {
-			return 0;
-		}
-		if( zmq_wait_readable(m_req,timeout) <= 0 )
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 )
 			break;
 		region::api::Result result;
 		if( -1 == zpb_recv(result,m_req) )
 			break;
+		if( version ) {
+			*version = result.version();
+		}
 		return result.result();
+	} while(0);
+	return -1;
+}
+
+int RegionSession::asyncNewPayload(const std::string& uuid) {
+	do {
+		if( nullptr == m_req )
+			break;
+		if( uuid.empty() )
+			break;
+		region::api::AddPayload msg;
+		msg.set_uuid(uuid);
+		msg.set_rep( false );
+		if( -1 == zpb_send(m_req,msg,true) )
+			break;
+		return 0;
+	} while(0);
+	return -1;
+}
+
+int RegionSession::asyncRmPayload(const std::string& uuid) {
+	do {
+		if( nullptr == m_req )
+			break;
+		if( uuid.empty() )
+			break;
+		region::api::RmPayload msg;
+		msg.set_uuid(uuid);
+		msg.set_rep( false );
+		if( -1 == zpb_send(m_req,msg,true) )
+			break;
+
+		return 0;
+	} while(0);
+	return -1;
+}
+
+int RegionSession::asyncNewService(const std::string& name,const std::string& address) {
+	do {
+		if( nullptr == m_req )
+			break;
+		if( name.empty() || address.empty() )
+			break;
+		region::api::AddService msg;
+		msg.set_name(name);
+		msg.set_address(address);
+		msg.set_rep( false );
+		if( -1 == zpb_send(m_req,msg,true) )
+			break;
+		return 0;
+	} while(0);
+	return -1;
+}
+
+int RegionSession::asyncRmService(const std::string& name) {
+	do {
+		if( nullptr == m_req )
+			break;
+		if( name.empty() )
+			break;
+		region::api::RmService msg;
+		msg.set_name(name);
+		msg.set_rep( false );
+		if( -1 == zpb_send(m_req,msg,true) )
+			break;
+		return 0;
 	} while(0);
 	return -1;
 }

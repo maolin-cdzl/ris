@@ -123,7 +123,7 @@ TEST_F(RISTest,Functional) {
 	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
 
 	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
+	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
 
 	std::list<std::string> services;
 	std::list<std::string> payloads;
@@ -157,7 +157,7 @@ TEST_F(RISTest,Functional) {
 TEST_F(RISTest,BusyRegion) {
 	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
 	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
+	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
 
 	std::list<std::string> services;
 	std::list<std::string> payloads;

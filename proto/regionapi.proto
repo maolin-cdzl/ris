@@ -1,6 +1,7 @@
 package region.api;
 
 message HandShake {
+	optional uint32			version = 1 [default=0];
 }
 
 message Result {

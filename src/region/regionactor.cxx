@@ -241,6 +241,7 @@ int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	CHECK(p);
 
+	p->set_version(m_table->version());
 	zdisp.sendback(*p);
 	return 0;
 }
