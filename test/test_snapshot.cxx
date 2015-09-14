@@ -16,7 +16,7 @@ void snapshot_testcase(size_t repeat_count) {
 	auto server = std::make_shared<SnapshotService>();
 	auto repeater = std::make_shared<RepeaterT>(g_loop);
 
-	auto generator = std::make_shared<SnapshotGenerator>(10,100,20);
+	auto generator = std::make_shared<SnapshotGenerator>(10,1000,20);
 	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
 
 	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(repeat_count).WillRepeatedly(testing::Invoke(func));
@@ -28,11 +28,11 @@ void snapshot_testcase(size_t repeat_count) {
 	ASSERT_EQ(0,repeater->start(repeat_count,builder,SS_SERVER_ADDRESS));
 
 
-	zsys_interrupted = 0;
-	do {
-		if( 0 == zloop_start(g_loop) )
+	while( repeater->running() ) {
+		if( 0 == zloop_start(g_loop) ) {
 			break;
-	} while(1);
+		}
+	};
 
 	ASSERT_EQ(repeat_count,repeater->success_count());
 	//std::cerr << "region_size=" << generator->region_size() << ", payload_size=" << generator->payload_size() << ", service_size=" << generator->service_size() << std::endl;
@@ -45,7 +45,7 @@ void snapshot_partfail_testcase(size_t repeat_count) {
 	auto server = std::make_shared<SnapshotService>();
 	auto repeater = std::make_shared<RepeaterT>(g_loop);
 
-	auto generator = std::make_shared<SnapshotGenerator>(10,100,20);
+	auto generator = std::make_shared<SnapshotGenerator>(10,1000,20);
 	std::function<snapshot_package_t()> func = std::bind<snapshot_package_t>(&ISnapshotGeneratorImpl::build,generator);
 
 	EXPECT_CALL(*snapshotable,buildSnapshot()).Times(testing::AtMost(repeat_count)).WillRepeatedly(testing::Invoke(func));
@@ -62,14 +62,11 @@ void snapshot_partfail_testcase(size_t repeat_count) {
 	ASSERT_EQ(0,result);
 
 
-	zsys_interrupted = 0;
-	while(true) {
-		result = zloop_start(g_loop);
-		if( 0 == result )
+	while( repeater->running() ) {
+		if( 0 == zloop_start(g_loop) ) {
 			break;
-	}
-	zsys_interrupted = 0;
-	ASSERT_EQ(0,result);
+		}
+	};
 
 	ASSERT_GT(repeater->success_count(),size_t(0));
 	ASSERT_LT(repeater->success_count(),repeat_count);
@@ -94,8 +91,11 @@ void snapshot_fail_testcase() {
 	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS));
 	ASSERT_EQ(0,repeater->start(1,builder,SS_SERVER_ADDRESS));
 
-	zsys_interrupted = 0;
-	ASSERT_EQ(-1,zloop_start(g_loop));
+	while( repeater->running() ) {
+		if( 0 == zloop_start(g_loop) ) {
+			break;
+		}
+	};
 
 	ASSERT_EQ(size_t(0),repeater->success_count());
 }

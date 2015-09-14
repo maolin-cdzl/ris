@@ -106,7 +106,6 @@ TEST(PubSub,Functional) {
 	ASSERT_EQ(0,sub->start(PUB_ADDRESS,ob));
 	ASSERT_EQ(0,runner->start(1));
 
-	zsys_interrupted = 0;
 	ASSERT_EQ(-1,zloop_start(g_loop));
 }
 

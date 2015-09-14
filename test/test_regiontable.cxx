@@ -104,9 +104,8 @@ TEST_F(RegionTableTest,Repub) {
 	ASSERT_EQ(uint32_t(6),table->version());
 	ASSERT_EQ(0,table->start(observer));
 	
-	zsys_interrupted = 0;
-	LoopStoper stoper(g_loop,6000);
-	ASSERT_EQ(0,zloop_start(g_loop));
+	LoopTimeoutStopper(g_loop,6000);
+	ASSERT_EQ(-1,zloop_start(g_loop));
 
 	table->stop();
 }

@@ -11,32 +11,73 @@ std::string newUUID() {
     return s;
 }
 
-//class LoopStoper
-LoopStoper::LoopStoper(zloop_t* loop,long timeout) :
+//class LoopTimeoutStopper
+LoopTimeoutStopper::LoopTimeoutStopper(zloop_t* loop,long timeout) :
 	m_loop(loop),
 	m_tid(-1)
 {
-	m_tid = zloop_timer(loop,timeout,1,&LoopStoper::onTimer,this);
+	m_tid = zloop_timer(loop,timeout,1,&LoopTimeoutStopper::onTimer,this);
 }
 
-LoopStoper::~LoopStoper() {
+LoopTimeoutStopper::~LoopTimeoutStopper() {
 	cancel();
 }
 
-void LoopStoper::cancel() {
+void LoopTimeoutStopper::cancel() {
 	if( m_tid != -1 ) {
 		zloop_timer_end(m_loop,m_tid);
 		m_tid = -1;
 	}
 }
 
-int LoopStoper::onTimer(zloop_t* loop,int timeid,void* arg) {
+int LoopTimeoutStopper::onTimer(zloop_t* loop,int timeid,void* arg) {
 	(void)loop;
 	(void)timeid;
-	LoopStoper* self = (LoopStoper*)arg;
+	LoopTimeoutStopper* self = (LoopTimeoutStopper*)arg;
+	zloop_timer_end(loop,self->m_tid);
 	self->m_tid = -1;
-	zsys_interrupted = 1;
-	return 0;
+	return -1;
+}
+
+// class LoopCompleteStopper
+
+LoopCompleteStopper::LoopCompleteStopper(zloop_t* loop,long period) :
+	m_loop(loop),
+	m_result(-1),
+	m_running(true)
+{
+	m_tid = zloop_timer(loop,period,0,&LoopCompleteStopper::onTimer,this);
+}
+
+LoopCompleteStopper::~LoopCompleteStopper() {
+	cancel();
+}
+
+void LoopCompleteStopper::complete(int err) {
+	m_result = err;
+	m_running = false;
+}
+
+int LoopCompleteStopper::onTimer(zloop_t* loop,int timeid,void* arg) {
+	(void)loop;
+	(void)timeid;
+	LoopCompleteStopper* self = (LoopCompleteStopper*)arg;
+
+	if( self->m_running ) {
+		return 0;
+	} else {
+		zloop_timer_end(loop,self->m_tid);
+		self->m_tid = -1;
+		return -1;
+	}
+}
+
+void LoopCompleteStopper::cancel() {
+	if( m_tid != -1 ) {
+		zloop_timer_end(m_loop,m_tid);
+		m_tid = -1;
+		m_running = false;
+	}
 }
 
 // class ReadableHelper
@@ -106,20 +147,7 @@ int ReadableHelper::readAndInterrupt(zloop_t* loop,zsock_t* reader,void* arg) {
 	self->m_msg = zmsg_recv(reader);
 	zloop_reader_end(loop,reader);
 	self->m_sock = nullptr;
-	zsys_interrupted = 1;
-	return 0;
-}
-
-// class CompleteResultHelper
-
-CompleteResultHelper::CompleteResultHelper() :
-	m_result(-1)
-{
-}
-
-void CompleteResultHelper::onComplete(int err) {
-	m_result = err;
-	zsys_interrupted = 1;
+	return -1;
 }
 
 // class TaskRunner
@@ -162,6 +190,7 @@ int TaskRunner::onTimer() {
 // class SnapshotClientRepeater
 
 SnapshotClientRepeater::SnapshotClientRepeater(zloop_t* loop) :
+	m_loop(loop),
 	m_client(std::make_shared<SnapshotClient>(loop)),
 	m_limits(0),
 	m_count(0),
@@ -175,6 +204,7 @@ int SnapshotClientRepeater::start(size_t count,const std::shared_ptr<ISnapshotBu
 	m_success_count = 0;
 	m_builder = builder;
 	m_address = address;
+	m_stopper = std::make_shared<LoopCompleteStopper>(m_loop,1000);
 
 	return m_client->start(std::bind(&SnapshotClientRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address);
 }
@@ -187,7 +217,7 @@ void SnapshotClientRepeater::onComplete(int err) {
 	if( m_count < m_limits ) {
 		m_client->start(std::bind(&SnapshotClientRepeater::onComplete,this,std::placeholders::_1),m_builder,m_address);
 	} else {
-		zsys_interrupted = 1;
+		m_stopper->complete(0);
 	}
 }
 
@@ -218,6 +248,7 @@ int SnapshotClientParallelRepeater::start(size_t count,const std::shared_ptr<ISn
 			m_clients.push_back(client);
 		}
 	}
+	m_stopper = std::make_shared<LoopCompleteStopper>(m_loop,1000);
 	return 0;
 }
 
@@ -227,7 +258,7 @@ void SnapshotClientParallelRepeater::onComplete(int err) {
 		++m_success_count;
 	}
 	if( m_count >= m_limits ) {
-		zsys_interrupted = 1;
+		m_stopper->complete(0);
 	}
 }
 

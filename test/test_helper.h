@@ -9,10 +9,10 @@
 
 std::string newUUID();
 
-class LoopStoper {
+class LoopTimeoutStopper {
 public:
-	LoopStoper(zloop_t* loop,long timeout);
-	~LoopStoper();
+	LoopTimeoutStopper(zloop_t* loop,long timeout);
+	~LoopTimeoutStopper();
 
 	void cancel();
 private:
@@ -21,6 +21,31 @@ private:
 	zloop_t*	m_loop;
 	int			m_tid;
 };
+
+class LoopCompleteStopper {
+public:
+	LoopCompleteStopper(zloop_t*,long period);
+	~LoopCompleteStopper();
+	void complete(int err);
+	
+	inline int result() const {
+		return m_result;
+	}
+
+	inline bool running() const {
+		return m_running;
+	}
+
+	void cancel();
+private:
+	static int onTimer(zloop_t* loop,int timeid,void* arg);
+private:
+	zloop_t*						m_loop;
+	int								m_tid;
+	int								m_result;
+	bool							m_running;
+};
+
 
 class ReadableHelper {
 public:
@@ -43,18 +68,6 @@ private:
 	zloop_t*						m_loop;
 	zsock_t*						m_sock;
 	zmsg_t*							m_msg;
-};
-
-class CompleteResultHelper {
-public:
-	CompleteResultHelper();
-	void onComplete(int err);
-	
-	inline int result() const {
-		return m_result;
-	}
-private:
-	int								m_result;
 };
 
 class TaskRunner {
@@ -90,9 +103,19 @@ public:
 	inline size_t success_count() const {
 		return m_success_count;
 	}
+
+	inline bool running() const {
+		if( m_stopper ) {
+			return m_stopper->running();
+		} else {
+			return false;
+		}
+	}
 private:
 	void onComplete(int err);
 private:
+	zloop_t*									m_loop;
+	std::shared_ptr<LoopCompleteStopper>		m_stopper;
 	std::shared_ptr<SnapshotClient>				m_client;
 	std::shared_ptr<ISnapshotBuilder>			m_builder;
 	std::string									m_address;
@@ -115,10 +138,18 @@ public:
 	inline size_t success_count() const {
 		return m_success_count;
 	}
+	inline bool running() const {
+		if( m_stopper ) {
+			return m_stopper->running();
+		} else {
+			return false;
+		}
+	}
 private:
 	void onComplete(int err);
 private:
 	zloop_t*									m_loop;
+	std::shared_ptr<LoopCompleteStopper>		m_stopper;
 	std::list<std::shared_ptr<SnapshotClient>>	m_clients;
 	std::shared_ptr<ISnapshotBuilder>			m_builder;
 	std::string									m_address;
