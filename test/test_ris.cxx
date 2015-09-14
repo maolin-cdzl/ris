@@ -53,40 +53,64 @@ protected:
 	}
 };
 
-static void region_add_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
-	for(size_t i=0; i < count; ++i) {
+static void region_add_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count,uint32_t* version=nullptr) {
+	while( count > 1 ) {
 		auto svc = newUUID();
 		services.push_back(svc);
-		ASSERT_EQ(0,region->newService(svc,"Unexists"));
+		ASSERT_EQ(0,region->asyncNewService(svc,"Unexists"));
+		--count;
 	}
+	
+	auto svc = newUUID();
+	services.push_back(svc);
+	ASSERT_EQ(0,region->newService(svc,"Unexists",version));
 }
 
-static void region_rm_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
-	size_t i = 0;
-	while( i < count && !services.empty() ) {
+static void region_rm_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count,uint32_t* version=nullptr) {
+	while( count > 1 && !services.empty()  ) {
 		auto& svc = services.front();
-		ASSERT_EQ(0,region->rmService(svc));
+		ASSERT_EQ(0,region->asyncRmService(svc));
 		services.pop_front();
-		++i;
+		--count;
+	}
+
+	if( ! services.empty() ) {
+		auto& svc = services.front();
+		ASSERT_EQ(0,region->rmService(svc,version));
+		services.pop_front();
 	}
 }
 
-static void region_add_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
-	for(size_t i=0; i < count; ++i) {
+static void region_add_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count,uint32_t* version=nullptr) {
+	while( count > 1 ) {
 		auto pl = newUUID();
 		payloads.push_back(pl);
-		ASSERT_EQ(0,region->newPayload(pl));
+		ASSERT_EQ(0,region->asyncNewPayload(pl));
+		--count;
+	}
+	auto pl = newUUID();
+	payloads.push_back(pl);
+	ASSERT_EQ(0,region->newPayload(pl,version));
+}
+
+static void region_rm_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count,uint32_t* version=nullptr) {
+	while( count > 1 && !payloads.empty() ) {
+		auto& pl = payloads.front();
+		ASSERT_EQ(0,region->asyncRmPayload(pl));
+		payloads.pop_front();
+		--count;
+	}
+	if( ! payloads.empty() ) {
+		auto& pl = payloads.front();
+		ASSERT_EQ(0,region->rmPayload(pl,version));
+		payloads.pop_front();
 	}
 }
 
-static void region_rm_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
-	size_t i = 0;
-	while( i < count && !payloads.empty() ) {
-		auto& pl = payloads.front();
-		ASSERT_EQ(0,region->rmPayload(pl));
-		payloads.pop_front();
-		++i;
-	}
+static void get_tracker_region_version(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,uint32_t* version) {
+	RegionInfo reginfo;
+	ASSERT_EQ(1,tracker->getRegion(&reginfo,reg));
+	*version = reginfo.version;
 }
 
 static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& tracker,size_t region_count,size_t service_count,size_t payload_count) {
@@ -183,5 +207,42 @@ TEST_F(RISTest,BusyRegion) {
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
 	check_tracker_region(tracker,"test-001",services,payloads);
+	
+	uint32_t tracker_reg_version = 0;
+	get_tracker_region_version(tracker,"test-001",&tracker_reg_version);
+	std::cout << "Tracker record region version: " << tracker_reg_version << std::endl;
 }
 
+TEST_F(RISTest,TrackSpeed) {
+	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
+	auto region = std::make_shared<RegionSession>();
+	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
+
+	std::list<std::string> services;
+	std::list<std::string> payloads;
+
+	uint32_t region_version = 0;
+	region_add_services(region,services,100);
+	region_add_payloads(region,payloads,50000,&region_version);
+
+	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+
+	const ri_time_t tv_start = ri_time_now();
+	uint32_t tracker_reg_version = 0;
+	while( 1 ) {
+		get_tracker_region_version(tracker,"test-001",&tracker_reg_version);
+		if( tracker_reg_version == region_version) {
+			break;
+		}
+		usleep(10*1000);
+	}
+
+	std::cout << "Tracker used " << ri_time_now() - tv_start << " to track region" << std::endl;
+
+
+	sleep(1);
+	check_tracker_statistics(tracker,1,services.size(),payloads.size());
+	check_tracker_region(tracker,"test-001",services,payloads);
+}

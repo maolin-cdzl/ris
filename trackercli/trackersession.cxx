@@ -26,11 +26,8 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 			break;
 		}
 
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::HandShake hs;
-		if( -1 == zpb_send(m_req,hs) ) {
+		if( -1 == zpb_send(m_req,hs,true) ) {
 			LOG(ERROR) << "Error when sending HandShake to tracker";
 			break;
 		}
@@ -40,10 +37,6 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 			break;
 		}
 
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
-			break;
-		}
 		if( -1 == zpb_recv(hs,m_req) ) {
 			LOG(ERROR) << "Error when recv HandShake from req";
 			break;
@@ -69,16 +62,13 @@ int TrackerSession::getStatistics(RouteInfoStatistics* statistics) {
 		return -1;
 
 	do {
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::StatisticsReq req;
-		if( -1 == zpb_send(m_req,req)  )
+		if( -1 == zpb_send(m_req,req,true)  ) {
+			LOG(ERROR) << "Error when send request to tracker";
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
-			break;
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
+		}
+		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
 		tracker::api::StatisticsRep rep;
@@ -99,17 +89,14 @@ int TrackerSession::getRegion(RegionInfo* region,const std::string& uuid) {
 		return -1;
 
 	do {
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::RegionReq req;
 		req.set_uuid(uuid);
-		if( -1 == zpb_send(m_req,req)  )
+		if( -1 == zpb_send(m_req,req,true)  ) {
+			LOG(ERROR) << "Error when send request to tracker";
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
-			break;
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
+		}
+		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
 		tracker::api::RegionRep rep;
@@ -140,18 +127,15 @@ int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
 	if( nullptr == m_req )
 		return -1;
 	do {
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::ServiceRouteReq req;
 		req.set_svc(svc);
 
-		if( -1 == zpb_send(m_req,req) )
+		if( -1 == zpb_send(m_req,req,true) ) {
+			LOG(ERROR) << "Error when send request to tracker";
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
-			break;
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
+		}
+		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
 		tracker::api::ServiceRouteRep rep;
@@ -177,18 +161,15 @@ int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload
 	if( nullptr == m_req )
 		return -1;
 	do {
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::PayloadRouteReq req;
 		req.set_payload(payload);
 
-		if( -1 == zpb_send(m_req,req) )
+		if( -1 == zpb_send(m_req,req,true) ) {
+			LOG(ERROR) << "Error when send request to tracker";
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
-			break;
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
+		}
+		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
 		tracker::api::PayloadRouteRep rep;
@@ -214,20 +195,17 @@ int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::li
 	if( nullptr == m_req )
 		return -1;
 	do {
-		if( -1 == ZPrepend::send_delimiter(m_req) ) {
-			break;
-		}	
 		tracker::api::PayloadsRouteReq req;
 		for(auto it=payloads.begin(); it != payloads.end(); ++it) {
 			req.add_payloads(*it);
 		}
 
-		if( -1 == zpb_send(m_req,req) )
+		if( -1 == zpb_send(m_req,req,true) ) {
+			LOG(ERROR) << "Error when send request to tracker";
 			break;
-		if( zmq_wait_readable(m_req,1000) <= 0 )
-			break;
-		if( -1 == ZPrepend::drop_delimiter(m_req) ) {
-			DLOG(ERROR) << "Error when drop delimiter from req";
+		}
+		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
 		tracker::api::PayloadsRouteRep rep;
