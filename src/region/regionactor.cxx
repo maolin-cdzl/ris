@@ -188,6 +188,7 @@ int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::p
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
+		result.set_version(m_table->version());
 		zdisp.sendback(result);
 	}
 	return 0;
@@ -202,6 +203,7 @@ int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
+		result.set_version(m_table->version());
 		zdisp.sendback(result);
 	}
 	return 0;
@@ -215,6 +217,7 @@ int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::p
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
+		result.set_version(m_table->version());
 		zdisp.sendback(result);
 	}
 	return 0;
@@ -228,6 +231,7 @@ int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 	if( p->rep() ) {
 		region::api::Result result;
 		result.set_result(err);
+		result.set_version(m_table->version());
 		zdisp.sendback(result);
 	}
 	return 0;

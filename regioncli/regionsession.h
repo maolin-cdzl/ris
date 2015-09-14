@@ -14,10 +14,13 @@ public:
 	// if timeout is 0,it will not wait response from region actor
 	int newPayload(const std::string& uuid,uint64_t timeout=0);
 
+	// if timeout is 0,it will not wait response from region actor
 	int rmPayload(const std::string& uuid,uint64_t timeout=0);
 
+	// if timeout is 0,it will not wait response from region actor
 	int newService(const std::string& name,const std::string& address,uint64_t timeout=0);
 
+	// if timeout is 0,it will not wait response from region actor
 	int rmService(const std::string& name,uint64_t timeout=0);
 private:
 	zsock_t*			m_req;

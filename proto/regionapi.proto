@@ -5,7 +5,8 @@ message HandShake {
 
 message Result {
 	required int32			result = 1;
-	optional string			what = 2;
+	required uint32			version = 2;
+	optional string			what = 3;
 }
 
 message AddService {
