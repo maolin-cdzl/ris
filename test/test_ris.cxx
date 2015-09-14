@@ -54,7 +54,7 @@ protected:
 	}
 };
 
-static void region_push_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
+static void region_add_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
 	for(size_t i=0; i < count; ++i) {
 		auto svc = newUUID();
 		services.push_back(svc);
@@ -62,11 +62,31 @@ static void region_push_services(const std::shared_ptr<RegionSession>& region,st
 	}
 }
 
-static void region_push_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
+static void region_rm_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
+	size_t i = 0;
+	while( i < count && !services.empty() ) {
+		auto& svc = services.front();
+		ASSERT_EQ(0,region->rmService(svc));
+		services.pop_front();
+		++i;
+	}
+}
+
+static void region_add_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
 	for(size_t i=0; i < count; ++i) {
 		auto pl = newUUID();
 		payloads.push_back(pl);
 		ASSERT_EQ(0,region->newPayload(pl));
+	}
+}
+
+static void region_rm_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
+	size_t i = 0;
+	while( i < count && !payloads.empty() ) {
+		auto& pl = payloads.front();
+		ASSERT_EQ(0,region->rmPayload(pl));
+		payloads.pop_front();
+		++i;
 	}
 }
 
@@ -76,6 +96,8 @@ static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& trac
 	ASSERT_EQ(region_count,stat.region_size);
 	ASSERT_EQ(service_count,stat.service_size);
 	ASSERT_EQ(payload_count,stat.payload_size);
+
+	std::cout << "Checked tracker with " << region_count << " regions, " << service_count << " services, " << payload_count << " payloads" << std::endl;
 }
 
 static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,const std::list<std::string>& services,const std::list<std::string>& payloads) {
@@ -93,6 +115,8 @@ static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,
 		ASSERT_EQ(1,tracker->getPayloadRouteInfo(&ri,*it));
 		ASSERT_EQ(reginfo.uuid,ri.region);
 	}
+
+	std::cout << "Checked region " << reg << " with " << services.size() << " services, " << payloads.size() << " payloads" << std::endl;
 }
 
 TEST_F(RISTest,Functional) {
@@ -105,8 +129,8 @@ TEST_F(RISTest,Functional) {
 	std::list<std::string> services;
 	std::list<std::string> payloads;
 
-	region_push_services(region,services,10);
-	region_push_payloads(region,payloads,100);
+	region_add_services(region,services,10);
+	region_add_payloads(region,payloads,100);
 
 	sleep(10);
 
@@ -115,6 +139,50 @@ TEST_F(RISTest,Functional) {
 
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
 	check_tracker_region(tracker,"test-001",services,payloads);
+
+	region_add_payloads(region,payloads,100);
+	sleep(1);
+	check_tracker_statistics(tracker,1,services.size(),payloads.size());
+	check_tracker_region(tracker,"test-001",services,payloads);
+
+	region_rm_services(region,services,5);
+	region_rm_payloads(region,payloads,50);
+	region_add_services(region,services,10);
+	region_add_payloads(region,payloads,100);
+	sleep(1);
+	check_tracker_statistics(tracker,1,services.size(),payloads.size());
+	check_tracker_region(tracker,"test-001",services,payloads);
+	
 }
 
+TEST_F(RISTest,BusyRegion) {
+	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
+	auto region = std::make_shared<RegionSession>();
+	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
+
+	std::list<std::string> services;
+	std::list<std::string> payloads;
+
+	region_add_services(region,services,100);
+	region_add_payloads(region,payloads,10000);
+
+	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
+
+	const ri_time_t tv_end = ri_time_now() + 10000;
+	while( ri_time_now() < tv_end ) {
+		usleep(10);
+
+		region_rm_services(region,services,9);
+		region_add_services(region,services,10);
+		region_rm_payloads(region,payloads,99);
+		region_add_payloads(region,payloads,100);
+	}
+
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+
+	sleep(1);
+	check_tracker_statistics(tracker,1,services.size(),payloads.size());
+	check_tracker_region(tracker,"test-001",services,payloads);
+}
 
