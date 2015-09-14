@@ -110,6 +110,7 @@ void RITrackerActor::run(zsock_t* pipe) {
 			break;
 		}
 
+		zsock_signal(pipe,0);
 		while( m_running ) {
 			if(  0 == zloop_start(m_loop) ) {
 				LOG(INFO) << "RITrackerActor interrupted";
@@ -148,6 +149,7 @@ int RITrackerActor::onPipeReadable(zsock_t* pipe) {
 	if( msg ) {
 		zmsg_destroy(&msg);
 	}
+	m_running = false;
 	return -1;
 }
 

@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "tracker/regionfactory.h"
 
 
@@ -14,6 +15,7 @@ int RegionFactory::start(const std::function<void(const ri_uuid_t&,const std::sh
 	if( m_client )
 		return -1;
 
+	LOG(INFO) << "RegionFactory try sync to region: " << region.id << "(" << region.version << ")";
 	do {
 		m_product = std::make_shared<RegionProduct>();
 		m_client = std::make_shared<SnapshotClient>(m_loop);

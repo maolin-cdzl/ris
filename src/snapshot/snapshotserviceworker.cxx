@@ -27,7 +27,6 @@ size_t SnapshotServiceWorker::sendItems(ZPrepend* prepend,zsock_t* sock,size_t c
 			LOG(ERROR) << "SnapshotServiceWorker send snapshot item error: " << err;
 			return 0;
 		}
-		DLOG(INFO) << "SnapshotServiceWorker send snapshot item";
 		++c;
 	}
 

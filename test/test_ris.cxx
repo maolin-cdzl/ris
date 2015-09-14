@@ -52,58 +52,35 @@ protected:
 		tracker_stop();
 		region_stop();
 	}
-
-	static void SetUpTestCase() {
-		for(size_t i=0; i < 10; ++i) {
-			auto svc = newUUID();
-			services.push_back(svc);
-		}
-
-		for(size_t i=0; i < 100; ++i) {
-			auto pl = newUUID();
-			payloads.push_back(pl);
-		}
-	}
-
-	static void TearDownTestCase() {
-	}
-
-	static std::list<std::string> services;
-	static std::list<std::string> payloads;
 };
 
-std::list<std::string> RISTest::services;
-std::list<std::string> RISTest::payloads;
-
-TEST_F(RISTest,Functional) {
-	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
-	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
-
-	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
-
-
-	for(auto it=services.begin(); it != services.end(); ++it) {
-		region->newService(*it,"Unexists");
+static void region_push_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count) {
+	for(size_t i=0; i < count; ++i) {
+		auto svc = newUUID();
+		services.push_back(svc);
+		ASSERT_EQ(0,region->newService(svc,"Unexists"));
 	}
+}
 
-	for(auto it=payloads.begin(); it != payloads.end(); ++it) {
-		region->newPayload(*it);
+static void region_push_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count) {
+	for(size_t i=0; i < count; ++i) {
+		auto pl = newUUID();
+		payloads.push_back(pl);
+		ASSERT_EQ(0,region->newPayload(pl));
 	}
+}
 
-	usleep(10);
-
-	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
-
+static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& tracker,size_t region_count,size_t service_count,size_t payload_count) {
 	RouteInfoStatistics stat;
 	ASSERT_EQ(1,tracker->getStatistics(&stat));
-	ASSERT_EQ(size_t(1),stat.region_size);
-	ASSERT_EQ(services.size(),stat.service_size);
-	ASSERT_EQ(payloads.size(),stat.payload_size);
+	ASSERT_EQ(region_count,stat.region_size);
+	ASSERT_EQ(service_count,stat.service_size);
+	ASSERT_EQ(payload_count,stat.payload_size);
+}
 
+static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,const std::list<std::string>& services,const std::list<std::string>& payloads) {
 	RegionInfo reginfo;
-	ASSERT_EQ(1,tracker->getRegion(&reginfo,"test-001"));
+	ASSERT_EQ(1,tracker->getRegion(&reginfo,reg));
 
 	for(auto it=services.begin(); it != services.end(); ++it) {
 		RouteInfo ri;
@@ -116,6 +93,28 @@ TEST_F(RISTest,Functional) {
 		ASSERT_EQ(1,tracker->getPayloadRouteInfo(&ri,*it));
 		ASSERT_EQ(reginfo.uuid,ri.region);
 	}
+}
+
+TEST_F(RISTest,Functional) {
+	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
+	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
+
+	auto region = std::make_shared<RegionSession>();
+	ASSERT_EQ(0,region->connect("inproc://region-test-001",500));
+
+	std::list<std::string> services;
+	std::list<std::string> payloads;
+
+	region_push_services(region,services,10);
+	region_push_payloads(region,payloads,100);
+
+	sleep(10);
+
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+
+	check_tracker_statistics(tracker,1,services.size(),payloads.size());
+	check_tracker_region(tracker,"test-001",services,payloads);
 }
 
 
