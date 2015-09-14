@@ -106,7 +106,10 @@ TEST(PubSub,Functional) {
 	ASSERT_EQ(0,sub->start(PUB_ADDRESS,ob));
 	ASSERT_EQ(0,runner->start(1));
 
-	ASSERT_EQ(-1,zloop_start(g_loop));
+	while( runner->running() ) {
+		if(0 == zloop_start(g_loop))
+			break;
+	}
 }
 
 

@@ -80,11 +80,16 @@ public:
 
 	int start(uint64_t interval);
 	void stop();
+
+	inline bool running() const {
+		return m_running;
+	}
 private:
 	int onTimer();
 private:
 	std::list<task_t>						m_tasks;
 	ZLoopTimer								m_timer;
+	bool									m_running;
 };
 
 
