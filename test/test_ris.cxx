@@ -16,7 +16,6 @@ static const char* REGION_CONFIG =
 "	api_address = \"inproc://region-test-001\";\n"
 "	bus_address = \"tcp://127.0.0.1:6600\";\n"
 "	pub_address = \"tcp://127.0.0.1:2015\";\n"
-"	bind_pub=True\n"
 "\n"
 "	snapshot:\n"
 "	{\n"
@@ -32,7 +31,7 @@ static const char* TRACKER_CONFIG =
 "{\n"
 "	idc = \"test-idc\";\n"
 "	api_address = \"inproc://tracker-test-001\";\n"
-"	pub_address = \"tcp://127.0.0.1:2015\";\n"
+"	pub_address = \"tcp://127.0.0.1:2016\";\n"
 "	factory_timeout = 800;\n"
 "	snapshot:\n"
 "	{\n"
@@ -164,7 +163,7 @@ TEST_F(RISTest,BusyRegion) {
 	std::list<std::string> payloads;
 
 	region_add_services(region,services,100);
-	region_add_payloads(region,payloads,10000);
+	region_add_payloads(region,payloads,50000);
 
 	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
 
@@ -174,7 +173,7 @@ TEST_F(RISTest,BusyRegion) {
 
 		region_rm_services(region,services,9);
 		region_add_services(region,services,10);
-		region_rm_payloads(region,payloads,99);
+		region_rm_payloads(region,payloads,90);
 		region_add_payloads(region,payloads,100);
 	}
 

@@ -301,8 +301,27 @@ target_link_libraries(regioncli_static LINK_PUBLIC
 )
 
 # broker
-add_executable(ribroker src/broker/ribroker.cxx)
-target_link_libraries(ribroker PRIVATE zmq gflags)
+add_executable(ribroker 
+	src/broker/ribroker.cxx
+	src/broker/ribroker_main.cxx
+)
+target_link_libraries(ribroker PRIVATE zmq gflags glog)
+
+add_library(ribrokeractor STATIC
+	src/broker/ribroker.cxx
+	src/broker/ribrokeractor.cxx
+	include/broker/ribrokeractor.h
+)
+
+target_include_directories(ribrokeractor 
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_link_libraries(ribrokeractor PUBLIC
+	zmq
+	gflags
+	glog
+)
 
 # test project
 include_directories(googletest/googletest/include)
