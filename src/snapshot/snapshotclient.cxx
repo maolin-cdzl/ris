@@ -26,6 +26,14 @@ int SnapshotClient::start(const std::function<void(int)>& completed,const std::s
 		m_uuid = new_uuid();
 		sock = zsock_new(ZMQ_DEALER);
 		CHECK_NOTNULL(sock);
+		zsock_set_identity(sock,new_uuid().c_str());
+#ifndef NDEBUG
+		{
+			char* identity = zsock_identity(sock);
+			DLOG(INFO) << "SnapshotClient socket identity: " << identity;
+			free(identity);
+		}
+#endif
 		if( -1 == zsock_connect(sock,"%s",address.c_str()) ) {
 			LOG(ERROR) << "SnapshotClient can not connect to: " << address;
 			break;

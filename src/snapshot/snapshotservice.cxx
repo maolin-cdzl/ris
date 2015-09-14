@@ -52,17 +52,18 @@ void SnapshotService::actorAdapter(zsock_t* pipe,void* arg) {
 
 void SnapshotService::run(zsock_t* pipe) {
 	m_running = true;
-	zsock_signal(pipe,0);
 
 	zloop_t* loop = nullptr;
 	zsock_t* router = nullptr;
 	
+	LOG(INFO) << "SnapshotService starting...";
 	do {
 		loop = zloop_new();
 		CHECK_NOTNULL(loop);
 
 		router = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(router);
+		zsock_set_identity(router,new_uuid().c_str());
 
 		if( (size_t) zsock_sndhwm(router) < m_capacity * m_period_count * 2 ) {
 			LOG(INFO) << "Set router socket send hwm from " << zsock_sndhwm(router) << " to " << m_capacity * m_period_count * 2;
@@ -92,8 +93,11 @@ void SnapshotService::run(zsock_t* pipe) {
 			break;
 		}
 
+		LOG(INFO) << "SnapshotService started";
+		zsock_signal(pipe,0);
 		while( m_running ) {
 			if( 0 == zloop_start(loop) ) {
+				LOG(INFO) << "ZMQ interrupted";
 				m_running = false;
 				break;
 			}
@@ -107,6 +111,7 @@ void SnapshotService::run(zsock_t* pipe) {
 	if( loop ) {
 		zloop_destroy(&loop);
 	}
+	LOG(INFO) << "SnapshotService shutdown";
 }
 
 std::shared_ptr<Dispatcher> SnapshotService::make_dispatcher(ZDispatcher& zdisp) {
