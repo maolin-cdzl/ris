@@ -7,7 +7,7 @@ RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop
 	m_loop(loop),
 	m_timer_reg(loop),
 	m_timer_repeat(loop),
-	m_sec_repub_region(5),
+	m_sec_repub_region(1),
 	m_sec_repub_service(60),
 	m_sec_repub_payload(60)
 {
