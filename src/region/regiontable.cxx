@@ -20,6 +20,7 @@ RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop
 }
 
 RIRegionTable::~RIRegionTable() {
+	stop();
 }
 
 int RIRegionTable::addService(const std::string& name,const std::string& address) {
@@ -176,10 +177,13 @@ int RIRegionTable::start(const std::shared_ptr<IRIObserver>& ob) {
 }
 
 void RIRegionTable::stop() {
-	m_timer_reg.stop();
-	m_timer_repeat.stop();
-	if( m_observer ) {
-		m_observer->onRmRegion(m_region.id);
+	if( m_timer_reg.isActive() ) {
+		CHECK( m_timer_repeat.isActive());
+		m_timer_reg.stop();
+		m_timer_repeat.stop();
+		if( m_observer ) {
+			m_observer->onRmRegion(m_region.id);
+		}
 	}
 }
 
