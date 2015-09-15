@@ -8,76 +8,84 @@
 #include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
 
-int g_standalone = 0;
-static RIRegionActor* g_actor = nullptr;
 
-extern "C" REGIONAPI_EXPORT int region_start_str(const char* confstr,int standalone) {
-	if( confstr == nullptr )
-		return -1;
+extern "C" REGIONAPI_EXPORT void* region_new_str(const char* confstr,int initenv) {
+	RIRegionActor* region = nullptr;
 
-	g_standalone = standalone;
-	if( g_standalone ) {
-		google::InitGoogleLogging("region");
-		FLAGS_log_dir = "./log";
-		zsys_init();
+	do {
+		if( confstr == nullptr )
+			break;
+
+		if( initenv ) {
+			google::InitGoogleLogging("region");
+			FLAGS_log_dir = "./log";
+			zsys_init();
+		}
+
+		auto ctx = RegionCtx::loadStr(confstr);
+		if( nullptr == ctx )
+			break;
+
+		region = new RIRegionActor();
+		if( -1 == region->start(ctx) ) {
+			break;
+		}
+
+		return region;
+	} while(0);
+
+	if( region ) {
+		delete region;
 	}
+	return nullptr;
+}
 
-	auto ctx = RegionCtx::loadStr(confstr);
-	if( nullptr == ctx )
-		return -1;
+extern "C" REGIONAPI_EXPORT void* region_new(const char* confile,int initenv) {
+	RIRegionActor* region = nullptr;
 
-	g_actor = new RIRegionActor();
-	if( -1 == g_actor->start(ctx) ) {
-		delete g_actor;
-		g_actor = nullptr;
-		return -1;
-	} else {
-		return 0;
+	do {
+		if( confile == nullptr )
+			break;
+
+		if( initenv ) {
+			google::InitGoogleLogging("region");
+			FLAGS_log_dir = "./log";
+			zsys_init();
+		}
+
+		auto ctx = RegionCtx::loadFile(confile);
+		if( nullptr == ctx )
+			break;
+
+		region = new RIRegionActor();
+		if( -1 == region->start(ctx) ) {
+			break;
+		}
+
+		return region;
+	} while(0);
+
+	if( region ) {
+		delete region;
+	}
+	return nullptr;
+}
+
+
+extern "C" REGIONAPI_EXPORT void region_destroy(void* p) {
+	RIRegionActor* region = (RIRegionActor*)p;
+	if( region ) {
+		region->stop();
+		delete region;
 	}
 }
 
-extern "C" REGIONAPI_EXPORT int region_start(const char* confile,int standalone) {
-	if( confile == nullptr )
-		return -1;
-
-	g_standalone = standalone;
-	if( g_standalone ) {
-		google::InitGoogleLogging("region");
-		FLAGS_log_dir = "./log";
-		zsys_init();
-	}
-
-	auto ctx = RegionCtx::loadFile(confile);
-	if( nullptr == ctx )
-		return -1;
-
-	g_actor = new RIRegionActor();
-	if( -1 == g_actor->start(ctx) ) {
-		delete g_actor;
-		g_actor = nullptr;
-		return -1;
-	} else {
-		return 0;
-	}
-}
-
-
-extern "C" REGIONAPI_EXPORT int region_stop() {
-	if( g_actor ) {
-		g_actor->stop();
-		delete g_actor;
-		g_actor = nullptr;
-	}
-
-	if( g_standalone ) {
-		zsys_shutdown();
-	}
-	return 0;
-}
-
-extern "C" REGIONAPI_EXPORT int region_wait() {
-	if( g_actor ) {
-		return g_actor->wait();
+extern "C" REGIONAPI_EXPORT int region_wait(void* p) {
+	RIRegionActor* region = (RIRegionActor*)p;
+	if( region ) {
+		int state = region->wait();
+		delete region;
+		return state;
 	} else {
 		return -1;
 	}

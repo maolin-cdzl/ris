@@ -20,14 +20,14 @@
 extern "C" {
 #endif
 
-TRACKERAPI_EXPORT int tracker_start(const char* confile);
+TRACKERAPI_EXPORT void* tracker_new(const char* confile);
 
-TRACKERAPI_EXPORT int tracker_start_str(const char* confstr);
+TRACKERAPI_EXPORT void* tracker_new_str(const char* confstr);
 
-TRACKERAPI_EXPORT int tracker_stop();
+TRACKERAPI_EXPORT void tracker_destroy(void* p);
 
-// wait tracker shutdown,it will block caller
-TRACKERAPI_EXPORT int tracker_wait();
+// wait and destroy tracker ,it will block caller
+TRACKERAPI_EXPORT int tracker_wait(void* p);
 
 #ifdef __cplusplus
 }

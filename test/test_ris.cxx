@@ -46,11 +46,17 @@ static const char* TRACKER_CONFIG =
 class RISTest : public testing::Test {
 protected:
 	virtual void SetUp() {
+		tracker_inst = tracker_new_str(TRACKER_CONFIG);
+		region_inst = region_new_str(REGION_CONFIG,0);
 	}
 	virtual void TearDown() {
-		tracker_stop();
-		region_stop();
+		tracker_destroy(tracker_inst);
+		region_destroy(region_inst);
 	}
+
+private:
+	void* tracker_inst;
+	void* region_inst;
 };
 
 static void region_add_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count,uint32_t* version=nullptr) {
@@ -109,8 +115,11 @@ static void region_rm_payloads(const std::shared_ptr<RegionSession>& region,std:
 
 static void get_tracker_region_version(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,uint32_t* version) {
 	RegionInfo reginfo;
-	ASSERT_EQ(1,tracker->getRegion(&reginfo,reg));
-	*version = reginfo.version;
+	if( 1 == tracker->getRegion(&reginfo,reg)) {
+		*version = reginfo.version;
+	} else {
+		*version = 0;
+	}
 }
 
 static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& tracker,size_t region_count,size_t service_count,size_t payload_count) {
@@ -143,9 +152,6 @@ static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,
 }
 
 TEST_F(RISTest,Functional) {
-	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
-	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
-
 	auto region = std::make_shared<RegionSession>();
 	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
 
@@ -179,7 +185,6 @@ TEST_F(RISTest,Functional) {
 }
 
 TEST_F(RISTest,BusyRegion) {
-	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
 	auto region = std::make_shared<RegionSession>();
 	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
 
@@ -188,8 +193,6 @@ TEST_F(RISTest,BusyRegion) {
 
 	region_add_services(region,services,100);
 	region_add_payloads(region,payloads,50000);
-
-	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
 
 	const ri_time_t tv_end = ri_time_now() + 10000;
 	while( ri_time_now() < tv_end ) {
@@ -214,7 +217,6 @@ TEST_F(RISTest,BusyRegion) {
 }
 
 TEST_F(RISTest,TrackSpeed) {
-	ASSERT_EQ(0,region_start_str(REGION_CONFIG,0));
 	auto region = std::make_shared<RegionSession>();
 	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
 
@@ -225,7 +227,6 @@ TEST_F(RISTest,TrackSpeed) {
 	region_add_services(region,services,100);
 	region_add_payloads(region,payloads,50000,&region_version);
 
-	ASSERT_EQ(0,tracker_start_str(TRACKER_CONFIG));
 	auto tracker = std::make_shared<TrackerSession>();
 	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
 

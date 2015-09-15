@@ -14,11 +14,10 @@ int main(int argc,char* argv[]) {
 	}
 	google::InitGoogleLogging(argv[0]);
 	zsys_init();
-	int result = tracker_start(FLAGS_config_file.c_str());
-	if( -1 == result )
-		return -1;
+	void* tracker = tracker_new(FLAGS_config_file.c_str());
+	CHECK_NOTNULL(tracker);
 
-	tracker_wait();
+	tracker_wait(tracker);
 	zsys_shutdown();
 	return 0;
 }

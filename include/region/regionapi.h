@@ -21,14 +21,14 @@ extern "C" {
 #endif
 
 
-REGIONAPI_EXPORT int region_start(const char* confile,int standalone);
+REGIONAPI_EXPORT void* region_new(const char* confile,int initenv);
 
-REGIONAPI_EXPORT int region_start_str(const char* confstr,int standalone);
+REGIONAPI_EXPORT void* region_new_str(const char* confstr,int initenv);
 
-REGIONAPI_EXPORT int region_stop();
+REGIONAPI_EXPORT void region_destroy(void* p);
 
-// wait tracker shutdown,it will block caller
-REGIONAPI_EXPORT int region_wait();
+// wait and destroy region,it will block caller
+REGIONAPI_EXPORT int region_wait(void* p);
 
 #ifdef __cplusplus
 }

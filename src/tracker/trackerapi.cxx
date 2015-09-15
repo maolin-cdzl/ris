@@ -4,58 +4,68 @@
 #include "tracker/trackerapi.h"
 #include "tracker/trackeractor.h"
 
-static RITrackerActor* g_actor = nullptr;
 
-extern "C" TRACKERAPI_EXPORT int tracker_start(const char* confile) {
-	if( confile == nullptr )
-		return -1;
+extern "C" TRACKERAPI_EXPORT void* tracker_new(const char* confile) {
+	RITrackerActor* tracker = nullptr;
+	do {
+		if( confile == nullptr )
+			break;
 
-	auto ctx = TrackerCtx::loadFile(confile);
-	if( nullptr == ctx )
-		return -1;
+		auto ctx = TrackerCtx::loadFile(confile);
+		if( nullptr == ctx )
+			break;
 
-	g_actor = new RITrackerActor();
-	if( -1 == g_actor->start(ctx) ) {
-		delete g_actor;
-		g_actor = nullptr;
-		return -1;
-	} else {
-		return 0;
+		tracker = new RITrackerActor();
+		if( -1 == tracker->start(ctx) ) {
+			break;
+		}
+		return tracker;
+	} while(0);
+
+	if( tracker ) {
+		delete tracker;
+	}
+	return nullptr;
+}
+
+extern "C" TRACKERAPI_EXPORT void* tracker_new_str(const char* confstr) {
+	RITrackerActor* tracker = nullptr;
+	do {
+		if( confstr == nullptr )
+			break;
+
+		auto ctx = TrackerCtx::loadStr(confstr);
+		if( nullptr == ctx )
+			break;
+
+		tracker = new RITrackerActor();
+		if( -1 == tracker->start(ctx) ) {
+			break;
+		}
+		return tracker;
+	} while(0);
+
+	if( tracker ) {
+		delete tracker;
+	}
+	return nullptr;
+}
+
+extern "C" TRACKERAPI_EXPORT void tracker_destroy(void* p) {
+	RITrackerActor* tracker = (RITrackerActor*)p;
+	if( tracker ) {
+		tracker->stop();
+		delete tracker;
 	}
 }
 
-extern "C" TRACKERAPI_EXPORT int tracker_start_str(const char* confstr) {
-	if( confstr == nullptr )
-		return -1;
 
-	auto ctx = TrackerCtx::loadStr(confstr);
-	if( nullptr == ctx )
-		return -1;
-
-	g_actor = new RITrackerActor();
-	if( -1 == g_actor->start(ctx) ) {
-		delete g_actor;
-		g_actor = nullptr;
-		return -1;
-	} else {
-		return 0;
-	}
-}
-
-extern "C" TRACKERAPI_EXPORT int tracker_stop() {
-	if( g_actor ) {
-		g_actor->stop();
-		delete g_actor;
-		g_actor = nullptr;
-	}
-
-	return 0;
-}
-
-
-extern "C" TRACKERAPI_EXPORT int tracker_wait() {
-	if( g_actor ) {
-		return g_actor->wait();
+extern "C" TRACKERAPI_EXPORT int tracker_wait(void* p) {
+	RITrackerActor* tracker = (RITrackerActor*)p;
+	if( tracker ) {
+		int state = tracker->wait();
+		delete tracker;
+		return state;
 	} else {
 		return -1;
 	}
