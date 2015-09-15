@@ -102,6 +102,14 @@ protected:
 		m_regions.push_back(region);
 	}
 
+	void destroy_last_region() {
+		auto it = std::prev(m_regions.end());
+		RegionInstance region = *it;
+		m_regions.erase(it);
+	
+		region_destroy(region.instance);
+	}
+
 	void create_tracker() {
 		TrackerInstance tracker;
 		std::stringstream ss;
@@ -377,4 +385,45 @@ TEST_F(RISTest,RobinService) {
 		addrs.push_back(ri.address);
 	}
 
+}
+
+TEST_F(RISTest,RegionOffline) {
+	static const size_t REGION_COUNT = 2;
+	static const size_t REGION_SERVICE_COUNT = 100;
+	static const size_t REGION_PAYLOAD_COUNT = 500;
+
+	size_t service_count = 0;
+	size_t payload_count = 0;
+	create_tracker();
+
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		create_region();
+	}
+
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		auto region = std::make_shared<RegionSession>();
+		ASSERT_EQ(0,region->connect(getRegion(i).api_address));
+
+		std::list<std::string> services;
+		std::list<std::string> payloads;
+
+		region_add_services(region,services,REGION_SERVICE_COUNT);
+		region_add_payloads(region,payloads,REGION_PAYLOAD_COUNT);
+		service_count += REGION_SERVICE_COUNT;
+		payload_count += REGION_PAYLOAD_COUNT;
+	}
+
+
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+
+	sleep(6);
+	check_tracker_statistics(tracker,REGION_COUNT,service_count,payload_count);
+
+	destroy_last_region();
+	service_count -= REGION_SERVICE_COUNT;
+	payload_count -= REGION_PAYLOAD_COUNT;
+	sleep(1);
+
+	check_tracker_statistics(tracker,REGION_COUNT - 1,service_count,payload_count);
 }
