@@ -217,7 +217,7 @@ static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& trac
 	ASSERT_EQ(service_count,stat.service_size);
 	ASSERT_EQ(payload_count,stat.payload_size);
 
-	std::cout << "Checked tracker with " << region_count << " regions, " << service_count << " services, " << payload_count << " payloads" << std::endl;
+//	std::cout << "Checked tracker with " << region_count << " regions, " << service_count << " services, " << payload_count << " payloads" << std::endl;
 }
 
 static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,const std::list<std::string>& services,const std::list<std::string>& payloads) {
@@ -236,7 +236,7 @@ static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,
 		ASSERT_EQ(reginfo.uuid,ri.region);
 	}
 
-	std::cout << "Checked region " << reg << " with " << services.size() << " services, " << payloads.size() << " payloads" << std::endl;
+//	std::cout << "Checked region " << reg << " with " << services.size() << " services, " << payloads.size() << " payloads" << std::endl;
 }
 
 TEST_F(RISTest,Functional) {
@@ -305,39 +305,76 @@ TEST_F(RISTest,BusyRegion) {
 	
 	uint32_t tracker_reg_version = 0;
 	get_tracker_region_version(tracker,getRegion(0).name,&tracker_reg_version);
-	std::cout << "Tracker record region version: " << tracker_reg_version << std::endl;
+//	std::cout << "Tracker record region version: " << tracker_reg_version << std::endl;
 }
 
-TEST_F(RISTest,TrackSpeed) {
+TEST_F(RISTest,MultiRegion) {
+	static const size_t REGION_COUNT = 3;
+	size_t service_count = 0;
+	size_t payload_count = 0;
 	create_tracker();
-	create_region();
-	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect(getRegion(0).api_address));
 
-	std::list<std::string> services;
-	std::list<std::string> payloads;
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		create_region();
+	}
 
-	uint32_t region_version = 0;
-	region_add_services(region,services,100);
-	region_add_payloads(region,payloads,50000,&region_version);
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		auto region = std::make_shared<RegionSession>();
+		ASSERT_EQ(0,region->connect(getRegion(i).api_address));
+
+		std::list<std::string> services;
+		std::list<std::string> payloads;
+
+		region_add_services(region,services,100);
+		region_add_payloads(region,payloads,50000);
+		service_count += 100;
+		payload_count += 50000;
+	}
+
 
 	auto tracker = std::make_shared<TrackerSession>();
 	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
 
-	const ri_time_t tv_start = ri_time_now();
-	uint32_t tracker_reg_version = 0;
-	while( 1 ) {
-		get_tracker_region_version(tracker,getRegion(0).name,&tracker_reg_version);
-		if( tracker_reg_version == region_version) {
-			break;
-		}
-		usleep(10*1000);
+
+	sleep(6);
+	check_tracker_statistics(tracker,REGION_COUNT,service_count,payload_count);
+}
+
+TEST_F(RISTest,RobinService) {
+	static const size_t REGION_COUNT = 10;
+	create_tracker();
+
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		create_region();
 	}
 
-	std::cout << "Tracker used " << ri_time_now() - tv_start << " to track region" << std::endl;
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		auto region = std::make_shared<RegionSession>();
+		ASSERT_EQ(0,region->connect(getRegion(i).api_address));
+
+		std::list<std::string> services;
+		std::list<std::string> payloads;
+
+		region_add_payloads(region,payloads,500);
+
+		std::stringstream ss;
+		ss << "address-" << i;
+		region->asyncNewService("test-service",ss.str());
+	}
 
 
-	sleep(1);
-	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,getRegion(0).name,services,payloads);
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+
+	sleep(6);
+
+	std::list<std::string> addrs;
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		RouteInfo ri;
+		ASSERT_EQ(1,tracker->getServiceRouteInfo(&ri,"test-service"));
+//		std::cout << ri.address << std::endl;
+		ASSERT_EQ(addrs.end(),std::find(addrs.begin(),addrs.end(),ri.address));
+		addrs.push_back(ri.address);
+	}
+
 }
