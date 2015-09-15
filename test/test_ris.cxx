@@ -1,3 +1,4 @@
+#include <glog/logging.h>
 #include "mock_defines.h"
 
 #include "test_helper.h"
@@ -8,55 +9,142 @@
 
 extern zloop_t* g_loop;
 
-static const char* REGION_CONFIG =
-"region:\n"
-"{\n"
-"	id = \"test-001\";\n"
-"	idc = \"test-idc\";\n"
-"	api_address = \"inproc://region-test-001\";\n"
-"	bus_address = \"tcp://127.0.0.1:6600\";\n"
-"	pub_address = \"tcp://127.0.0.1:2015\";\n"
-"\n"
-"	snapshot:\n"
-"	{\n"
-"		address = \"tcp://127.0.0.1:6500\";\n"
-"		worker_address = \"tcp://127.0.0.1:![6501-6599]\";\n"
-"	};\n"
-"\n"
-"};\n";
+struct RegionInstance {
+	std::string				name;
+	std::string				api_address;
+	std::string				snapshot_address;
+	void*					instance;
 
+	RegionInstance() :
+		instance(nullptr)
+	{
+	}
+};
 
-static const char* TRACKER_CONFIG =
-"tracker:\n"
-"{\n"
-"	idc = \"test-idc\";\n"
-"	api_address = \"inproc://tracker-test-001\";\n"
-"	pub_address = \"tcp://127.0.0.1:2016\";\n"
-"	factory_timeout = 800;\n"
-"	snapshot:\n"
-"	{\n"
-"		address = \"tcp://127.0.0.1:7500\";\n"
-"		worker_address = \"tcp://127.0.0.1:![7501-7599]\";\n"
-"	};\n"
-"\n"
-"};\n";
+struct TrackerInstance {
+	std::string				api_address;
+	std::string				snapshot_address;
+	void*					instance;
 
-
+	TrackerInstance() :
+		instance(nullptr)
+	{
+	}
+};
 
 class RISTest : public testing::Test {
 protected:
 	virtual void SetUp() {
-		tracker_inst = tracker_new_str(TRACKER_CONFIG);
-		region_inst = region_new_str(REGION_CONFIG,0);
+		m_region_index = 1;
+		m_tracker_index = 1;
+		m_snapshot_port = 6500;
+
 	}
 	virtual void TearDown() {
-		tracker_destroy(tracker_inst);
-		region_destroy(region_inst);
+		for(auto it = m_trackers.begin(); it != m_trackers.end(); ++it) {
+			tracker_destroy(it->instance);
+		}
+		m_trackers.clear();
+
+		for(auto it=m_regions.begin(); it != m_regions.end(); ++it) {
+			region_destroy(it->instance);
+		}
+		m_regions.clear();
+	}
+
+	const RegionInstance& getRegion(size_t pos) const {
+		CHECK_LT(pos,m_regions.size());
+		return m_regions[pos];
+	}
+
+	const TrackerInstance& getTracker(size_t pos) const {
+		CHECK_LT(pos,m_trackers.size());
+		return m_trackers[pos];
+	}
+
+	void create_region() {
+		RegionInstance region;
+		std::stringstream ss;
+		ss << "region-" << m_region_index++;
+		region.name = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss << "inproc://" << region.name;
+		region.api_address = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss << "tcp://127.0.0.1:" << m_snapshot_port++;
+		region.snapshot_address = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss <<
+			"region:\n" <<
+			"	{\n" <<
+			"	id = \"" << region.name << "\";\n" <<
+			"	idc = \"test-idc\";\n" <<
+			"	api_address = \"" << region.api_address << "\";\n" <<
+			"	pub_address = \"tcp://127.0.0.1:2015\";\n" <<
+			"	bus_address = \"tcp://127.0.0.1:8888\";\n" <<
+			"\n" <<
+			"	snapshot:\n" <<
+			"	{\n" <<
+			"		address = \"" << region.snapshot_address << "\";\n" <<
+			"	};\n" <<
+			"\n" <<
+			"};\n";
+
+		std::string conf = ss.str();
+		region.instance = region_new_str(conf.c_str(),0);
+
+		m_regions.push_back(region);
+	}
+
+	void create_tracker() {
+		TrackerInstance tracker;
+		std::stringstream ss;
+		ss << "tracker-" << m_tracker_index++;
+		auto name = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss << "inproc://" << name;
+		tracker.api_address = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss << "tcp://127.0.0.1:" << m_snapshot_port++;
+		tracker.snapshot_address = ss.str();
+		ss.str("");
+		ss.clear();
+
+		ss <<
+			"tracker:\n" <<
+			"	{\n" <<
+			"	idc = \"test-idc\";\n" <<
+			"	api_address = \"" << tracker.api_address << "\";\n" <<
+			"	pub_address = \"tcp://127.0.0.1:2016\";\n" <<
+			"\n" <<
+			"	snapshot:\n" <<
+			"	{\n" <<
+			"		address = \"" << tracker.snapshot_address << "\";\n" <<
+			"	};\n" <<
+			"\n" <<
+			"};\n";
+
+		std::string conf = ss.str();
+		tracker.instance = tracker_new_str(conf.c_str());
+		m_trackers.push_back(tracker);
 	}
 
 private:
-	void* tracker_inst;
-	void* region_inst;
+	int						m_region_index;
+	int						m_tracker_index;
+	int						m_snapshot_port;
+	std::vector<TrackerInstance>			m_trackers;
+	std::vector<RegionInstance>			m_regions;
 };
 
 static void region_add_services(const std::shared_ptr<RegionSession>& region,std::list<std::string>& services,size_t count,uint32_t* version=nullptr) {
@@ -152,8 +240,10 @@ static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,
 }
 
 TEST_F(RISTest,Functional) {
+	create_tracker();
+	create_region();
 	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
+	ASSERT_EQ(0,region->connect(getRegion(0).api_address));
 
 	std::list<std::string> services;
 	std::list<std::string> payloads;
@@ -164,15 +254,15 @@ TEST_F(RISTest,Functional) {
 	sleep(10);
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
 
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,"test-001",services,payloads);
+	check_tracker_region(tracker,getRegion(0).name,services,payloads);
 
 	region_add_payloads(region,payloads,100);
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,"test-001",services,payloads);
+	check_tracker_region(tracker,getRegion(0).name,services,payloads);
 
 	region_rm_services(region,services,5);
 	region_rm_payloads(region,payloads,50);
@@ -180,13 +270,15 @@ TEST_F(RISTest,Functional) {
 	region_add_payloads(region,payloads,100);
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,"test-001",services,payloads);
+	check_tracker_region(tracker,getRegion(0).name,services,payloads);
 	
 }
 
 TEST_F(RISTest,BusyRegion) {
+	create_tracker();
+	create_region();
 	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
+	ASSERT_EQ(0,region->connect(getRegion(0).api_address));
 
 	std::list<std::string> services;
 	std::list<std::string> payloads;
@@ -205,20 +297,22 @@ TEST_F(RISTest,BusyRegion) {
 	}
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
 
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,"test-001",services,payloads);
+	check_tracker_region(tracker,getRegion(0).name,services,payloads);
 	
 	uint32_t tracker_reg_version = 0;
-	get_tracker_region_version(tracker,"test-001",&tracker_reg_version);
+	get_tracker_region_version(tracker,getRegion(0).name,&tracker_reg_version);
 	std::cout << "Tracker record region version: " << tracker_reg_version << std::endl;
 }
 
 TEST_F(RISTest,TrackSpeed) {
+	create_tracker();
+	create_region();
 	auto region = std::make_shared<RegionSession>();
-	ASSERT_EQ(0,region->connect("inproc://region-test-001"));
+	ASSERT_EQ(0,region->connect(getRegion(0).api_address));
 
 	std::list<std::string> services;
 	std::list<std::string> payloads;
@@ -228,12 +322,12 @@ TEST_F(RISTest,TrackSpeed) {
 	region_add_payloads(region,payloads,50000,&region_version);
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect("inproc://tracker-test-001",500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
 
 	const ri_time_t tv_start = ri_time_now();
 	uint32_t tracker_reg_version = 0;
 	while( 1 ) {
-		get_tracker_region_version(tracker,"test-001",&tracker_reg_version);
+		get_tracker_region_version(tracker,getRegion(0).name,&tracker_reg_version);
 		if( tracker_reg_version == region_version) {
 			break;
 		}
@@ -245,5 +339,5 @@ TEST_F(RISTest,TrackSpeed) {
 
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
-	check_tracker_region(tracker,"test-001",services,payloads);
+	check_tracker_region(tracker,getRegion(0).name,services,payloads);
 }
