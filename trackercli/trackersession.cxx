@@ -3,7 +3,6 @@
 #include "ris/trackerapi.pb.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zhelper.h"
-#include "zmqx/zprepend.h"
 
 TrackerSession::TrackerSession() :
 	m_req(nullptr)

@@ -4,7 +4,7 @@
 #include <czmq.h>
 #include "snapshot/snapshotable.h"
 #include "zmqx/zlooptimer.h"
-#include "zmqx/zprepend.h"
+#include "zmqx/zenvelope.h"
 #include "ris/ritypes.h"
 #include "ris/snapshot.pb.h"
 
@@ -13,7 +13,7 @@ public:
 	SnapshotServiceWorker(const snapshot_package_t& snapshot);
 	~SnapshotServiceWorker();
 
-	size_t sendItems(ZPrepend* prepend,zsock_t* sock,size_t count);
+	size_t sendItems(zsock_t* sock,std::unique_ptr<ZEnvelope> envelop,size_t count);
 
 	inline ri_time_t lastSend() const {
 		return m_tv_last;

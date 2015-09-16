@@ -5,8 +5,8 @@
 #include <string>
 #include <list>
 
+#include "zmqx/zpbreader.h"
 #include "ris/regionapi.pb.h"
-#include "zmqx/zdispatcher.h"
 #include "region/publisher.h"
 #include "region/regiontable.h"
 #include "region/regionctx.h"
@@ -29,16 +29,16 @@ public:
 private:
 	void run(zsock_t* pipe);
 	int onPipeReadable(zsock_t* pipe);
-	std::shared_ptr<Dispatcher> make_dispatcher(ZDispatcher& zdisp);
+	std::shared_ptr<envelope_dispatcher_t> make_dispatcher();
 
 	static void actorRunner(zsock_t* pipe,void* args);
 
-	int defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
-	int addService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
-	int rmService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
-	int addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
-	int rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
-	int handshake(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg);
+	int defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int rmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int rmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int handshake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
 
 private:
 	bool						m_running;

@@ -46,16 +46,16 @@ int RIRegionActor::wait() {
 	return 0;
 }
 
-std::shared_ptr<Dispatcher> RIRegionActor::make_dispatcher(ZDispatcher& zdisp) {
-	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(region::api::HandShake::descriptor(),std::bind<int>(&RIRegionActor::handshake,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(region::api::AddService::descriptor(),std::bind<int>(&RIRegionActor::addService,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(region::api::RmService::descriptor(),std::bind<int>(&RIRegionActor::rmService,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(region::api::AddPayload::descriptor(),std::bind<int>(&RIRegionActor::addPayload,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(region::api::RmPayload::descriptor(),std::bind<int>(&RIRegionActor::rmPayload,this,std::ref(zdisp),std::placeholders::_1));
+std::shared_ptr<envelope_dispatcher_t> RIRegionActor::make_dispatcher() {
+	auto disp = std::make_shared<envelope_dispatcher_t>();
+	disp->set_default(std::bind<int>(&RIRegionActor::defaultOpt,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(region::api::HandShake::descriptor(),std::bind<int>(&RIRegionActor::handshake,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(region::api::AddService::descriptor(),std::bind<int>(&RIRegionActor::addService,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(region::api::RmService::descriptor(),std::bind<int>(&RIRegionActor::rmService,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(region::api::AddPayload::descriptor(),std::bind<int>(&RIRegionActor::addPayload,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(region::api::RmPayload::descriptor(),std::bind<int>(&RIRegionActor::rmPayload,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
 
-	return disp;
+	return std::move(disp);
 }
 
 void RIRegionActor::run(zsock_t* pipe) {
@@ -105,11 +105,8 @@ void RIRegionActor::run(zsock_t* pipe) {
 			break;
 		}
 
-		auto zdisp = std::make_shared<ZDispatcher>(m_loop);
-		if( -1 == zdisp->start(&rep,make_dispatcher(*zdisp),true) ) {
-			LOG(FATAL) << "Start dispatcher error";
-			break;
-		}
+		auto rep_reader = make_zpb_reader(m_loop,&rep,make_dispatcher());
+		CHECK(rep_reader) << "Start Rep reader error";
 
 		zsock_signal(pipe,0);
 
@@ -174,13 +171,14 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-int RIRegionActor::defaultOpt(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
-	(void)zdisp;
+int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+	(void)sock;
+	(void)envelope;
 	LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
 	return 0;
 }
 
-int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	CHECK(p);
 	int err = m_table->addService(p->name(),p->address());
@@ -189,12 +187,12 @@ int RIRegionActor::addService(ZDispatcher& zdisp,const std::shared_ptr<google::p
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zdisp.sendback(result);
+		zpb_send(sock,std::move(envelope),result);
 	}
 	return 0;
 }
 
-int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
 	CHECK(p);
 
@@ -204,12 +202,12 @@ int RIRegionActor::rmService(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zdisp.sendback(result);
+		zpb_send(sock,std::move(envelope),result);
 	}
 	return 0;
 }
 
-int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	CHECK(p);
 	int err = m_table->addPayload(p->uuid());
@@ -218,12 +216,12 @@ int RIRegionActor::addPayload(ZDispatcher& zdisp,const std::shared_ptr<google::p
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zdisp.sendback(result);
+		zpb_send(sock,std::move(envelope),result);
 	}
 	return 0;
 }
 
-int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
 	CHECK(p);
 	int err = m_table->rmPayload(p->uuid());
@@ -232,17 +230,17 @@ int RIRegionActor::rmPayload(ZDispatcher& zdisp,const std::shared_ptr<google::pr
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zdisp.sendback(result);
+		zpb_send(sock,std::move(envelope),result);
 	}
 	return 0;
 }
 
-int RIRegionActor::handshake(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int RIRegionActor::handshake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	CHECK(p);
 
 	p->set_version(m_table->version());
-	zdisp.sendback(*p);
+	zpb_send(sock,std::move(envelope),*p);
 	return 0;
 }
 

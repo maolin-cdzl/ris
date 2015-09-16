@@ -12,17 +12,14 @@ SnapshotServiceWorker::~SnapshotServiceWorker() {
 }
 
 
-size_t SnapshotServiceWorker::sendItems(ZPrepend* prepend,zsock_t* sock,size_t count) {
+size_t SnapshotServiceWorker::sendItems(zsock_t* sock,std::unique_ptr<ZEnvelope> envelope,size_t count) {
+	CHECK_NOTNULL(sock);
+	CHECK(envelope);
 	size_t c = 0;
 	while( c < count && ! m_snapshot.empty() ) {
 		auto p = m_snapshot.front();
 		m_snapshot.pop_front();
-		if( prepend && -1 == prepend->shadow_sendm(sock) ) {
-			int err = errno;
-			LOG(ERROR) << "SnapshotServiceWorker send snapshot item error: " << err;
-			return 0;
-		}
-		if( -1 == zpb_send(sock,*p) ) {
+		if( -1 == zpb_send(sock,envelope->clone(),*p) ) {
 			int err = errno;
 			LOG(ERROR) << "SnapshotServiceWorker send snapshot item error: " << err;
 			return 0;

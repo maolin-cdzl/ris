@@ -6,7 +6,7 @@
 
 RISubscriber::RISubscriber(zloop_t* loop) :
 	m_loop(loop),
-	m_disp(new ZDispatcher(loop))
+	m_reader(nullptr)
 {
 
 }
@@ -15,15 +15,15 @@ RISubscriber::~RISubscriber() {
 	stop();
 }
 
-std::shared_ptr<Dispatcher> RISubscriber::make_dispatcher() {
-	auto disp = std::make_shared<Dispatcher>();
-	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1));
-	disp->register_processer(pub::Region::descriptor(),std::bind<int>(&RISubscriber::onRegion,this,std::placeholders::_1));
-	disp->register_processer(pub::RmRegion::descriptor(),std::bind<int>(&RISubscriber::onRmRegion,this,std::placeholders::_1));
-	disp->register_processer(pub::Service::descriptor(),std::bind<int>(&RISubscriber::onService,this,std::placeholders::_1));
-	disp->register_processer(pub::RmService::descriptor(),std::bind<int>(&RISubscriber::onRmService,this,std::placeholders::_1));
-	disp->register_processer(pub::Payload::descriptor(),std::bind<int>(&RISubscriber::onPayload,this,std::placeholders::_1));
-	disp->register_processer(pub::RmPayload::descriptor(),std::bind<int>(&RISubscriber::onRmPayload,this,std::placeholders::_1));
+std::shared_ptr<sock_dispatcher_t> RISubscriber::make_dispatcher() {
+	auto disp = std::make_shared<sock_dispatcher_t>();
+	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::Region::descriptor(),std::bind<int>(&RISubscriber::onRegion,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::RmRegion::descriptor(),std::bind<int>(&RISubscriber::onRmRegion,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::Service::descriptor(),std::bind<int>(&RISubscriber::onService,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::RmService::descriptor(),std::bind<int>(&RISubscriber::onRmService,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::Payload::descriptor(),std::bind<int>(&RISubscriber::onPayload,this,std::placeholders::_1,std::placeholders::_2));
+	disp->register_processer(pub::RmPayload::descriptor(),std::bind<int>(&RISubscriber::onRmPayload,this,std::placeholders::_1,std::placeholders::_2));
 
 	return disp;
 }
@@ -44,10 +44,8 @@ int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObse
 			DLOG(INFO) << "Subscriber connect to: " << address;
 		}
 
-		if( -1 == m_disp->start(&sub,make_dispatcher()) ) {
-			LOG(FATAL) << "RISubscriber start dispatcher loop failed";
-			break;
-		}
+		m_reader = make_zpb_reader(m_loop,&sub,make_dispatcher());
+		CHECK(m_reader) << "RISubscriber start dispatcher loop failed";
 		m_observer = ob;
 		result = 0;
 	} while( 0 );
@@ -64,26 +62,24 @@ int RISubscriber::start(const std::string& address,const std::shared_ptr<IRIObse
 }
 
 void RISubscriber::stop() {
-	m_disp->stop();
+	m_reader.reset();
 	m_observer.reset();
 }
 
 int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	CHECK( ob );
-	if( m_disp->isActive() ) {
-		m_observer = ob;
-		return 0;
-	} else {
-		return -1;
-	}
+	m_observer = ob;
+	return 0;
 }
 
-int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName();
 	return 0;
 }
 
-int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::Region>(msg);
 	CHECK(p);
 
@@ -100,7 +96,8 @@ int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg
 	return 0;
 }
 
-int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::RmRegion>(msg);
 	CHECK(p);
 
@@ -109,7 +106,8 @@ int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& m
 	return 0;
 }
 
-int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::Service>(msg);
 	CHECK(p);
 
@@ -123,7 +121,8 @@ int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& ms
 	return 0;
 }
 
-int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::RmService>(msg);
 	CHECK(p);
 
@@ -132,7 +131,8 @@ int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& 
 	return 0;
 }
 
-int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::Payload>(msg);
 	CHECK(p);
 
@@ -145,7 +145,8 @@ int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& ms
 	return 0;
 }
 
-int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg) {
+int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
+	(void)sock;
 	auto p = std::dynamic_pointer_cast<pub::RmPayload>(msg);
 	CHECK(p);
 

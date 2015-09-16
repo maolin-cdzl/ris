@@ -3,7 +3,6 @@
 #include "ris/regionapi.pb.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zhelper.h"
-#include "zmqx/zprepend.h"
 
 RegionSession::RegionSession() :
 	m_req(nullptr),

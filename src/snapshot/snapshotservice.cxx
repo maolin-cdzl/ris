@@ -75,11 +75,8 @@ void SnapshotService::run(zsock_t* pipe) {
 			break;
 		}
 
-		auto zdisp = std::make_shared<ZDispatcher>(loop);
-		if( -1 == zdisp->start(&router,make_dispatcher(*zdisp),true) ) {
-			LOG(FATAL) << "SnapshotService can not start dispatcher";
-			break;
-		}
+		auto router_reader = make_zpb_reader(loop,&router,make_dispatcher());
+		CHECK(router_reader) << "SnapshotService can not start router reader";
 
 		auto reader = std::make_shared<ZLoopReader>(loop);
 		if( -1 == reader->start(pipe,std::bind<int>(&SnapshotService::onPipeReadable,this,std::placeholders::_1)) ) {
@@ -114,14 +111,14 @@ void SnapshotService::run(zsock_t* pipe) {
 	LOG(INFO) << "SnapshotService shutdown";
 }
 
-std::shared_ptr<Dispatcher> SnapshotService::make_dispatcher(ZDispatcher& zdisp) {
-	auto disp = std::make_shared<Dispatcher>();
-	disp->register_processer(snapshot::SnapshotReq::descriptor(),std::bind<int>(&SnapshotService::onSnapshotReq,this,std::ref(zdisp),std::placeholders::_1));
-	disp->register_processer(snapshot::SyncSignalRep::descriptor(),std::bind<int>(&SnapshotService::onSyncSignal,this,std::ref(zdisp),std::placeholders::_1));
+std::shared_ptr<envelope_dispatcher_t> SnapshotService::make_dispatcher() {
+	auto disp = std::make_shared<envelope_dispatcher_t>();
+	disp->register_processer(snapshot::SnapshotReq::descriptor(),std::bind<int>(&SnapshotService::onSnapshotReq,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
+	disp->register_processer(snapshot::SyncSignalRep::descriptor(),std::bind<int>(&SnapshotService::onSyncSignal,this,std::placeholders::_1,std::placeholders::_2,std::placeholders::_3));
 	return std::move(disp);
 }
 
-int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<snapshot::SnapshotReq>(msg);
 	CHECK(p);
 
@@ -130,52 +127,51 @@ int SnapshotService::onSnapshotReq(ZDispatcher& zdisp,const std::shared_ptr<goog
 	if( it != m_workers.end() ) {
 		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->uuid();
 		rep.set_result(-1);
-		zdisp.sendback(rep);
+		zpb_send(sock,std::move(envelope),rep);
 	} else if( m_workers.size() < m_capacity ) {
 		LOG(INFO) << "Accept client snapshot request: " << p->uuid();
 		rep.set_result(0);
-		zdisp.shadow_sendback(rep);
+		zpb_send(sock,envelope->clone(),rep);
 
 		auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
-		const size_t left = worker->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count);
+		const size_t left = worker->sendItems(sock,envelope->clone(),m_period_count);
 		if( left == 0 ) {
 			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
 		} else {
 			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
 			m_workers.insert( std::make_pair(p->uuid(),worker) );
 			snapshot::SyncSignalReq sync;
-			zdisp.sendback(sync);
+			zpb_send(sock,std::move(envelope),sync);
 		}
 		
 	} else {
 		LOG(WARNING) << "Too many client ask for service";
 		rep.set_result(-1);
-		zdisp.sendback(rep);
+		zpb_send(sock,std::move(envelope),rep);
 	}
 
 	return 0;
 }
 
-int SnapshotService::onSyncSignal(ZDispatcher& zdisp,const std::shared_ptr<google::protobuf::Message>& msg) {
+int SnapshotService::onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<snapshot::SyncSignalRep>(msg);
 	CHECK(p);
 	auto it = m_workers.find(p->uuid());
 	if( it != m_workers.end() ) {
-		const size_t left = it->second->sendItems(zdisp.prepend(),zdisp.socket(),m_period_count);
+		const size_t left = it->second->sendItems(sock,envelope->clone(),m_period_count);
 		if( left == 0 ) {
 			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
 			m_workers.erase(it);
 		} else {
 			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
 			snapshot::SyncSignalReq sync;
-			zdisp.sendback(sync);
+			zpb_send(sock,std::move(envelope),sync);
 		}
 	} else {
 		LOG(WARNING) << "Recv unknown client id: " << p->uuid();
 	}
 	return 0;
 }
-
 
 
 int SnapshotService::onPipeReadable(zsock_t* reader) {
