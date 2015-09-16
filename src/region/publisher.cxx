@@ -97,11 +97,7 @@ int RIPublisher::pubRegion(const Region& region) {
 int RIPublisher::pubRemoveRegion(const ri_uuid_t& reg) {
 	LOG(INFO) << "pub region offline: " << reg;
 	auto p = Region::toPublishRm(reg);
-	if( -1 != zpb_send(m_pub,*p) ) {
-		return 0;
-	} else {
-		return -1;
-	}
+	return zpb_send(m_pub,*p);
 }
 
 int RIPublisher::pubService(const ri_uuid_t& region,uint32_t version,const Service& svc) {
