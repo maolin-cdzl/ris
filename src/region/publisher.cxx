@@ -98,7 +98,6 @@ int RIPublisher::pubRemoveRegion(const ri_uuid_t& reg) {
 	LOG(INFO) << "pub region offline: " << reg;
 	auto p = Region::toPublishRm(reg);
 	if( -1 != zpb_send(m_pub,*p) ) {
-		zsock_flush(m_pub);
 		return 0;
 	} else {
 		return -1;
