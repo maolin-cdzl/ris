@@ -91,32 +91,32 @@ void RIPublisher::onRmPayload(const ri_uuid_t& reg,uint32_t version,const ri_uui
 int RIPublisher::pubRegion(const Region& region) {
 	LOG(INFO) << "pub region: " << region.id;
 	auto p = region.toPublish();
-	return zpb_send(m_pub,*p);
+	return zpb_pub_send(m_pub,region.id,*p);
 }
 
 int RIPublisher::pubRemoveRegion(const ri_uuid_t& reg) {
 	LOG(INFO) << "pub region offline: " << reg;
 	auto p = Region::toPublishRm(reg);
-	return zpb_send(m_pub,*p);
+	return zpb_pub_send(m_pub,reg,*p);
 }
 
 int RIPublisher::pubService(const ri_uuid_t& region,uint32_t version,const Service& svc) {
-	auto p = svc.toPublish(region,version);
-	return zpb_send(m_pub,*p);
+	auto p = svc.toPublish(version);
+	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubRemoveService(const ri_uuid_t& region,uint32_t version,const std::string& svc) {
-	auto p = Service::toPublishRm(region,version,svc);
-	return zpb_send(m_pub,*p);
+	auto p = Service::toPublishRm(version,svc);
+	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubPayload(const ri_uuid_t& region,uint32_t version,const Payload& pl) {
-	auto p = pl.toPublish(region,version);
-	return zpb_send(m_pub,*p);
+	auto p = pl.toPublish(version);
+	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubRemovePayload(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& pl) {
-	auto p = Payload::toPublishRm(region,version,pl);
-	return zpb_send(m_pub,*p);
+	auto p = Payload::toPublishRm(version,pl);
+	return zpb_pub_send(m_pub,region,*p);
 }
 
