@@ -1,16 +1,12 @@
 syntax = "proto3";
 package pub;
 
-message RegionBase {
+message Region {
 	string			uuid = 1;
 	uint32			version = 2;
-}
-
-message Region {
-	RegionBase		region = 1;
-	string			idc = 2;
-	string			bus_address = 3;
-	string			snapshot_address = 4;
+	string			idc = 3;
+	string			bus_address = 4;
+	string			snapshot_address = 5;
 }
 
 message RmRegion {
@@ -18,23 +14,23 @@ message RmRegion {
 }
 
 message Service {
-	RegionBase		region = 1;
+	uint32			version = 1;
 	string			name = 2;
 	string			address = 3;
 }
 
 message RmService {
-	RegionBase		region = 1;
+	uint32			version = 1;
 	string			name = 2;
 }
 
 message Payload {
-	RegionBase		region = 1;
+	uint32			version = 1;
 	string			uuid = 2;
 }
 
 message RmPayload {
-	RegionBase		region = 1;
+	uint32			version = 1;
 	string			uuid = 2;
 }
 

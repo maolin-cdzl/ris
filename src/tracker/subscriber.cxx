@@ -15,8 +15,8 @@ RISubscriber::~RISubscriber() {
 	stop();
 }
 
-std::shared_ptr<sock_dispatcher_t> RISubscriber::make_dispatcher() {
-	auto disp = std::make_shared<sock_dispatcher_t>();
+std::shared_ptr<sub_dispatcher_t> RISubscriber::make_dispatcher() {
+	auto disp = std::make_shared<sub_dispatcher_t>();
 	disp->set_default(std::bind<int>(&RISubscriber::defaultProcess,this,std::placeholders::_1,std::placeholders::_2));
 	disp->register_processer(pub::Region::descriptor(),std::bind<int>(&RISubscriber::onRegion,this,std::placeholders::_1,std::placeholders::_2));
 	disp->register_processer(pub::RmRegion::descriptor(),std::bind<int>(&RISubscriber::onRmRegion,this,std::placeholders::_1,std::placeholders::_2));
@@ -72,42 +72,46 @@ int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	return 0;
 }
 
-int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
-	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName();
+int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName() << ", from region: " << envelope;
 	return 0;
 }
 
-int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::Region>(msg);
 	CHECK(p);
 
-	Region region;
-	region.id = p->region().uuid();
-	region.version = p->region().version();
-	region.idc = p->idc();
-	region.bus_address = p->bus_address();
-	region.snapshot_address = p->snapshot_address();
-	region.timeval = ri_time_now();
+	if( p->uuid() == envelope ) {
+		Region region;
+		region.id = p->uuid();
+		region.version = p->version();
+		region.idc = p->idc();
+		region.bus_address = p->bus_address();
+		region.snapshot_address = p->snapshot_address();
+		region.timeval = ri_time_now();
 
-	DLOG(INFO) << "RISubscriber recv region: " << region.id << "(" << region.version << ")";
-	m_observer->onRegion(region);
+		DLOG(INFO) << "RISubscriber recv region: " << region.id << "(" << region.version << ")";
+		m_observer->onRegion(region);
+	} else {
+		LOG(ERROR) << "Region id " << p->uuid() << " mismatched envelope " << envelope;
+	}
 	return 0;
 }
 
-int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::RmRegion>(msg);
 	CHECK(p);
 
-	DLOG(INFO) << "RISubscriber recv rm region: " << p->uuid();
-	m_observer->onRmRegion(p->uuid());
+	if( p->uuid() == envelope ) {
+		DLOG(INFO) << "RISubscriber recv rm region: " << envelope;
+		m_observer->onRmRegion(p->uuid());
+	} else {
+		LOG(ERROR) << "RmRegion id " << p->uuid() << " mismatched envelope " << envelope;
+	}
 	return 0;
 }
 
-int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::Service>(msg);
 	CHECK(p);
 
@@ -116,23 +120,21 @@ int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& ms
 	svc.address = p->address();
 	svc.timeval = ri_time_now();
 
-	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
-	m_observer->onService(p->region().uuid(),p->region().version(),svc);
+	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << envelope << "(" << p->version() << ")";
+	m_observer->onService(envelope,p->version(),svc);
 	return 0;
 }
 
-int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::RmService>(msg);
 	CHECK(p);
 
-	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
-	m_observer->onRmService(p->region().uuid(),p->region().version(),p->name());
+	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << envelope << "(" << p->version() << ")";
+	m_observer->onRmService(envelope,p->version(),p->name());
 	return 0;
 }
 
-int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::Payload>(msg);
 	CHECK(p);
 
@@ -140,18 +142,17 @@ int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& ms
 	pl.id = p->uuid();
 	pl.timeval = ri_time_now();
 
-	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
-	m_observer->onPayload(p->region().uuid(),p->region().version(),pl);
+	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << envelope << "(" << p->version() << ")";
+	m_observer->onPayload(envelope,p->version(),pl);
 	return 0;
 }
 
-int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock) {
-	(void)sock;
+int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
 	auto p = std::dynamic_pointer_cast<pub::RmPayload>(msg);
 	CHECK(p);
 
-	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << p->region().uuid() << "(" << p->region().version() << ")";
-	m_observer->onRmPayload(p->region().uuid(),p->region().version(),p->uuid());
+	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << envelope << "(" << p->version() << ")";
+	m_observer->onRmPayload(envelope,p->version(),p->uuid());
 	return 0;
 }
 

@@ -34,7 +34,6 @@ public:
 	bool operator == (const Region& ref) const;
 public:
 	std::shared_ptr<pub::Region> toPublish() const ;
-	void toPublishBase(pub::RegionBase* region) const;
 	static std::shared_ptr<pub::RmRegion> toPublishRm(const ri_uuid_t& uuid);
 
 	std::shared_ptr<snapshot::RegionBegin> toSnapshotBegin() const;
@@ -60,8 +59,8 @@ public:
 	Service(const Service& ref);
 	Service& operator = (const Service& ref);
 public:
-	std::shared_ptr<pub::Service> toPublish(const ri_uuid_t& region,uint32_t version) const;
-	static std::shared_ptr<pub::RmService> toPublishRm(const ri_uuid_t& region,uint32_t version,const std::string& name);
+	std::shared_ptr<pub::Service> toPublish(uint32_t version) const;
+	static std::shared_ptr<pub::RmService> toPublishRm(uint32_t version,const std::string& name);
 
 	std::shared_ptr<snapshot::Service> toSnapshot() const;
 };
@@ -85,8 +84,8 @@ public:
 	bool operator == (const ri_uuid_t& _id) const;
 	bool operator == (const Payload& ref) const;
 public:
-	std::shared_ptr<pub::Payload> toPublish(const ri_uuid_t& region,uint32_t version) const;
-	static std::shared_ptr<pub::RmPayload> toPublishRm(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& id);
+	std::shared_ptr<pub::Payload> toPublish(uint32_t version) const;
+	static std::shared_ptr<pub::RmPayload> toPublishRm(uint32_t version,const ri_uuid_t& id);
 
 
 	std::shared_ptr<snapshot::Payload> toSnapshot() const;
