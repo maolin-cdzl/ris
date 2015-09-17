@@ -1,22 +1,23 @@
+syntax = "proto3";
 package tracker.api;
 
 message Error {
-	required int32			code = 1;
-	optional string			what = 2;
+	int32			code = 1;
+	string			what = 2;
 }
 
 message Region {
-	required string			uuid = 1;
-	required uint32			version = 2;
-	required string			idc = 3;
-	required string			bus_address = 4;
-	required string			snapshot_address = 5;
+	string			uuid = 1;
+	uint32			version = 2;
+	string			idc = 3;
+	string			bus_address = 4;
+	string			snapshot_address = 5;
 }
 
 message RouteInfo {
-	required string			target = 1;
-	optional string			region = 2;
-	optional string			address = 3;	
+	string			target = 1;
+	string			region = 2;
+	string			address = 3;	
 }
 
 message HandShake {
@@ -26,33 +27,33 @@ message StatisticsReq {
 }
 
 message StatisticsRep {
-	required uint32 region_count = 1;
-	required uint32 service_count = 2;
-	required uint32 payload_count = 3;
+	uint32 region_count = 1;
+	uint32 service_count = 2;
+	uint32 payload_count = 3;
 }
 
 message RegionReq {
-	required string uuid = 1;
+	string uuid = 1;
 }
 
 message RegionRep {
-	optional Region region = 1;
+	Region region = 1;
 }
 
 message ServiceRouteReq {
-	required string			svc = 1;
+	string			svc = 1;
 }
 
 message ServiceRouteRep {
-	required RouteInfo route = 1;
+	RouteInfo route = 1;
 }
 
 message PayloadRouteReq {
-	required string			payload = 1;
+	string			payload = 1;
 }
 
 message PayloadRouteRep {
-	required RouteInfo route = 1;
+	RouteInfo route = 1;
 }
 
 message PayloadsRouteReq {

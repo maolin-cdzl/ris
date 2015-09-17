@@ -143,14 +143,13 @@ int SnapshotClientWorker::pullRegionOrFinish(zsock_t* sock) {
 			Region region;
 			region.id = p->uuid();
 			region.version = p->version();
-			if( p->has_idc() ) {
-				region.idc = p->idc();
-			}
-			if( p->has_bus_address() ) {
-				region.bus_address = p->bus_address();
-			}
-			if( p->has_snapshot_address() ) {
-				region.snapshot_address = p->snapshot_address();
+			region.idc = p->idc();
+			region.bus_address = p->bus_address();
+			region.snapshot_address = p->snapshot_address();
+
+			if( region.id.empty() || region.idc.empty() || region.bus_address.empty() || region.snapshot_address.empty() ) {
+				LOG(ERROR) << "RegionBegin is uncompleted";
+				break;
 			}
 
 			const ri_time_t now = ri_time_now();

@@ -1,39 +1,40 @@
+syntax = "proto3";
 package pub;
 
 message RegionBase {
-	required string			uuid = 1;
-	required uint32			version = 2;
+	string			uuid = 1;
+	uint32			version = 2;
 }
 
 message Region {
-	required RegionBase		region = 1;
-	required string			idc = 2;
-	required string			bus_address = 3;
-	required string			snapshot_address = 4;
+	RegionBase		region = 1;
+	string			idc = 2;
+	string			bus_address = 3;
+	string			snapshot_address = 4;
 }
 
 message RmRegion {
-	required string			uuid = 1;
+	string			uuid = 1;
 }
 
 message Service {
-	required RegionBase		region = 1;
-	required string			name = 2;
-	required string			address = 3;
+	RegionBase		region = 1;
+	string			name = 2;
+	string			address = 3;
 }
 
 message RmService {
-	required RegionBase		region = 1;
-	required string			name = 2;
+	RegionBase		region = 1;
+	string			name = 2;
 }
 
 message Payload {
-	required RegionBase		region = 1;
-	required string			uuid = 2;
+	RegionBase		region = 1;
+	string			uuid = 2;
 }
 
 message RmPayload {
-	required RegionBase		region = 1;
-	required string			uuid = 2;
+	RegionBase		region = 1;
+	string			uuid = 2;
 }
 
