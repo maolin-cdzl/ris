@@ -35,13 +35,13 @@ private:
 	std::shared_ptr<envelope_dispatcher_t> make_dispatcher();
 	static void actorRunner(zsock_t* pipe,void* args);
 private:
-	int defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onHandShake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onStaticsReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onRegionReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onServiceRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onPayloadRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
-	int onPayloadsRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope);
+	int defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onHandShake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onStaticsReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onRegionReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onServiceRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onPayloadRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
+	int onPayloadsRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope);
 private:
 	bool					m_running;
 	zactor_t*				m_actor;

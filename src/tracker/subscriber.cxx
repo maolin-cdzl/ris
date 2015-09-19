@@ -72,16 +72,16 @@ int RISubscriber::setObserver(const std::shared_ptr<IRIObserver>& ob) {
 	return 0;
 }
 
-int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
-	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName() << ", from region: " << envelope;
+int RISubscriber::defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
+	LOG(WARNING) << "RISubscriber recv unexpected message: " << msg->GetTypeName() << ", from region: " << topic;
 	return 0;
 }
 
-int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::Region>(msg);
 	CHECK(p);
 
-	if( p->uuid() == envelope ) {
+	if( p->uuid() == topic ) {
 		Region region;
 		region.id = p->uuid();
 		region.version = p->version();
@@ -93,25 +93,25 @@ int RISubscriber::onRegion(const std::shared_ptr<google::protobuf::Message>& msg
 		DLOG(INFO) << "RISubscriber recv region: " << region.id << "(" << region.version << ")";
 		m_observer->onRegion(region);
 	} else {
-		LOG(ERROR) << "Region id " << p->uuid() << " mismatched envelope " << envelope;
+		LOG(ERROR) << "Region id " << p->uuid() << " mismatched topic " << topic;
 	}
 	return 0;
 }
 
-int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::RmRegion>(msg);
 	CHECK(p);
 
-	if( p->uuid() == envelope ) {
-		DLOG(INFO) << "RISubscriber recv rm region: " << envelope;
+	if( p->uuid() == topic ) {
+		DLOG(INFO) << "RISubscriber recv rm region: " << topic;
 		m_observer->onRmRegion(p->uuid());
 	} else {
-		LOG(ERROR) << "RmRegion id " << p->uuid() << " mismatched envelope " << envelope;
+		LOG(ERROR) << "RmRegion id " << p->uuid() << " mismatched topic " << topic;
 	}
 	return 0;
 }
 
-int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::Service>(msg);
 	CHECK(p);
 
@@ -120,21 +120,21 @@ int RISubscriber::onService(const std::shared_ptr<google::protobuf::Message>& ms
 	svc.address = p->address();
 	svc.timeval = ri_time_now();
 
-	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << envelope << "(" << p->version() << ")";
-	m_observer->onService(envelope,p->version(),svc);
+	DLOG(INFO) << "RISubscriber recv service: " << svc.name << " in region:" << topic << "(" << p->version() << ")";
+	m_observer->onService(topic,p->version(),svc);
 	return 0;
 }
 
-int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onRmService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::RmService>(msg);
 	CHECK(p);
 
-	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << envelope << "(" << p->version() << ")";
-	m_observer->onRmService(envelope,p->version(),p->name());
+	DLOG(INFO) << "RISubscriber recv rm service: " << p->name() << " in region:" << topic << "(" << p->version() << ")";
+	m_observer->onRmService(topic,p->version(),p->name());
 	return 0;
 }
 
-int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::Payload>(msg);
 	CHECK(p);
 
@@ -142,17 +142,17 @@ int RISubscriber::onPayload(const std::shared_ptr<google::protobuf::Message>& ms
 	pl.id = p->uuid();
 	pl.timeval = ri_time_now();
 
-	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << envelope << "(" << p->version() << ")";
-	m_observer->onPayload(envelope,p->version(),pl);
+	DLOG(INFO) << "RISubscriber recv payload: " << p->uuid() << " in region:" << topic << "(" << p->version() << ")";
+	m_observer->onPayload(topic,p->version(),pl);
 	return 0;
 }
 
-int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope) {
+int RISubscriber::onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic) {
 	auto p = std::dynamic_pointer_cast<pub::RmPayload>(msg);
 	CHECK(p);
 
-	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << envelope << "(" << p->version() << ")";
-	m_observer->onRmPayload(envelope,p->version(),p->uuid());
+	DLOG(INFO) << "RISubscriber recv rm payload: " << p->uuid() << " in region:" << topic << "(" << p->version() << ")";
+	m_observer->onRmPayload(topic,p->version(),p->uuid());
 	return 0;
 }
 

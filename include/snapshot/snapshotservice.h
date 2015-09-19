@@ -16,8 +16,8 @@ public:
 	int start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& address,size_t capacity=4,size_t period_count=100,ri_time_t timeout=3000);
 	void stop();
 private:
-	int onSnapshotReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelop);
-	int onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelop);
+	int onSnapshotReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelop);
+	int onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelop);
 
 	std::shared_ptr<envelope_dispatcher_t> make_dispatcher();
 

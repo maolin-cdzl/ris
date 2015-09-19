@@ -64,6 +64,9 @@ void SnapshotService::run(zsock_t* pipe) {
 		router = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(router);
 		zsock_set_identity(router,new_uuid().c_str());
+#ifndef NDEBUG
+		zsock_set_router_mandatory(router,1);
+#endif
 
 		if( (size_t) zsock_sndhwm(router) < m_capacity * m_period_count * 2 ) {
 			LOG(INFO) << "Set router socket send hwm from " << zsock_sndhwm(router) << " to " << m_capacity * m_period_count * 2;
@@ -118,7 +121,8 @@ std::shared_ptr<envelope_dispatcher_t> SnapshotService::make_dispatcher() {
 	return std::move(disp);
 }
 
-int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
+	CHECK(envelope);
 	auto p = std::dynamic_pointer_cast<snapshot::SnapshotReq>(msg);
 	CHECK(p);
 
@@ -127,45 +131,45 @@ int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Messa
 	if( it != m_workers.end() ) {
 		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->uuid();
 		rep.set_result(-1);
-		zpb_send(sock,std::move(envelope),rep);
+		zpb_send(sock,envelope,rep);
 	} else if( m_workers.size() < m_capacity ) {
-		LOG(INFO) << "Accept client snapshot request: " << p->uuid();
 		rep.set_result(0);
-		zpb_send(sock,envelope->clone(),rep);
+		if( 0 == zpb_send(sock,envelope,rep) ) {
+			LOG(INFO) << "Accept client snapshot request: " << p->uuid();
 
-		auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
-		const size_t left = worker->sendItems(sock,envelope->clone(),m_period_count);
-		if( left == 0 ) {
-			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
-		} else {
-			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
-			m_workers.insert( std::make_pair(p->uuid(),worker) );
-			snapshot::SyncSignalReq sync;
-			zpb_send(sock,std::move(envelope),sync);
+			auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
+			const size_t left = worker->sendItems(sock,envelope,m_period_count);
+			if( left == 0 ) {
+				LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
+			} else {
+				LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
+				m_workers.insert( std::make_pair(p->uuid(),worker) );
+				snapshot::SyncSignalReq sync;
+				zpb_send(sock,envelope,sync);
+			}
 		}
-		
 	} else {
 		LOG(WARNING) << "Too many client ask for service";
 		rep.set_result(-1);
-		zpb_send(sock,std::move(envelope),rep);
+		zpb_send(sock,envelope,rep);
 	}
 
 	return 0;
 }
 
-int SnapshotService::onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int SnapshotService::onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<snapshot::SyncSignalRep>(msg);
 	CHECK(p);
 	auto it = m_workers.find(p->uuid());
 	if( it != m_workers.end() ) {
-		const size_t left = it->second->sendItems(sock,envelope->clone(),m_period_count);
+		const size_t left = it->second->sendItems(sock,envelope,m_period_count);
 		if( left == 0 ) {
 			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
 			m_workers.erase(it);
 		} else {
 			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
 			snapshot::SyncSignalReq sync;
-			zpb_send(sock,std::move(envelope),sync);
+			zpb_send(sock,envelope,sync);
 		}
 	} else {
 		LOG(WARNING) << "Recv unknown client id: " << p->uuid();

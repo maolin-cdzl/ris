@@ -171,14 +171,14 @@ int RIRegionActor::onPipeReadable(zsock_t* pipe) {
 }
 
 
-int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	(void)sock;
 	(void)envelope;
 	LOG(WARNING) << "RegionActor Recv unexpected message: " << msg->GetTypeName();
 	return 0;
 }
 
-int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	CHECK(p);
 	int err = m_table->addService(p->name(),p->address());
@@ -187,12 +187,12 @@ int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& 
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zpb_send(sock,std::move(envelope),result);
+		zpb_send(sock,envelope,result);
 	}
 	return 0;
 }
 
-int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::RmService>(msg);
 	CHECK(p);
 
@@ -202,12 +202,12 @@ int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& m
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zpb_send(sock,std::move(envelope),result);
+		zpb_send(sock,envelope,result);
 	}
 	return 0;
 }
 
-int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	CHECK(p);
 	int err = m_table->addPayload(p->uuid());
@@ -216,12 +216,12 @@ int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& 
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zpb_send(sock,std::move(envelope),result);
+		zpb_send(sock,envelope,result);
 	}
 	return 0;
 }
 
-int RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::RmPayload>(msg);
 	CHECK(p);
 	int err = m_table->rmPayload(p->uuid());
@@ -230,17 +230,17 @@ int RIRegionActor::rmPayload(const std::shared_ptr<google::protobuf::Message>& m
 		region::api::Result result;
 		result.set_result(err);
 		result.set_version(m_table->version());
-		zpb_send(sock,std::move(envelope),result);
+		zpb_send(sock,envelope,result);
 	}
 	return 0;
 }
 
-int RIRegionActor::handshake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RIRegionActor::handshake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::HandShake>(msg);
 	CHECK(p);
 
 	p->set_version(m_table->version());
-	zpb_send(sock,std::move(envelope),*p);
+	zpb_send(sock,envelope,*p);
 	return 0;
 }
 

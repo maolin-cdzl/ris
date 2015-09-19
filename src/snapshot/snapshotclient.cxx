@@ -93,8 +93,10 @@ void SnapshotClient::run(zsock_t* pipe) {
 		return;
 	} while(0);
 
-	zsock_signal(pipe,-1);
+	zsock_signal(pipe,0);
 	zloop_destroy(&loop);
+
+	LOG(INFO) << "SnapshotClient shutdown";
 }
 
 void SnapshotClient::actorRunner(zsock_t* pipe,void* arg) {

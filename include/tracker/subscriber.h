@@ -16,13 +16,13 @@ public:
 private:
 	std::shared_ptr<sub_dispatcher_t> make_dispatcher();
 
-	int defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onRmService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
-	int onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& envelope);
+	int defaultProcess(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onRmRegion(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onRmService(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
+	int onRmPayload(const std::shared_ptr<google::protobuf::Message>& msg,const std::string& topic);
 private:
 	zloop_t*							m_loop;
 	std::shared_ptr<IRIObserver>		m_observer;

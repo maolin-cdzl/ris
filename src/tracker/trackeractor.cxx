@@ -156,30 +156,30 @@ void RITrackerActor::actorRunner(zsock_t* pipe,void* args) {
 	self->run(pipe);
 }
 
-int RITrackerActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	(void)sock;
 	(void)envelope;
 	LOG(WARNING) << "TrackerActor Recv unexpected message: " << msg->GetTypeName();
 	return 0;
 }
 
-int RITrackerActor::onHandShake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onHandShake(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::HandShake>(msg);
-	zpb_send(sock,std::move(envelope),*p);
+	zpb_send(sock,envelope,*p);
 	return 0;
 }
 
-int RITrackerActor::onStaticsReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onStaticsReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::StatisticsReq>(msg);
 	tracker::api::StatisticsRep rep;
 	rep.set_region_count( m_table->region_size() );
 	rep.set_service_count( m_table->service_size() );
 	rep.set_payload_count( m_table->payload_size() );
-	zpb_send(sock,std::move(envelope),rep);
+	zpb_send(sock,envelope,rep);
 	return 0;
 }
 
-int RITrackerActor::onRegionReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onRegionReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::RegionReq>(msg);
 	tracker::api::RegionRep rep;
 	auto region = m_table->getRegion(p->uuid());
@@ -191,11 +191,11 @@ int RITrackerActor::onRegionReq(const std::shared_ptr<google::protobuf::Message>
 		pr->set_bus_address( region->bus_address );
 		pr->set_snapshot_address( region->snapshot_address );
 	}
-	zpb_send(sock,std::move(envelope),rep);
+	zpb_send(sock,envelope,rep);
 	return 0;
 }
 
-int RITrackerActor::onServiceRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onServiceRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::ServiceRouteReq>(msg);
 	tracker::api::ServiceRouteRep rep;
 	
@@ -206,11 +206,11 @@ int RITrackerActor::onServiceRouteReq(const std::shared_ptr<google::protobuf::Me
 		ri->set_region(result.first->id);
 		ri->set_address(result.second);
 	}
-	zpb_send(sock,std::move(envelope),rep);
+	zpb_send(sock,envelope,rep);
 	return 0;
 }
 
-int RITrackerActor::onPayloadRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onPayloadRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::PayloadRouteReq>(msg);
 	tracker::api::PayloadRouteRep rep;
 
@@ -221,11 +221,11 @@ int RITrackerActor::onPayloadRouteReq(const std::shared_ptr<google::protobuf::Me
 		ri->set_region(region->id);
 		ri->set_address(region->bus_address);
 	}
-	zpb_send(sock,std::move(envelope),rep);
+	zpb_send(sock,envelope,rep);
 	return 0;
 }
 
-int RITrackerActor::onPayloadsRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,std::unique_ptr<ZEnvelope>& envelope) {
+int RITrackerActor::onPayloadsRouteReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::PayloadsRouteReq>(msg);
 	tracker::api::PayloadsRouteRep rep;
 
@@ -241,7 +241,7 @@ int RITrackerActor::onPayloadsRouteReq(const std::shared_ptr<google::protobuf::M
 		}
 	}
 
-	zpb_send(sock,std::move(envelope),rep);
+	zpb_send(sock,envelope,rep);
 	return 0;
 }
 
