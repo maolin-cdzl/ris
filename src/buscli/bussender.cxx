@@ -141,6 +141,16 @@ std::shared_ptr<google::protobuf::Message> BusSender::wait_pb_reply(uint64_t tim
 		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
 			break;
 		}
+
+		bus::BusRepHeader reph;
+		if( -1 == zpb_recv(reph,m_sock) ) {
+			LOG(ERROR) << "Recv BusRepHeader failed";
+			break;
+		}
+		if( ! zsock_rcvmore(m_sock) ) {
+			LOG(ERROR) << "Bus reply has no body";
+			break;
+		}
 		return zpb_recv(m_sock);
 	} while(0);
 
@@ -153,6 +163,15 @@ int BusSender::wait_pb_reply(google::protobuf::Message& msg,uint64_t timeout) {
 
 	do {
 		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
+			break;
+		}
+		bus::BusRepHeader reph;
+		if( -1 == zpb_recv(reph,m_sock) ) {
+			LOG(ERROR) << "Recv BusRepHeader failed";
+			break;
+		}
+		if( ! zsock_rcvmore(m_sock) ) {
+			LOG(ERROR) << "Bus reply has no body";
 			break;
 		}
 		return zpb_recv(msg,m_sock);
@@ -168,6 +187,15 @@ zmsg_t* BusSender::wait_zmq_reply(uint64_t timeout) {
 
 	do {
 		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
+			break;
+		}
+		bus::BusRepHeader reph;
+		if( -1 == zpb_recv(reph,m_sock) ) {
+			LOG(ERROR) << "Recv BusRepHeader failed";
+			break;
+		}
+		if( ! zsock_rcvmore(m_sock) ) {
+			LOG(ERROR) << "Bus reply has no body";
 			break;
 		}
 		return zmsg_recv(m_sock);

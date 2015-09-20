@@ -7,4 +7,8 @@ message BusHeader {
 	repeated string		targets		= 3;
 }
 
+message BusRepHeader {
+	uint64				msg_id		= 1;
+	repeated string		targets		= 2;
+}
 

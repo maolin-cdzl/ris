@@ -4,19 +4,8 @@
 #include <memory>
 #include <czmq.h>
 
+#include <google/protobuf/message.h>
 #include "ris/bus.pb.h"
-
-class BusMessage {
-public:
-	bus::BusHeader		header;
-	zmsg_t*				body;
-
-	BusMessage();
-	~BusMessage();
-private:
-	BusMessage(const BusMessage&) = delete;
-	BusMessage& operator = (const BusMessage&) = delete;
-};
 
 class BusReceiver {
 public:
@@ -30,19 +19,21 @@ public:
 		return m_sock != nullptr;
 	}
 
-	std::shared_ptr<BusMessage> ready_and_wait();
+	std::shared_ptr<google::protobuf::Message> wait_pb();
 
-	std::shared_ptr<BusMessage> reply_and_wait(const google::protobuf::Message& msg);
+	std::shared_ptr<google::protobuf::Message> reply_and_wait_pb(const google::protobuf::Message& reply);
 
-	std::shared_ptr<BusMessage> reply_and_wait(zmsg_t** p_msg);
+	zmsg_t* reply_and_wait_z(zmsg_t** p_reply);
 
 private:
-	std::shared_ptr<BusMessage> wait();
+	std::shared_ptr<google::protobuf::Message> do_wait_pb();
+	zmsg_t* do_wait_z();
 	int reconnect();
 private:
 	std::string				m_address;
 	std::string				m_id;
 	zsock_t*				m_sock;
+	bus::BusHeader			m_last_header;
 };
 
 

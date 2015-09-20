@@ -5,18 +5,6 @@
 
 #define WORKER_READY		"\001"
 
-// class BusMessage
-BusMessage::BusMessage() :
-	body(nullptr)
-{
-}
-
-BusMessage::~BusMessage() {
-	if( body ) {
-		zmsg_destroy(&body);
-	}
-}
-
 
 // class BusReceiver
 BusReceiver::BusReceiver() :
@@ -44,11 +32,9 @@ void BusReceiver::disconnect() {
 	m_address.clear();
 }
 
-std::shared_ptr<BusMessage> BusReceiver::wait() {
+std::shared_ptr<google::protobuf::Message> BusReceiver::do_wait_pb() {
 	do {
-		auto bmsg = std::make_shared<BusMessage>();
-
-		if( -1 == zpb_recv(bmsg->header,m_sock) ) {
+		if( -1 == zpb_recv(m_last_header,m_sock) ) {
 			LOG(ERROR) << "Recv BusHeader failed";
 			break;
 		}
@@ -58,19 +44,45 @@ std::shared_ptr<BusMessage> BusReceiver::wait() {
 			break;
 		}
 
-		bmsg->body = zmsg_recv(m_sock);
-		if( nullptr == bmsg->body ) {
+		auto msg = zpb_recv(m_sock);
+		if( nullptr == msg ) {
 			LOG(ERROR) << "Recv body failed";
+			break;
 		}
 
-		return std::move(bmsg);
+		return std::move(msg);
 	} while(0);
 
 	reconnect();
 	return nullptr;
 }
 
-std::shared_ptr<BusMessage> BusReceiver::ready_and_wait() {
+zmsg_t* BusReceiver::do_wait_z() {
+	do {
+		if( -1 == zpb_recv(m_last_header,m_sock) ) {
+			LOG(ERROR) << "Recv BusHeader failed";
+			break;
+		}
+
+		if( ! zsock_rcvmore(m_sock) ) {
+			LOG(ERROR) << "Bus message has no body";
+			break;
+		}
+
+		auto msg = zmsg_recv(m_sock);
+		if( nullptr == msg ) {
+			LOG(ERROR) << "Recv body failed";
+			break;
+		}
+
+		return msg;
+	} while(0);
+
+	reconnect();
+	return nullptr;
+}
+
+std::shared_ptr<google::protobuf::Message> BusReceiver::wait_pb() {
 	CHECK_NOTNULL(m_sock);
 
 	zframe_t* fr = zframe_new(WORKER_READY,1);
@@ -81,28 +93,53 @@ std::shared_ptr<BusMessage> BusReceiver::ready_and_wait() {
 		reconnect();
 		return nullptr;
 	} else {
-		return wait();
+		return do_wait_pb();
 	}
 }
 
-std::shared_ptr<BusMessage> BusReceiver::reply_and_wait(const google::protobuf::Message& msg) {
+std::shared_ptr<google::protobuf::Message> BusReceiver::reply_and_wait_pb(const google::protobuf::Message& reply) {
 	CHECK_NOTNULL(m_sock);
-	if( -1 == zpb_send(m_sock,msg) ) {
-		reconnect();
-		return nullptr;
-	} else {
-		return wait();
-	}
+	CHECK( m_last_header.IsInitialized() );
+
+	do {
+		bus::BusRepHeader reph;
+		reph.set_msg_id( m_last_header.msg_id() );
+		std::copy(m_last_header.mutable_targets()->begin(),m_last_header.mutable_targets()->end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
+		m_last_header.Clear();
+
+		if( -1 == zpb_sendm(m_sock,reph,false) ) {
+			break;
+		}
+		if( -1 == zpb_send(m_sock,reply) ) {
+			break;
+		}
+		return do_wait_pb();
+	} while(0);
+
+	reconnect();
+	return nullptr;
 }
 
-std::shared_ptr<BusMessage> BusReceiver::reply_and_wait(zmsg_t** p_msg) {
+zmsg_t* BusReceiver::reply_and_wait_z(zmsg_t** p_msg) {
 	CHECK_NOTNULL(m_sock);
-	if( -1 == zmsg_send(p_msg,m_sock) ) {
-		reconnect();
-		return nullptr;
-	} else {
-		return wait();
-	}
+
+	do {
+		bus::BusRepHeader reph;
+		reph.set_msg_id( m_last_header.msg_id() );
+		std::copy(m_last_header.mutable_targets()->begin(),m_last_header.mutable_targets()->end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
+		m_last_header.Clear();
+
+		if( -1 == zpb_sendm(m_sock,reph,false) ) {
+			break;
+		}
+		if( -1 == zmsg_send(p_msg,m_sock) ) {
+			break;
+		}
+		return do_wait_z();
+	} while(0);
+
+	reconnect();
+	return nullptr;
 }
 
 int BusReceiver::reconnect() {
@@ -110,6 +147,7 @@ int BusReceiver::reconnect() {
 	if( m_sock ) {
 		zsock_destroy(&m_sock);
 	}
+	m_last_header.Clear();
 
 	if( zsys_interrupted ) {
 		return -1;
