@@ -1,5 +1,5 @@
 #include <glog/logging.h>
-#include "busmsgsession.h"
+#include "busreceiver.h"
 #include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
 
@@ -18,18 +18,18 @@ BusMessage::~BusMessage() {
 }
 
 
-// class BusMsgSession
-BusMsgSession::BusMsgSession() :
+// class BusReceiver
+BusReceiver::BusReceiver() :
 	m_id(new_short_identitiy()),
 	m_sock(nullptr)
 {
 }
 
-BusMsgSession::~BusMsgSession() {
+BusReceiver::~BusReceiver() {
 	disconnect();
 }
 
-int BusMsgSession::connect(const std::string& address) {
+int BusReceiver::connect(const std::string& address) {
 	if( m_sock )
 		return -1;
 
@@ -37,14 +37,14 @@ int BusMsgSession::connect(const std::string& address) {
 	return reconnect();
 }
 
-void BusMsgSession::disconnect() {
+void BusReceiver::disconnect() {
 	if( m_sock ) {
 		zsock_destroy(&m_sock);
 	}
 	m_address.clear();
 }
 
-std::shared_ptr<BusMessage> BusMsgSession::wait() {
+std::shared_ptr<BusMessage> BusReceiver::wait() {
 	do {
 		auto bmsg = std::make_shared<BusMessage>();
 
@@ -70,7 +70,7 @@ std::shared_ptr<BusMessage> BusMsgSession::wait() {
 	return nullptr;
 }
 
-std::shared_ptr<BusMessage> BusMsgSession::ready_and_wait() {
+std::shared_ptr<BusMessage> BusReceiver::ready_and_wait() {
 	CHECK_NOTNULL(m_sock);
 
 	zframe_t* fr = zframe_new(WORKER_READY,1);
@@ -85,7 +85,7 @@ std::shared_ptr<BusMessage> BusMsgSession::ready_and_wait() {
 	}
 }
 
-std::shared_ptr<BusMessage> BusMsgSession::reply_and_wait(const google::protobuf::Message& msg) {
+std::shared_ptr<BusMessage> BusReceiver::reply_and_wait(const google::protobuf::Message& msg) {
 	CHECK_NOTNULL(m_sock);
 	if( -1 == zpb_send(m_sock,msg) ) {
 		reconnect();
@@ -95,7 +95,7 @@ std::shared_ptr<BusMessage> BusMsgSession::reply_and_wait(const google::protobuf
 	}
 }
 
-std::shared_ptr<BusMessage> BusMsgSession::reply_and_wait(zmsg_t** p_msg) {
+std::shared_ptr<BusMessage> BusReceiver::reply_and_wait(zmsg_t** p_msg) {
 	CHECK_NOTNULL(m_sock);
 	if( -1 == zmsg_send(p_msg,m_sock) ) {
 		reconnect();
@@ -105,7 +105,7 @@ std::shared_ptr<BusMessage> BusMsgSession::reply_and_wait(zmsg_t** p_msg) {
 	}
 }
 
-int BusMsgSession::reconnect() {
+int BusReceiver::reconnect() {
 	CHECK( !m_address.empty() );
 	if( m_sock ) {
 		zsock_destroy(&m_sock);

@@ -291,8 +291,8 @@ target_link_libraries(regioncli LINK_PUBLIC
 add_library(regioncli_static STATIC
 	regioncli/regionsession.h
 	regioncli/regionsession.cxx
-	regioncli/busmsgsession.h
-	regioncli/busmsgsession.cxx
+	regioncli/busreceiver.h
+	regioncli/busreceiver.cxx
 )
 
 target_include_directories(regioncli_static

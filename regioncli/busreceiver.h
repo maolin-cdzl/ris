@@ -18,10 +18,10 @@ private:
 	BusMessage& operator = (const BusMessage&) = delete;
 };
 
-class BusMsgSession {
+class BusReceiver {
 public:
-	BusMsgSession();
-	~BusMsgSession();
+	BusReceiver();
+	~BusReceiver();
 
 	int connect(const std::string& address);
 	void disconnect();
