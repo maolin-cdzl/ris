@@ -231,12 +231,12 @@ target_link_libraries(ritracker LINK_PRIVATE tracker_static)
 
 # trackercli
 add_library(trackercli SHARED
-	trackercli/trackersession.h
-	trackercli/trackersession.cxx
+	include/trackercli/trackersession.h
+	src/trackercli/trackersession.cxx
 )
 
 target_include_directories(trackercli
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/trackercli
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
@@ -250,12 +250,12 @@ target_link_libraries(trackercli LINK_PUBLIC
 )
 
 add_library(trackercli_static STATIC
-	trackercli/trackersession.h
-	trackercli/trackersession.cxx
+	include/trackercli/trackersession.h
+	src/trackercli/trackersession.cxx
 )
 
 target_include_directories(trackercli_static
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/trackercli
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
@@ -270,12 +270,14 @@ target_link_libraries(trackercli_static LINK_PUBLIC
 
 ## regioncli
 add_library(regioncli SHARED
-	regioncli/regionsession.h
-	regioncli/regionsession.cxx
+	include/regioncli/regionsession.h
+	include/regioncli/busreceiver.h
+	src/regioncli/regionsession.cxx
+	src/regioncli/busreceiver.cxx
 )
 
 target_include_directories(regioncli
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/regioncli
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
 )
@@ -289,14 +291,14 @@ target_link_libraries(regioncli LINK_PUBLIC
 
 # regioncli static
 add_library(regioncli_static STATIC
-	regioncli/regionsession.h
-	regioncli/regionsession.cxx
-	regioncli/busreceiver.h
-	regioncli/busreceiver.cxx
+	include/regioncli/regionsession.h
+	include/regioncli/busreceiver.h
+	src/regioncli/regionsession.cxx
+	src/regioncli/busreceiver.cxx
 )
 
 target_include_directories(regioncli_static
-	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/regioncli
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
 	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
 	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
 )

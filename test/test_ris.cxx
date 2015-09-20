@@ -4,8 +4,8 @@
 #include "test_helper.h"
 #include "region/regionapi.h"
 #include "tracker/trackerapi.h"
-#include "trackersession.h"
-#include "regionsession.h"
+#include "trackercli/trackersession.h"
+#include "regioncli/regionsession.h"
 
 extern zloop_t* g_loop;
 
