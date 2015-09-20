@@ -23,10 +23,10 @@ int SnapshotClientWorker::start(const std::function<void(int)>& completed,const 
 	
 	zsock_t* sock = nullptr;
 	do {
-		m_uuid = new_short_identitiy();
+		m_uuid = new_short_identity();
 		sock = zsock_new(ZMQ_DEALER);
 		CHECK_NOTNULL(sock);
-		zsock_set_identity(sock,new_short_identitiy().c_str());
+		zsock_set_identity(sock,new_short_identity().c_str());
 		if( -1 == zsock_connect(sock,"%s",address.c_str()) ) {
 			LOG(ERROR) << "SnapshotClientWorker can not connect to: " << address;
 			break;

@@ -20,7 +20,7 @@ BusMessage::~BusMessage() {
 
 // class BusReceiver
 BusReceiver::BusReceiver() :
-	m_id(new_short_identitiy()),
+	m_id(new_short_identity()),
 	m_sock(nullptr)
 {
 }

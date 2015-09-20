@@ -27,7 +27,7 @@ int BusProcesser::start(const std::string& busend_address,const std::string& wor
 	do {
 		busend = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(busend);
-		zsock_set_identity(busend,new_short_identitiy().c_str());
+		zsock_set_identity(busend,new_short_identity().c_str());
 		if( -1 == zsock_bind(busend,"%s",busend_address.c_str()) ) {
 			LOG(FATAL) << "Busend socket can not bind to: " << busend_address;
 			break;
@@ -42,7 +42,7 @@ int BusProcesser::start(const std::string& busend_address,const std::string& wor
 
 		workerend = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(workerend);
-		zsock_set_identity(workerend,new_short_identitiy().c_str());
+		zsock_set_identity(workerend,new_short_identity().c_str());
 		zsock_set_router_mandatory(workerend,1);
 		if( -1 == zsock_bind(workerend,"%s",workerend_address.c_str()) ) {
 			LOG(FATAL) << "Workerend socket can not bind to: " << workerend;

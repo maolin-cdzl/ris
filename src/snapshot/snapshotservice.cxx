@@ -63,7 +63,7 @@ void SnapshotService::run(zsock_t* pipe) {
 
 		router = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(router);
-		zsock_set_identity(router,new_short_identitiy().c_str());
+		zsock_set_identity(router,new_short_identity().c_str());
 #ifndef NDEBUG
 		zsock_set_router_mandatory(router,1);
 #endif
