@@ -308,6 +308,29 @@ target_link_libraries(regioncli_static LINK_PUBLIC
 	zmqx
 	zmq
 	czmq
+	gflags
+	glog
+)
+
+# buscli static
+add_library(buscli_static STATIC
+	include/buscli/bussender.h
+	src/buscli/bussender.cxx
+)
+
+target_include_directories(buscli_static
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+	PRIVATE $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(buscli_static LINK_PUBLIC
+	risproto
+	zmqx
+	zmq
+	czmq
+	gflags
+	glog
 )
 
 # broker
