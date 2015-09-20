@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -Wall -fvisibility=hidden ${CMAKE_CXX_FLAG
 set(PROTOBUF_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 
 set(RIS_PROTO 
+	${CMAKE_CURRENT_SOURCE_DIR}/proto/bus.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/pub.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/snapshot.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/regionapi.proto 
@@ -83,16 +84,18 @@ target_link_libraries(ris LINK_PUBLIC
 
 ################### Target Region
 
-# objects
+# region objects
 add_library(region_obj OBJECT
 	src/region/regionactor.cxx
 	src/region/regiontable.cxx
 	src/region/publisher.cxx
 	src/region/regionctx.cxx
+	src/region/busprocesser.cxx
 	include/region/publisher.h
 	include/region/regionactor.h
 	include/region/regiontable.h
 	include/region/regionctx.h
+	include/region/busprocesser.h
 )
 
 target_include_directories(region_obj

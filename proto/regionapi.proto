@@ -2,32 +2,33 @@ syntax = "proto3";
 package region.api;
 
 message HandShake {
-	optional uint32			version = 1;
+	uint32		version = 1;
 }
 
 message Result {
-	int32			result = 1;
-	uint32			version = 2;
-	optional string			what = 3;
+	int32		result = 1;
+	uint32		version = 2;
+	string		what = 3;
 }
 
 message AddService {
-	string			name = 1;
-	string			address = 2;
-	optional bool			rep = 3;
+	string		name = 1;
+	string		address = 2;
+	bool		rep = 3;
 }
 
 message RmService {
-	string			name = 1;
-	optional bool			rep = 3;
+	string		name = 1;
+	bool		rep = 3;
 }
 
 message AddPayload {
-	string			uuid = 1;
-	optional bool			rep = 3;
+	string		uuid = 1;
+	bool		rep = 3;
 }
 
 message RmPayload {
-	string			uuid = 1;
-	optional bool			rep = 3;
+	string		uuid = 1;
+	bool		rep = 3;
 }
+
