@@ -19,6 +19,10 @@ public:
 		return m_sock != nullptr;
 	}
 
+	inline const bus::BusHeader& header() const {
+		return m_last_header;
+	}
+
 	std::shared_ptr<google::protobuf::Message> wait_pb();
 
 	std::shared_ptr<google::protobuf::Message> reply_and_wait_pb(const google::protobuf::Message& reply);
