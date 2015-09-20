@@ -17,6 +17,16 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 			} else {
 				ctx->bind_pub = false;
 			}
+			if( region.exists("bus_api_address") ) {
+				ctx->bus_api_address = region["bus_api_address"].c_str();
+			} else {
+				ctx->bus_api_address = "inproc://busapi." + ctx->uuid ;
+			}
+			if( region.exists("bus_hwm") ) {
+				ctx->bus_hwm = region["bus_hwm"];
+			} else {
+				ctx->bus_hwm = 5000;
+			}
 
 			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
 			ctx->snapshot_address = snapshot["address"].c_str();

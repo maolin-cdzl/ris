@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 #include "snapshot/snapshotfeature.h"
 #include "region/regionactor.h"
+#include "region/busprocesser.h"
 #include "zmqx/zhelper.h"
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zloopreader.h"
@@ -68,6 +69,12 @@ void RIRegionActor::run(zsock_t* pipe) {
 
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
+
+		auto bus = std::make_shared<BusProcesser>(m_loop);
+		if( -1 == bus->start(m_ctx->bus_address,m_ctx->bus_api_address,m_ctx->bus_hwm) ) {
+			LOG(FATAL) << "Can not start bus processer";
+			break;
+		}
 
 		auto pub = std::make_shared<RIPublisher>( m_loop );
 		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {

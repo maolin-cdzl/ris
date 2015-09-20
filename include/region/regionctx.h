@@ -8,9 +8,14 @@ public:
 	std::string					uuid;
 	std::string					idc;
 	std::string					api_address;
+
 	std::string					pub_address;					
 	bool						bind_pub;
+
 	std::string					bus_address;
+	std::string					bus_api_address;
+	size_t						bus_hwm;
+
 	std::string					snapshot_address;
 
 	RegionCtx() = default;
