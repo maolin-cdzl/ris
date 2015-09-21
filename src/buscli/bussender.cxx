@@ -42,165 +42,255 @@ void BusSender::disconnect() {
 	m_brokers.clear();
 }
 
-int BusSender::send(const std::string& target,const google::protobuf::Message& msg) {
+uint64_t BusSender::send(const std::string& target,const google::protobuf::Message& msg,bool req_state) {
 	CHECK_NOTNULL(m_sock);
 	CHECK( ! target.empty() );
 	CHECK( msg.IsInitialized() );
 
-	bus::BusHeader header;
-	header.set_msg_id(new_short_bin_identity());
-	header.add_targets(target);
-
 	do {
+		bus::SendHeader header;
+		header.set_msg_id(new_short_bin_identity());
+		header.add_targets(target);
+		header.set_req_state(req_state);
+
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
 		}
 		if( -1 == zpb_send(m_sock,msg,false) ) {
 			break;
 		}
-		return 0;
+		return header.msg_id();
 	} while(0);
 
-	return -1;
+	return 0;
 }
 
-int BusSender::send(const std::list<std::string>& targets,const google::protobuf::Message& msg) {
+uint64_t BusSender::send(const std::list<std::string>& targets,const google::protobuf::Message& msg,bool req_state) {
 	CHECK_NOTNULL(m_sock);
 	CHECK( ! targets.empty() );
 	CHECK( msg.IsInitialized() );
 
-	bus::BusHeader header;
-	header.set_msg_id(new_short_bin_identity());
-	std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
-
 	do {
+		bus::SendHeader header;
+		header.set_msg_id(new_short_bin_identity());
+		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
+		header.set_req_state(req_state);
+
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
 		}
 		if( -1 == zpb_send(m_sock,msg,false) ) {
 			break;
 		}
-		return 0;
+		return header.msg_id();
 	} while(0);
 
-	return -1;
+	return 0;
 }
 
-int BusSender::send(const std::string& target,zmsg_t** p_msg) {
+uint64_t BusSender::send(const std::string& target,zmsg_t** p_msg,bool req_state) {
 	CHECK_NOTNULL(m_sock);
 	CHECK( ! target.empty() );
 	CHECK( p_msg );
 	CHECK( *p_msg );
 
-	bus::BusHeader header;
-	header.set_msg_id(new_short_bin_identity());
-	header.add_targets(target);
-
 	do {
+		bus::SendHeader header;
+		header.set_msg_id(new_short_bin_identity());
+		header.add_targets(target);
+		header.set_req_state(req_state);
+
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
 		}
 		if( -1 == zmsg_send(p_msg,m_sock) ) {
 			break;
 		}
-		return 0;
+		return header.msg_id();
 	} while(0);
 
-	return -1;
+	return 0;
 }
 
-int BusSender::send(const std::list<std::string>& targets,zmsg_t** p_msg) {
+uint64_t BusSender::send(const std::list<std::string>& targets,zmsg_t** p_msg,bool req_state) {
 	CHECK_NOTNULL(m_sock);
 	CHECK( ! targets.empty() );
 	CHECK( p_msg );
 	CHECK( *p_msg );
 
-	bus::BusHeader header;
-	header.set_msg_id(new_short_bin_identity());
-	std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
-
 	do {
+		bus::SendHeader header;
+		header.set_msg_id(new_short_bin_identity());
+		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
+		header.set_req_state(req_state);
+
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
 		}
 		if( -1 == zmsg_send(p_msg,m_sock) ) {
 			break;
 		}
-		return 0;
+		return header.msg_id();
 	} while(0);
 
-	return -1;
+	return 0;
+}
+
+std::tuple<int,std::list<std::string>,std::list<std::string>> BusSender::wait_send_state(uint64_t msg_id,uint64_t timeout) {
+	uint64_t now = time_now();
+	const uint64_t deadline = now + timeout;
+	std::tuple<int,std::list<std::string>,std::list<std::string>> result;
+	std::get<0>(result) = -1;
+
+	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
+		bus::SendState state;
+		if( 0 == zpb_recv(state,m_sock,true) ) {
+			if( state.msg_id() == msg_id ) {
+				std::get<0>(result) = 0;
+				std::copy(state.targets().begin(),state.targets().end(),std::back_inserter( std::get<1>(result)) );
+				std::copy(state.unreached_targets().begin(),state.unreached_targets().end(),std::back_inserter( std::get<2>(result) ));
+				break;
+			}
+		}
+
+		now = time_now();
+	}
+
+	return std::move(result);
 }
 
 
-std::shared_ptr<google::protobuf::Message> BusSender::wait_pb_reply(uint64_t timeout) {
+std::tuple<int,std::list<std::string>,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> BusSender::wait_pb_reply(uint64_t msg_id,uint64_t timeout) {
 	CHECK_NOTNULL(m_sock);
 	CHECK_GE(timeout,1);
 
-	do {
-		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
-			break;
+	uint64_t now = time_now();
+	const uint64_t deadline = now + timeout;
+	std::tuple<int,std::list<std::string>,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> result;
+	std::get<0>(result) = -1;
+
+	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
+		bus::ReplyHeader header;
+		if( 0 == zpb_recv(header,m_sock) ) {
+			if( header.msg_id() == msg_id ) {
+				if( zsock_rcvmore(m_sock) ) {
+					auto reply = zpb_recv(m_sock,true);
+					if( reply ) {
+						std::get<0>(result) = 0;
+						std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
+						std::copy(header.deny_targets().begin(),header.deny_targets().end(),std::back_inserter(std::get<2>(result)));
+						std::get<3>(result) = reply;
+					}
+				}
+				break;
+			}
 		}
 
-		bus::BusRepHeader reph;
-		if( -1 == zpb_recv(reph,m_sock) ) {
-			LOG(ERROR) << "Recv BusRepHeader failed";
-			break;
-		}
-		if( ! zsock_rcvmore(m_sock) ) {
-			LOG(ERROR) << "Bus reply has no body";
-			break;
-		}
-		return zpb_recv(m_sock);
-	} while(0);
+		now = time_now();
+	}
 
-	return nullptr;
+	return std::move(result);
 }
 
-int BusSender::wait_pb_reply(google::protobuf::Message& msg,uint64_t timeout) {
+std::tuple<int,std::list<std::string>,std::list<std::string>,zmsg_t*> BusSender::wait_zmq_reply(uint64_t msg_id,uint64_t timeout) {
 	CHECK_NOTNULL(m_sock);
 	CHECK_GE(timeout,1);
 
-	do {
-		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
-			break;
-		}
-		bus::BusRepHeader reph;
-		if( -1 == zpb_recv(reph,m_sock) ) {
-			LOG(ERROR) << "Recv BusRepHeader failed";
-			break;
-		}
-		if( ! zsock_rcvmore(m_sock) ) {
-			LOG(ERROR) << "Bus reply has no body";
-			break;
-		}
-		return zpb_recv(msg,m_sock);
-	} while(0);
+	uint64_t now = time_now();
+	const uint64_t deadline = now + timeout;
+	std::tuple<int,std::list<std::string>,std::list<std::string>,zmsg_t*> result;
+	std::get<0>(result) = -1;
 
-	return -1;
+	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
+		bus::ReplyHeader header;
+		if( 0 == zpb_recv(header,m_sock) ) {
+			if( header.msg_id() == msg_id ) {
+				if( zsock_rcvmore(m_sock) ) {
+					auto reply = zmsg_recv(m_sock);
+					if( reply ) {
+						std::get<0>(result) = 0;
+						std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
+						std::copy(header.deny_targets().begin(),header.deny_targets().end(),std::back_inserter(std::get<2>(result)));
+						std::get<3>(result) = reply;
+					}
+				}
+				break;
+			} else {
+				zsock_flush(m_sock);
+			}
+		}
+
+		now = time_now();
+	}
+
+	return std::move(result);
 }
 
 
-zmsg_t* BusSender::wait_zmq_reply(uint64_t timeout) {
-	CHECK_NOTNULL(m_sock);
-	CHECK_GE(timeout,1);
-
+bool BusSender::checked_send(const std::string& target,const google::protobuf::Message& msg,uint64_t timeout) {
 	do {
-		if( zmq_wait_readable(m_sock,timeout) <= 0 ) {
+		const uint64_t msg_id = send(target,msg,true);
+		if( 0 == msg_id ) {
 			break;
 		}
-		bus::BusRepHeader reph;
-		if( -1 == zpb_recv(reph,m_sock) ) {
-			LOG(ERROR) << "Recv BusRepHeader failed";
-			break;
+
+		auto state = wait_send_state(msg_id,timeout);
+		if( std::get<0>(state) == 0 ) {
+			return !std::get<1>(state).empty();
 		}
-		if( ! zsock_rcvmore(m_sock) ) {
-			LOG(ERROR) << "Bus reply has no body";
-			break;
-		}
-		return zmsg_recv(m_sock);
 	} while(0);
 
-	return nullptr;
+	return false;
 }
+
+
+bool BusSender::checked_send(const std::string& target,zmsg_t** p_msg,uint64_t timeout) {
+	do {
+		const uint64_t msg_id = send(target,p_msg,true);
+		if( 0 == msg_id ) {
+			break;
+		}
+
+		auto state = wait_send_state(msg_id,timeout);
+		if( std::get<0>(state) == 0 ) {
+			return ! std::get<1>(state).empty();
+		}
+	} while(0);
+
+	return false;
+}
+
+std::list<std::string> BusSender::checked_send(const std::list<std::string>& targets,const google::protobuf::Message& msg,uint64_t timeout) {
+	do {
+		const uint64_t msg_id = send(targets,msg,true);
+		if( 0 == msg_id ) {
+			break;
+		}
+
+		auto state = wait_send_state(msg_id,timeout);
+		if( std::get<0>(state) == 0 ) {
+			return std::get<1>(state);
+		}
+	} while(0);
+
+	return std::list<std::string>();
+}
+
+std::list<std::string> BusSender::checked_send(const std::list<std::string>& targets,zmsg_t** p_msg,uint64_t timeout) {
+	do {
+		const uint64_t msg_id = send(targets,p_msg,true);
+		if( 0 == msg_id ) {
+			break;
+		}
+
+		auto state = wait_send_state(msg_id,timeout);
+		if( std::get<0>(state) == 0 ) {
+			return std::get<1>(state);
+		}
+	} while(0);
+
+	return std::list<std::string>();
+}
+
+
 

@@ -9,7 +9,8 @@
 // class BusReceiver
 BusReceiver::BusReceiver() :
 	m_id(new_short_identity()),
-	m_sock(nullptr)
+	m_sock(nullptr),
+	m_last_msg_id(0)
 {
 }
 
@@ -30,11 +31,15 @@ void BusReceiver::disconnect() {
 		zsock_destroy(&m_sock);
 	}
 	m_address.clear();
+	m_last_msg_id = 0;
 }
 
-std::shared_ptr<google::protobuf::Message> BusReceiver::do_wait_pb() {
+std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> BusReceiver::do_wait_pb() {
+	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> result;
+	std::get<0>(result) = -1;
 	do {
-		if( -1 == zpb_recv(m_last_header,m_sock) ) {
+		bus::DeliverHeader header;
+		if( -1 == zpb_recv(header,m_sock) ) {
 			LOG(ERROR) << "Recv BusHeader failed";
 			break;
 		}
@@ -44,22 +49,27 @@ std::shared_ptr<google::protobuf::Message> BusReceiver::do_wait_pb() {
 			break;
 		}
 
-		auto msg = zpb_recv(m_sock);
-		if( nullptr == msg ) {
+		std::get<2>(result) = zpb_recv(m_sock,true);
+		if( nullptr == std::get<2>(result) ) {
 			LOG(ERROR) << "Recv body failed";
 			break;
 		}
 
-		return std::move(msg);
+		std::get<0>(result) = 0;
+		std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
+		return std::move(result);
 	} while(0);
 
 	reconnect();
-	return nullptr;
+	return std::move(result);
 }
 
-zmsg_t* BusReceiver::do_wait_z() {
+std::tuple<int,std::list<std::string>,zmsg_t*> BusReceiver::do_wait_z() {
+	std::tuple<int,std::list<std::string>,zmsg_t*> result;
+	std::get<0>(result) = -1;
 	do {
-		if( -1 == zpb_recv(m_last_header,m_sock) ) {
+		bus::DeliverHeader header;
+		if( -1 == zpb_recv(header,m_sock) ) {
 			LOG(ERROR) << "Recv BusHeader failed";
 			break;
 		}
@@ -69,21 +79,26 @@ zmsg_t* BusReceiver::do_wait_z() {
 			break;
 		}
 
-		auto msg = zmsg_recv(m_sock);
-		if( nullptr == msg ) {
+		std::get<2>(result) = zmsg_recv(m_sock);
+		if( nullptr == std::get<2>(result) ) {
 			LOG(ERROR) << "Recv body failed";
 			break;
 		}
 
-		return msg;
+		std::get<0>(result) = 0;
+		std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
+		return std::move(result);
 	} while(0);
 
 	reconnect();
-	return nullptr;
+	return std::move(result);
 }
 
-std::shared_ptr<google::protobuf::Message> BusReceiver::wait_pb() {
+std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> BusReceiver::wait_pb() {
 	CHECK_NOTNULL(m_sock);
+
+	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> result;
+	std::get<0>(result) = -1;
 
 	zframe_t* fr = zframe_new(WORKER_READY,1);
 	if( -1 == zframe_send(&fr,m_sock,0) ) {
@@ -91,21 +106,21 @@ std::shared_ptr<google::protobuf::Message> BusReceiver::wait_pb() {
 			zframe_destroy(&fr);
 		}
 		reconnect();
-		return nullptr;
 	} else {
-		return do_wait_pb();
+		result = do_wait_pb();
 	}
+	return std::move(result);
 }
 
-std::shared_ptr<google::protobuf::Message> BusReceiver::reply_and_wait_pb(const google::protobuf::Message& reply) {
+std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> BusReceiver::reply_and_wait_pb(const std::list<std::string>& targets,const std::list<std::string>& deny_targets,const google::protobuf::Message& reply) {
 	CHECK_NOTNULL(m_sock);
-	CHECK( m_last_header.IsInitialized() );
+	CHECK_NE( m_last_msg_id , 0 );
 
 	do {
-		bus::BusRepHeader reph;
-		reph.set_msg_id( m_last_header.msg_id() );
-		std::copy(m_last_header.mutable_targets()->begin(),m_last_header.mutable_targets()->end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
-		m_last_header.Clear();
+		bus::ReplyHeader reph;
+		reph.set_msg_id( m_last_msg_id );
+		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
+		std::copy(deny_targets.begin(),deny_targets.end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_deny_targets()));
 
 		if( -1 == zpb_sendm(m_sock,reph,false) ) {
 			break;
@@ -117,29 +132,36 @@ std::shared_ptr<google::protobuf::Message> BusReceiver::reply_and_wait_pb(const 
 	} while(0);
 
 	reconnect();
-	return nullptr;
+
+	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> result;
+	std::get<0>(result) = -1;
+	return std::move(result);
 }
 
-zmsg_t* BusReceiver::reply_and_wait_z(zmsg_t** p_msg) {
+std::tuple<int,std::list<std::string>,zmsg_t*> BusReceiver::reply_and_wait_z(const std::list<std::string>& targets,const std::list<std::string>& deny_targets,zmsg_t** p_reply) {
 	CHECK_NOTNULL(m_sock);
+	CHECK_NE( m_last_msg_id , 0 );
 
 	do {
-		bus::BusRepHeader reph;
-		reph.set_msg_id( m_last_header.msg_id() );
-		std::copy(m_last_header.mutable_targets()->begin(),m_last_header.mutable_targets()->end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
-		m_last_header.Clear();
+		bus::ReplyHeader reph;
+		reph.set_msg_id( m_last_msg_id );
+		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_targets()));
+		std::copy(deny_targets.begin(),deny_targets.end(),google::protobuf::RepeatedFieldBackInserter(reph.mutable_deny_targets()));
 
 		if( -1 == zpb_sendm(m_sock,reph,false) ) {
 			break;
 		}
-		if( -1 == zmsg_send(p_msg,m_sock) ) {
+		if( -1 == zmsg_send(p_reply,m_sock) ) {
 			break;
 		}
 		return do_wait_z();
 	} while(0);
 
 	reconnect();
-	return nullptr;
+
+	std::tuple<int,std::list<std::string>,zmsg_t*> result;
+	std::get<0>(result) = -1;
+	return std::move(result);
 }
 
 int BusReceiver::reconnect() {
@@ -147,7 +169,7 @@ int BusReceiver::reconnect() {
 	if( m_sock ) {
 		zsock_destroy(&m_sock);
 	}
-	m_last_header.Clear();
+	m_last_msg_id = 0;
 
 	if( zsys_interrupted ) {
 		return -1;

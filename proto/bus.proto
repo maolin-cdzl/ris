@@ -1,14 +1,31 @@
 syntax = "proto3";
 package bus;
 
-message BusHeader {
-	uint64				msg_id		= 1;
-	uint32				deadline	= 2;
-	repeated string		targets		= 3;
+message SendHeader {
+	// unique message id,sender must generate it by self.
+	uint64				msg_id				= 1;
+
+	// list dest targets
+	repeated string		targets				= 2;
+
+	// asking for send state reply. if false,sender will NOT receive any response.
+	bool				req_state			= 3;
 }
 
-message BusRepHeader {
-	uint64				msg_id		= 1;
-	repeated string		targets		= 2;
+message SendState {
+	uint64				msg_id				= 1;
+	repeated string		targets				= 2;
+	repeated string		unreached_targets	= 3;
+}
+
+message DeliverHeader {
+	uint64				msg_id				= 1;
+	repeated string		targets				= 2;
+}
+
+message ReplyHeader {
+	uint64				msg_id				= 1;
+	repeated string		targets				= 2;
+	repeated string		deny_targets		= 3;
 }
 
