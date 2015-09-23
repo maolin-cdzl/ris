@@ -333,17 +333,17 @@ target_link_libraries(buscli_static LINK_PUBLIC
 	glog
 )
 
-# broker
+# ribroker
 add_executable(ribroker 
-	src/broker/ribroker.cxx
-	src/broker/ribroker_main.cxx
+	src/ribroker/ribroker.cxx
+	src/ribroker/ribroker_main.cxx
 )
 target_link_libraries(ribroker PRIVATE zmq gflags glog)
 
 add_library(ribrokeractor STATIC
-	src/broker/ribroker.cxx
-	src/broker/ribrokeractor.cxx
-	include/broker/ribrokeractor.h
+	src/ribroker/ribroker.cxx
+	src/ribroker/ribrokeractor.cxx
+	include/ribroker/ribrokeractor.h
 )
 
 target_include_directories(ribrokeractor 
