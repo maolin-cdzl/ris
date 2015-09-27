@@ -2,14 +2,12 @@
 
 #include <string>
 #include <list>
+#include <set>
 #include <memory>
 #include <czmq.h>
 #include <google/protobuf/message.h>
 
-struct SendState {
-	std::list<std::string>			targets;
-	std::list<std::string>			unreached_targets;
-};
+#include "buscli/busmsgreply.h"
 
 class BusSender {
 public:
@@ -23,30 +21,24 @@ public:
 		return m_sock != nullptr;
 	}
 
+	bool send(const std::string& payload,const google::protobuf::Message& msg);
+	bool send(const std::set<std::string>& payloads,const google::protobuf::Message& msg);
+	bool send(const std::string& payload,zmsg_t** p_msg);
+	bool send(const std::set<std::string>& payloads,zmsg_t** p_msg);
+
+	std::shared_ptr<BusMsgReply> sendWaitReply(const std::string& payload,const google::protobuf::Message& msg,uint64_t timeout=1000);
+	std::shared_ptr<BusMsgReply> sendWaitReply(const std::set<std::string>& payloads,const google::protobuf::Message& msg,uint64_t timeout=1000);
+	std::shared_ptr<BusMsgReply> sendWaitReply(const std::string& payload,zmsg_t** p_msg,uint64_t timeout=1000);
+	std::shared_ptr<BusMsgReply> sendWaitReply(const std::set<std::string>& payloads,zmsg_t** p_msg,uint64_t timeout=1000);
+private:
 	// low level interface
 	// return message id, or 0 if failed.
-	uint64_t send(const std::string& target,const google::protobuf::Message& msg,bool req_state=false);
-	uint64_t send(const std::list<std::string>& targets,const google::protobuf::Message& msg,bool req_state=false);
-	uint64_t send(const std::string& target,zmsg_t** p_msg,bool req_state=false);
-	uint64_t send(const std::list<std::string>& targets,zmsg_t** p_msg,bool req_state=false);
+	uint64_t do_send(const std::string& payload,const google::protobuf::Message& msg,bool failure=false);
+	uint64_t do_send(const std::set<std::string>& payloads,const google::protobuf::Message& msg,bool failure=false);
+	uint64_t do_send(const std::string& payload,zmsg_t** p_msg,bool failure=false);
+	uint64_t do_send(const std::set<std::string>& payloads,zmsg_t** p_msg,bool failure=false);
 
-	std::tuple<int,std::list<std::string>,std::list<std::string>> wait_send_state(uint64_t msg_id,uint64_t timeout);
-
-	std::tuple<int,std::list<std::string>,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> wait_pb_reply(uint64_t msg_id,uint64_t timeout=1000);
-
-	std::tuple<int,std::list<std::string>,std::list<std::string>,zmsg_t*> wait_zmq_reply(uint64_t msg_id,uint64_t timeout=1000);
-
-	// combine interface
-	bool checked_send(const std::string& target,const google::protobuf::Message& msg,uint64_t timeout=1000);
-	bool checked_send(const std::string& target,zmsg_t** p_msg,uint64_t timeout=1000);
-
-	std::list<std::string> checked_send(const std::list<std::string>& targets,const google::protobuf::Message& msg,uint64_t timeout=1000);
-	std::list<std::string> checked_send(const std::list<std::string>& targets,zmsg_t** p_msg,uint64_t timeout=1000);
-	
-
-	// send and wait reply from targets
-
-private:
+	std::shared_ptr<BusMsgReply> wait_reply(uint64_t msg_id,const std::set<std::string>& payloads,uint64_t timeout=1000);
 private:
 	std::string				m_id;
 	zsock_t*				m_sock;

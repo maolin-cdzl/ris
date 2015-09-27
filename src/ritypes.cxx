@@ -36,10 +36,8 @@ bool Region::operator == (const Region& ref) const {
 }
 
 std::shared_ptr<pub::Region> Region::toPublish() const {
-	CHECK( ! id.empty() );
 
-	if( id.empty() || idc.empty() || bus_address.empty() || snapshot_address.empty() )
-			return nullptr;
+	CHECK( (!id.empty()) && (!idc.empty()) && (!bus_address.empty()) && (!snapshot_address.empty()) );
 
 	auto msg = std::make_shared<pub::Region>();
 	msg->set_uuid(id);

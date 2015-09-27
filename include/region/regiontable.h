@@ -39,6 +39,10 @@ public:
 		return m_payloads.size();
 	}
 
+	inline bool payload_exists(const ri_uuid_t& payload) const {
+		return m_payloads_idx.find(payload) != m_payloads_idx.end();
+	}
+
 	inline size_t sec_repub_region() const {
 		return m_sec_repub_region;
 	}

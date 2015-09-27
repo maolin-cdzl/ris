@@ -16,10 +16,11 @@ BusProcesser::~BusProcesser() {
 	stop();
 }
 
-int BusProcesser::start(const std::string& busend_address,const std::string& workerend_address,size_t hwm) {
+int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::string& busend_address,const std::string& workerend_address,size_t hwm) {
 	if( m_bus_reader || m_worker_reader )
 		return -1;
 
+	CHECK(table);
 	CHECK_GT(hwm,1);
 
 	zsock_t* busend = nullptr;
@@ -53,6 +54,7 @@ int BusProcesser::start(const std::string& busend_address,const std::string& wor
 		if( -1 == m_worker_reader->start(&workerend,std::bind<int>(&BusProcesser::onWorkerReadable,this,std::placeholders::_1))) {
 			LOG(FATAL) << "Can not start worker reader";
 		}
+		m_table = table;
 		m_hwm = hwm;
 		return 0;
 	} while(0);
@@ -82,6 +84,7 @@ void BusProcesser::stop() {
 	m_msgs.clear();
 	m_workers_index.clear();
 	m_workers.clear();
+	m_table.reset();
 }
 
 int BusProcesser::onBusReadable(zsock_t* sock) {

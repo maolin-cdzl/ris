@@ -70,12 +70,6 @@ void RIRegionActor::run(zsock_t* pipe) {
 	do {
 		LOG(INFO) << "RIRegionActor initialize...";
 
-		auto bus = std::make_shared<BusProcesser>(m_loop);
-		if( -1 == bus->start(m_ctx->bus_address,m_ctx->bus_api_address,m_ctx->bus_hwm) ) {
-			LOG(FATAL) << "Can not start bus processer";
-			break;
-		}
-
 		auto pub = std::make_shared<RIPublisher>( m_loop );
 		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
@@ -87,6 +81,13 @@ void RIRegionActor::run(zsock_t* pipe) {
 			LOG(FATAL) << "Start RIRegionTable failed";
 			break;
 		}
+
+		auto bus = std::make_shared<BusProcesser>(m_loop);
+		if( -1 == bus->start(m_table,m_ctx->bus_address,m_ctx->bus_api_address,m_ctx->bus_hwm) ) {
+			LOG(FATAL) << "Can not start bus processer";
+			break;
+		}
+
 
 		auto feature = std::make_shared<SnapshotFeature>(m_loop);
 		if( -1 == feature->start(m_table) ) {

@@ -12,6 +12,7 @@ extern zloop_t* g_loop;
 struct RegionInstance {
 	std::string				name;
 	std::string				api_address;
+	std::string				bus_address;
 	std::string				snapshot_address;
 	void*					instance;
 
@@ -37,6 +38,7 @@ protected:
 	virtual void SetUp() {
 		m_region_index = 1;
 		m_tracker_index = 1;
+		m_bus_port = 8888;
 		m_snapshot_port = 6500;
 
 	}
@@ -75,6 +77,11 @@ protected:
 		ss.str("");
 		ss.clear();
 
+		ss << "tcp://127.0.0.1:" << m_bus_port++;
+		region.bus_address = ss.str();
+		ss.str("");
+		ss.clear();
+
 		ss << "tcp://127.0.0.1:" << m_snapshot_port++;
 		region.snapshot_address = ss.str();
 		ss.str("");
@@ -87,7 +94,7 @@ protected:
 			"	idc = \"test-idc\";\n" <<
 			"	api_address = \"" << region.api_address << "\";\n" <<
 			"	pub_address = \"tcp://127.0.0.1:2015\";\n" <<
-			"	bus_address = \"tcp://127.0.0.1:8888\";\n" <<
+			"	bus_address = \"" << region.bus_address << "\";\n" <<
 			"\n" <<
 			"	snapshot:\n" <<
 			"	{\n" <<
@@ -150,6 +157,7 @@ protected:
 private:
 	int						m_region_index;
 	int						m_tracker_index;
+	int						m_bus_port;
 	int						m_snapshot_port;
 	std::vector<TrackerInstance>			m_trackers;
 	std::vector<RegionInstance>			m_regions;
@@ -427,3 +435,51 @@ TEST_F(RISTest,RegionOffline) {
 
 	check_tracker_statistics(tracker,REGION_COUNT - 1,service_count,payload_count);
 }
+
+TEST_F(RISTest,TrackerEffect) {
+	static const size_t REGION_COUNT = 2;
+	static const size_t REGION_SERVICE_COUNT = 100;
+	static const size_t REGION_PAYLOAD_COUNT = 50000;
+	static const size_t QUERY_TIMES = 10000;
+
+	create_tracker();
+
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		create_region();
+	}
+
+	std::list<std::string> all_payloads;
+	std::list<std::string> all_services;
+	for(size_t i=0; i < REGION_COUNT; ++i) {
+		auto region = std::make_shared<RegionSession>();
+		ASSERT_EQ(0,region->connect(getRegion(i).api_address));
+
+		std::list<std::string> services;
+		std::list<std::string> payloads;
+
+		region_add_services(region,services,REGION_SERVICE_COUNT);
+		region_add_payloads(region,payloads,REGION_PAYLOAD_COUNT);
+
+		all_services.splice(all_services.end(),services,services.begin(),services.end());
+		all_payloads.splice(all_payloads.end(),payloads,payloads.begin(),payloads.end());
+	}
+
+	auto tracker = std::make_shared<TrackerSession>();
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+
+	sleep(6);
+	check_tracker_statistics(tracker,REGION_COUNT,all_services.size(),all_payloads.size());
+
+	RouteInfo ri;
+	const uint64_t start = time_now();
+	auto it = all_payloads.begin();
+	for(size_t i=QUERY_TIMES; i != 0; --i) {
+		tracker->getPayloadRouteInfo(&ri,*it);
+		ASSERT_FALSE(ri.region.empty());
+		++it;
+	}
+
+	uint64_t esleped = time_now() - start;
+	std::cout << "Query payload TPS: " << (QUERY_TIMES * 1000) / esleped << std::endl;
+}
+

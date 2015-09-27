@@ -314,7 +314,9 @@ target_link_libraries(regioncli_static LINK_PUBLIC
 
 # buscli static
 add_library(buscli_static STATIC
+	include/buscli/busmsgreply.h
 	include/buscli/bussender.h
+	src/buscli/busmsgreply.cxx
 	src/buscli/bussender.cxx
 )
 

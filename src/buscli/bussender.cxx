@@ -42,16 +42,32 @@ void BusSender::disconnect() {
 	m_brokers.clear();
 }
 
-uint64_t BusSender::send(const std::string& target,const google::protobuf::Message& msg,bool req_state) {
+bool BusSender::send(const std::string& payload,const google::protobuf::Message& msg) {
+	return 0 != do_send(payload,msg,false);
+}
+
+bool BusSender::send(const std::set<std::string>& payloads,const google::protobuf::Message& msg) {
+	return 0 != do_send(payloads,msg);
+}
+
+bool BusSender::send(const std::string& payload,zmsg_t** p_msg) {
+	return 0 != do_send(payload,p_msg);
+}
+
+bool BusSender::send(const std::set<std::string>& payloads,zmsg_t** p_msg) {
+	return 0 != do_send(payloads,p_msg);
+}
+
+uint64_t BusSender::do_send(const std::string& payload,const google::protobuf::Message& msg,bool failure) {
 	CHECK_NOTNULL(m_sock);
-	CHECK( ! target.empty() );
+	CHECK( ! payload.empty() );
 	CHECK( msg.IsInitialized() );
 
 	do {
-		bus::SendHeader header;
+		bus::SendMessage header;
 		header.set_msg_id(new_short_bin_identity());
-		header.add_targets(target);
-		header.set_req_state(req_state);
+		header.add_payloads(payload);
+		header.set_failure(failure);
 
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
@@ -65,16 +81,16 @@ uint64_t BusSender::send(const std::string& target,const google::protobuf::Messa
 	return 0;
 }
 
-uint64_t BusSender::send(const std::list<std::string>& targets,const google::protobuf::Message& msg,bool req_state) {
+uint64_t BusSender::do_send(const std::set<std::string>& payloads,const google::protobuf::Message& msg,bool failure) {
 	CHECK_NOTNULL(m_sock);
-	CHECK( ! targets.empty() );
+	CHECK( ! payloads.empty() );
 	CHECK( msg.IsInitialized() );
 
 	do {
-		bus::SendHeader header;
+		bus::SendMessage header;
 		header.set_msg_id(new_short_bin_identity());
-		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
-		header.set_req_state(req_state);
+		std::copy(payloads.begin(),payloads.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_payloads()));
+		header.set_failure(failure);
 
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
@@ -88,17 +104,17 @@ uint64_t BusSender::send(const std::list<std::string>& targets,const google::pro
 	return 0;
 }
 
-uint64_t BusSender::send(const std::string& target,zmsg_t** p_msg,bool req_state) {
+uint64_t BusSender::do_send(const std::string& payload,zmsg_t** p_msg,bool failure) {
 	CHECK_NOTNULL(m_sock);
-	CHECK( ! target.empty() );
+	CHECK( ! payload.empty() );
 	CHECK( p_msg );
 	CHECK( *p_msg );
 
 	do {
-		bus::SendHeader header;
+		bus::SendMessage header;
 		header.set_msg_id(new_short_bin_identity());
-		header.add_targets(target);
-		header.set_req_state(req_state);
+		header.add_payloads(payload);
+		header.set_failure(failure);
 
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
@@ -112,17 +128,17 @@ uint64_t BusSender::send(const std::string& target,zmsg_t** p_msg,bool req_state
 	return 0;
 }
 
-uint64_t BusSender::send(const std::list<std::string>& targets,zmsg_t** p_msg,bool req_state) {
+uint64_t BusSender::do_send(const std::set<std::string>& payloads,zmsg_t** p_msg,bool failure) {
 	CHECK_NOTNULL(m_sock);
-	CHECK( ! targets.empty() );
+	CHECK( ! payloads.empty() );
 	CHECK( p_msg );
 	CHECK( *p_msg );
 
 	do {
-		bus::SendHeader header;
+		bus::SendMessage header;
 		header.set_msg_id(new_short_bin_identity());
-		std::copy(targets.begin(),targets.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_targets()));
-		header.set_req_state(req_state);
+		std::copy(payloads.begin(),payloads.end(),google::protobuf::RepeatedFieldBackInserter(header.mutable_payloads()));
+		header.set_failure(failure);
 
 		if( -1 == zpb_sendm(m_sock,header,true) ) {
 			break;
@@ -136,161 +152,81 @@ uint64_t BusSender::send(const std::list<std::string>& targets,zmsg_t** p_msg,bo
 	return 0;
 }
 
-std::tuple<int,std::list<std::string>,std::list<std::string>> BusSender::wait_send_state(uint64_t msg_id,uint64_t timeout) {
-	uint64_t now = time_now();
-	const uint64_t deadline = now + timeout;
-	std::tuple<int,std::list<std::string>,std::list<std::string>> result;
-	std::get<0>(result) = -1;
-
-	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
-		bus::SendState state;
-		if( 0 == zpb_recv(state,m_sock,true) ) {
-			if( state.msg_id() == msg_id ) {
-				std::get<0>(result) = 0;
-				std::copy(state.targets().begin(),state.targets().end(),std::back_inserter( std::get<1>(result)) );
-				std::copy(state.unreached_targets().begin(),state.unreached_targets().end(),std::back_inserter( std::get<2>(result) ));
-				break;
-			}
-		}
-
-		now = time_now();
+std::shared_ptr<BusMsgReply> BusSender::sendWaitReply(const std::string& payload,const google::protobuf::Message& msg,uint64_t timeout) {
+	const uint64_t msg_id = do_send(payload,msg,true);
+	if( 0 != msg_id ) {
+		std::set<std::string> payloads;
+		payloads.insert(payload);
+		return wait_reply(msg_id,payloads,timeout);
 	}
 
-	return std::move(result);
+	return nullptr;
+}
+
+std::shared_ptr<BusMsgReply> BusSender::sendWaitReply(const std::set<std::string>& payloads,const google::protobuf::Message& msg,uint64_t timeout) {
+	const uint64_t msg_id = do_send(payloads,msg,true);
+	if( 0 != msg_id ) {
+		return wait_reply(msg_id,payloads,timeout);
+	}
+
+	return nullptr;
+}
+
+std::shared_ptr<BusMsgReply> BusSender::sendWaitReply(const std::string& payload,zmsg_t** p_msg,uint64_t timeout) {
+	const uint64_t msg_id = do_send(payload,p_msg,true);
+	if( 0 != msg_id ) {
+		std::set<std::string> payloads;
+		payloads.insert(payload);
+		return wait_reply(msg_id,payloads,timeout);
+	}
+
+	return nullptr;
+}
+
+std::shared_ptr<BusMsgReply> BusSender::sendWaitReply(const std::set<std::string>& payloads,zmsg_t** p_msg,uint64_t timeout) {
+	const uint64_t msg_id = do_send(payloads,p_msg,true);
+	if( 0 != msg_id ) {
+		return wait_reply(msg_id,payloads,timeout);
+	}
+
+	return nullptr;
 }
 
 
-std::tuple<int,std::list<std::string>,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> BusSender::wait_pb_reply(uint64_t msg_id,uint64_t timeout) {
-	CHECK_NOTNULL(m_sock);
-	CHECK_GE(timeout,1);
 
+
+std::shared_ptr<BusMsgReply> BusSender::wait_reply(uint64_t msg_id,const std::set<std::string>& payloads,uint64_t timeout) {
+	auto reply = std::make_shared<BusMsgReply>(msg_id,payloads);
 	uint64_t now = time_now();
 	const uint64_t deadline = now + timeout;
-	std::tuple<int,std::list<std::string>,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> result;
-	std::get<0>(result) = -1;
 
-	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
-		bus::ReplyHeader header;
-		if( 0 == zpb_recv(header,m_sock) ) {
-			if( header.msg_id() == msg_id ) {
-				if( zsock_rcvmore(m_sock) ) {
-					auto reply = zpb_recv(m_sock,true);
-					if( reply ) {
-						std::get<0>(result) = 0;
-						std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
-						std::copy(header.deny_targets().begin(),header.deny_targets().end(),std::back_inserter(std::get<2>(result)));
-						std::get<3>(result) = reply;
+	while( !reply->isCompleted() && now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
+		do {
+			auto msg = zpb_recv(m_sock,false);
+			if( msg ) {
+				if( msg->GetDescriptor() == bus::Failure::descriptor() ) {
+					reply->addFailure(*std::dynamic_pointer_cast<bus::Failure>(msg));
+				} else if( msg->GetDescriptor() == bus::ReplyMessage::descriptor() ) {
+					if( zsock_rcvmore(m_sock) ) {
+						zmsg_t* data = zmsg_recv(m_sock);
+						if( data ) {
+							reply->addReply(*std::dynamic_pointer_cast<bus::ReplyMessage>(msg),&data);
+							if( data ) {
+								zmsg_destroy(&data);
+							}
+							break;
+						}
 					}
 				}
-				break;
 			}
-		}
+			
+			zsock_flush(m_sock);
+		} while(0);
 
 		now = time_now();
 	}
 
-	return std::move(result);
+	return std::move(reply);
 }
-
-std::tuple<int,std::list<std::string>,std::list<std::string>,zmsg_t*> BusSender::wait_zmq_reply(uint64_t msg_id,uint64_t timeout) {
-	CHECK_NOTNULL(m_sock);
-	CHECK_GE(timeout,1);
-
-	uint64_t now = time_now();
-	const uint64_t deadline = now + timeout;
-	std::tuple<int,std::list<std::string>,std::list<std::string>,zmsg_t*> result;
-	std::get<0>(result) = -1;
-
-	while( now < deadline && zmq_wait_readable(m_sock,deadline - now) > 0 ) {
-		bus::ReplyHeader header;
-		if( 0 == zpb_recv(header,m_sock) ) {
-			if( header.msg_id() == msg_id ) {
-				if( zsock_rcvmore(m_sock) ) {
-					auto reply = zmsg_recv(m_sock);
-					if( reply ) {
-						std::get<0>(result) = 0;
-						std::copy(header.targets().begin(),header.targets().end(),std::back_inserter(std::get<1>(result)));
-						std::copy(header.deny_targets().begin(),header.deny_targets().end(),std::back_inserter(std::get<2>(result)));
-						std::get<3>(result) = reply;
-					}
-				}
-				break;
-			} else {
-				zsock_flush(m_sock);
-			}
-		}
-
-		now = time_now();
-	}
-
-	return std::move(result);
-}
-
-
-bool BusSender::checked_send(const std::string& target,const google::protobuf::Message& msg,uint64_t timeout) {
-	do {
-		const uint64_t msg_id = send(target,msg,true);
-		if( 0 == msg_id ) {
-			break;
-		}
-
-		auto state = wait_send_state(msg_id,timeout);
-		if( std::get<0>(state) == 0 ) {
-			return !std::get<1>(state).empty();
-		}
-	} while(0);
-
-	return false;
-}
-
-
-bool BusSender::checked_send(const std::string& target,zmsg_t** p_msg,uint64_t timeout) {
-	do {
-		const uint64_t msg_id = send(target,p_msg,true);
-		if( 0 == msg_id ) {
-			break;
-		}
-
-		auto state = wait_send_state(msg_id,timeout);
-		if( std::get<0>(state) == 0 ) {
-			return ! std::get<1>(state).empty();
-		}
-	} while(0);
-
-	return false;
-}
-
-std::list<std::string> BusSender::checked_send(const std::list<std::string>& targets,const google::protobuf::Message& msg,uint64_t timeout) {
-	do {
-		const uint64_t msg_id = send(targets,msg,true);
-		if( 0 == msg_id ) {
-			break;
-		}
-
-		auto state = wait_send_state(msg_id,timeout);
-		if( std::get<0>(state) == 0 ) {
-			return std::get<1>(state);
-		}
-	} while(0);
-
-	return std::list<std::string>();
-}
-
-std::list<std::string> BusSender::checked_send(const std::list<std::string>& targets,zmsg_t** p_msg,uint64_t timeout) {
-	do {
-		const uint64_t msg_id = send(targets,p_msg,true);
-		if( 0 == msg_id ) {
-			break;
-		}
-
-		auto state = wait_send_state(msg_id,timeout);
-		if( std::get<0>(state) == 0 ) {
-			return std::get<1>(state);
-		}
-	} while(0);
-
-	return std::list<std::string>();
-}
-
 
 

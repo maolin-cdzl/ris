@@ -1,31 +1,62 @@
 syntax = "proto3";
 package bus;
 
-message SendHeader {
+// Message deliver
+message SendMessage {
 	// unique message id,sender must generate it by self.
 	uint64				msg_id				= 1;
 
-	// list dest targets
-	repeated string		targets				= 2;
+	// asking for failure reply. if false,sender will NOT receive any response.
+	// when ture,broker and region will send a reply message to sender if there are bad payloads.
+	// note,the replies maybe coming back in several messages,from broker or some region. 
+	bool				failure				= 2;
 
-	// asking for send state reply. if false,sender will NOT receive any response.
-	bool				req_state			= 3;
+	// list targets
+	repeated string		payloads			= 3;
 }
 
-message SendState {
+message Failure {
 	uint64				msg_id				= 1;
-	repeated string		targets				= 2;
-	repeated string		unreached_targets	= 3;
+	repeated string		payloads			= 2;
 }
 
-message DeliverHeader {
+message ReplyMessage {
 	uint64				msg_id				= 1;
-	repeated string		targets				= 2;
+	repeated string		payloads			= 2;
 }
 
-message ReplyHeader {
-	uint64				msg_id				= 1;
-	repeated string		targets				= 2;
-	repeated string		deny_targets		= 3;
+
+// RPC
+
+message RpcRequest {
+	uint64				event_id			= 1;
+	uint32				deadline			= 2;
+	string				service				= 3;
+	string				method				= 4;
 }
+
+message RpcResponse {
+	enum StatusCode {
+		OK = 0;  // Done
+		INACTIVE = 1;
+		ACTIVE = 2;
+		CANCELLED = 3;
+		APPLICATION_ERROR = 4;
+		DEADLINE_EXCEEDED = 5;
+		TERMINATED = 6;
+	}
+	enum ApplicationErrorCode {
+		NO_ERROR = 0;
+		INVALID_HEADER = -1;
+		NO_SUCH_SERVICE = -2;
+		NO_SUCH_METHOD = -3;
+		INVALID_MESSAGE = -4;
+		METHOD_NOT_IMPLEMENTED = -5;
+	}
+
+	StatusCode				status				= 1;
+	ApplicationErrorCode	application_error	= 2;
+	string					error				= 3;
+}
+
 

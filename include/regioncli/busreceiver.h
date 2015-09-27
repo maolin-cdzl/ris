@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include <list>
+#include <set>
 #include <memory>
 #include <czmq.h>
 
@@ -20,15 +20,16 @@ public:
 		return m_sock != nullptr;
 	}
 
-	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> wait_pb();
+	std::tuple<int,std::set<std::string>,std::shared_ptr<google::protobuf::Message>> wait_pb();
+	std::tuple<int,std::set<std::string>,zmsg_t*> wait_z();
 
-	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> reply_and_wait_pb(const std::list<std::string>& targets,const std::list<std::string>& deny_targets,const google::protobuf::Message& reply);
+	int reply(const std::set<std::string>& payloads,const google::protobuf::Message& reply);
 
-	std::tuple<int,std::list<std::string>,zmsg_t*> reply_and_wait_z(const std::list<std::string>& targets,const std::list<std::string>& deny_targets,zmsg_t** p_reply);
+	int reply(const std::set<std::string>& payloads,zmsg_t** p_reply);
 
 private:
-	std::tuple<int,std::list<std::string>,std::shared_ptr<google::protobuf::Message>> do_wait_pb();
-	std::tuple<int,std::list<std::string>,zmsg_t*> do_wait_z();
+	std::tuple<int,std::set<std::string>,std::shared_ptr<google::protobuf::Message>> do_wait_pb();
+	std::tuple<int,std::set<std::string>,zmsg_t*> do_wait_z();
 	int reconnect();
 private:
 	std::string				m_address;
