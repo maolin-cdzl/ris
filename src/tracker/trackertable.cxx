@@ -58,6 +58,14 @@ std::list<std::shared_ptr<Region>> RITrackerTable::regions() const {
 	return std::move(r);
 }
 
+std::list<std::string> RITrackerTable::services() const {
+	std::list<std::string> s;
+	for(auto it = m_services_index.begin(); it != m_services_index.end(); ++it) {
+		s.push_back(it->first);
+	}
+	return std::move(s);
+}
+
 std::shared_ptr<Region> RITrackerTable::getRegion(const ri_uuid_t& id)  const {
 	auto riit = m_regions_index.find(id);
 	if( riit != m_regions_index.end() ) {
