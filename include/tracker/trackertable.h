@@ -25,6 +25,7 @@ public:
 	size_t service_size() const;
 	size_t payload_size() const;
 
+	std::list<std::shared_ptr<Region>> regions() const;
 	std::shared_ptr<Region> getRegion(const ri_uuid_t& id)  const;
 
 	// get region carry this payload

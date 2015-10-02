@@ -50,6 +50,14 @@ size_t RITrackerTable::payload_size() const {
 	return m_payloads.size();
 }
 
+std::list<std::shared_ptr<Region>> RITrackerTable::regions() const {
+	std::list<std::shared_ptr<Region>> r;
+	for(auto it = m_regions.begin(); it != m_regions.end(); ++it) {
+		r.push_back(*it);
+	}
+	return std::move(r);
+}
+
 std::shared_ptr<Region> RITrackerTable::getRegion(const ri_uuid_t& id)  const {
 	auto riit = m_regions_index.find(id);
 	if( riit != m_regions_index.end() ) {
