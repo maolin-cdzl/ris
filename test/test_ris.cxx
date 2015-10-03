@@ -95,7 +95,11 @@ protected:
 			"	api_address = \"" << region.api_address << "\";\n" <<
 			"	pub_address = \"tcp://127.0.0.1:2015\";\n" <<
 			"	bus_address = \"" << region.bus_address << "\";\n" <<
-			"	snapshot_address = \"" << region.snapshot_address << "\";\n" <<
+			"	snapshot:\n" <<
+			"	{\n" <<
+			"		address = \"" << region.snapshot_address << "\";\n" <<
+			"		identity = \"" << region.snapshot_address << "\";\n" <<
+			"	};\n" <<
 			"};\n";
 
 		std::string conf = ss.str();
@@ -137,7 +141,11 @@ protected:
 			"	idc = \"test-idc\";\n" <<
 			"	api_address = \"" << tracker.api_address << "\";\n" <<
 			"	pub_address = \"tcp://127.0.0.1:2016\";\n" <<
-			"	snapshot_address = \"" << tracker.snapshot_address << "\";\n" <<
+			"	snapshot:\n" <<
+			"	{\n" <<
+			"		address = \"" << tracker.snapshot_address << "\";\n" <<
+			"		identity = \"" << tracker.snapshot_address << "\";\n" <<
+			"	};\n" <<
 			"\n" <<
 			"};\n";
 
