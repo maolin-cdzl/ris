@@ -157,6 +157,7 @@ snapshot_package_t DuplicateServiceGenerator::build() {
 		auto svc = std::make_shared<ris::Service>();
 		svc->set_name("Duplicate");
 		svc->mutable_endpoint()->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_identity("tcp://test:6666");
 		package.push_back(svc);
 	}
 
@@ -263,6 +264,7 @@ snapshot_package_t UncompletedRegionGenerator::build() {
 		auto svc = std::make_shared<ris::Service>();
 		svc->set_name(ss.str());
 		svc->mutable_endpoint()->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_identity("tcp://test:6666");
 		package.push_back(svc);
 	}
 

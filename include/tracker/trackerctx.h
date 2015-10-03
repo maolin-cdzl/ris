@@ -6,9 +6,14 @@
 class TrackerCtx {
 public:
 	std::string					idc;
-	std::string					api_address;
 	std::string					pub_address;					
+
+	std::string					api_address;
+	std::string					api_identity;
+
 	std::string					snapshot_address;
+	std::string					snapshot_identity;
+
 	uint64_t					factory_timeout;
 
 	TrackerCtx() = default;

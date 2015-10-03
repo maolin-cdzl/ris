@@ -89,21 +89,17 @@ protected:
 
 		ss <<
 			"region:\n" <<
-			"	{\n" <<
+			"{\n" <<
 			"	id = \"" << region.name << "\";\n" <<
 			"	idc = \"test-idc\";\n" <<
 			"	api_address = \"" << region.api_address << "\";\n" <<
 			"	pub_address = \"tcp://127.0.0.1:2015\";\n" <<
 			"	bus_address = \"" << region.bus_address << "\";\n" <<
-			"\n" <<
-			"	snapshot:\n" <<
-			"	{\n" <<
-			"		address = \"" << region.snapshot_address << "\";\n" <<
-			"	};\n" <<
-			"\n" <<
+			"	snapshot_address = \"" << region.snapshot_address << "\";\n" <<
 			"};\n";
 
 		std::string conf = ss.str();
+		//std::cout << conf << std::endl;
 		region.instance = region_new_str(conf.c_str(),0);
 
 		m_regions.push_back(region);
@@ -141,15 +137,12 @@ protected:
 			"	idc = \"test-idc\";\n" <<
 			"	api_address = \"" << tracker.api_address << "\";\n" <<
 			"	pub_address = \"tcp://127.0.0.1:2016\";\n" <<
-			"\n" <<
-			"	snapshot:\n" <<
-			"	{\n" <<
-			"		address = \"" << tracker.snapshot_address << "\";\n" <<
-			"	};\n" <<
+			"	snapshot_address = \"" << tracker.snapshot_address << "\";\n" <<
 			"\n" <<
 			"};\n";
 
 		std::string conf = ss.str();
+		//std::cout << conf << std::endl;
 		tracker.instance = tracker_new_str(conf.c_str());
 		m_trackers.push_back(tracker);
 	}
@@ -196,6 +189,18 @@ static void region_add_payloads(const std::shared_ptr<RegionSession>& region,std
 		auto pl = newUUID();
 		payloads.push_back(pl);
 		ASSERT_EQ(0,region->asyncNewPayload(pl));
+		--count;
+	}
+	auto pl = newUUID();
+	payloads.push_back(pl);
+	ASSERT_EQ(0,region->newPayload(pl,version));
+}
+
+static void region_syncadd_payloads(const std::shared_ptr<RegionSession>& region,std::list<ri_uuid_t>& payloads,size_t count,uint32_t* version=nullptr) {
+	while( count > 1 ) {
+		auto pl = newUUID();
+		payloads.push_back(pl);
+		ASSERT_EQ(0,region->newPayload(pl));
 		--count;
 	}
 	auto pl = newUUID();
@@ -457,7 +462,7 @@ TEST_F(RISTest,TrackerEffect) {
 		std::list<std::string> payloads;
 
 		region_add_services(region,services,REGION_SERVICE_COUNT);
-		region_add_payloads(region,payloads,REGION_PAYLOAD_COUNT);
+		region_syncadd_payloads(region,payloads,REGION_PAYLOAD_COUNT);
 
 		all_services.splice(all_services.end(),services,services.begin(),services.end());
 		all_payloads.splice(all_payloads.end(),payloads,payloads.begin(),payloads.end());

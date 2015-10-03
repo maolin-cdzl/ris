@@ -1,18 +1,32 @@
 #include <glog/logging.h>
 #include <libconfig.h++>
 #include "tracker/trackerctx.h"
+#include "zmqx/zhelper.h"
 
 static std::shared_ptr<TrackerCtx> loadTrackerCtx(libconfig::Config& cfg) {
 	do {
 		auto ctx = std::make_shared<TrackerCtx>();
+		const std::string uuid = new_short_identity();
 		try {
 			const libconfig::Setting& tracker = cfg.lookup("tracker");
 			ctx->idc = tracker["idc"].c_str();
-			ctx->api_address = tracker["api_address"].c_str();
 			ctx->pub_address = tracker["pub_address"].c_str();
-			if( tracker.exists("factory_timeout") ) {
-				ctx->factory_timeout = (uint32_t) tracker["factory_timeout"];
-			} else {
+
+			if( ! tracker.lookupValue("api_address",ctx->api_address) ) {
+				ctx->api_address = "tcp://*:6600";
+			}
+			if( ! tracker.lookupValue("api_identity",ctx->api_identity) ) {
+				ctx->api_identity = "tracker-" + uuid + "-api";
+			}
+
+			if( ! tracker.lookupValue("snapshot_address",ctx->snapshot_address) ) {
+				ctx->snapshot_address = "tcp://*:6602";
+			}
+			if( ! tracker.lookupValue("snapshot_identity",ctx->snapshot_identity) ) {
+				ctx->snapshot_identity = "tracker-" + uuid + "-snapshot";
+			}
+
+			if( ! tracker.lookupValue("factory_timeout",(unsigned long long&)ctx->factory_timeout) ) {
 				ctx->factory_timeout = 30000;
 			}
 		} catch( const libconfig::SettingNotFoundException& e ) {
@@ -20,21 +34,6 @@ static std::shared_ptr<TrackerCtx> loadTrackerCtx(libconfig::Config& cfg) {
 			break;
 		} catch( const libconfig::SettingTypeException& e ) {
 			LOG(FATAL) << "Error when parse Region: " << e.what();
-			break;
-		}
-
-		try {
-			if( cfg.exists("tracker.snapshot") ) {
-				const libconfig::Setting& snapshot = cfg.lookup("tracker.snapshot");
-				ctx->snapshot_address = snapshot["address"].c_str();
-			} else {
-				ctx->snapshot_address.clear();
-			}
-		} catch( const libconfig::SettingNotFoundException& e ) {
-			LOG(FATAL) << "Can not found Snapshot setting: " << e.what();
-			break;
-		} catch( const libconfig::SettingTypeException& e ) {
-			LOG(FATAL) << "Error when parse Snapshot: " << e.what();
 			break;
 		}
 

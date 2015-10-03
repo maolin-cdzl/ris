@@ -13,7 +13,7 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 
 			// endpoint bus, for busbroker connect
 			if( ! region.lookupValue("bus_address",ctx->bus_address) ) {
-				ctx->bus_address = "tcp://*.6500";
+				ctx->bus_address = "tcp://*:6500";
 			}
 			if( ! region.lookupValue("bus_identity",ctx->bus_identity) ) {
 				ctx->bus_identity = ctx->uuid + "-bus";
@@ -21,7 +21,7 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 
 			// endpoint snapshot, for snapshot service
 			if( ! region.lookupValue("snapshot_address",ctx->snapshot_address) ) {
-				ctx->snapshot_address = "tcp://*.6502";
+				ctx->snapshot_address = "tcp://*:6502";
 			}
 			if( ! region.lookupValue("snapshot_identity",ctx->snapshot_identity) ) {
 				ctx->snapshot_identity = ctx->uuid + "-snapshot";

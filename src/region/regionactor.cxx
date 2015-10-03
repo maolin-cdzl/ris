@@ -189,7 +189,12 @@ int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& 
 int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	CHECK(p);
-	int err = m_table->addService(Service(p->svc()));
+
+	Service svc(p->svc());
+	if( svc.endpoint.identity.empty() ) {
+		svc.endpoint.identity = m_ctx->uuid + "-" + svc.name;
+	}
+	int err = m_table->addService(svc);
 
 	if( p->rep() ) {
 		region::api::Result result;

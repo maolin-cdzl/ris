@@ -7,10 +7,10 @@ class RegionCtx {
 public:
 	std::string					uuid;
 	std::string					idc;
+	std::string					pub_address;					
+
 	std::string					api_address;
 	std::string					api_identity;
-
-	std::string					pub_address;					
 
 	std::string					bus_address;
 	std::string					bus_identity;
