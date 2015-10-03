@@ -29,7 +29,7 @@ private:
 	void finish(int err);
 private:
 	zloop_t*								m_loop;
-	std::string								m_uuid;
+	std::string								m_requester;
 	ZLoopTimeouter							m_timer;
 	ZLoopReader								m_reader;
 

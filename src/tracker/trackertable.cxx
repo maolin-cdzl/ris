@@ -75,23 +75,29 @@ std::shared_ptr<Region> RITrackerTable::getRegion(const ri_uuid_t& id)  const {
 }
 
 // get region carry this payload
-std::shared_ptr<Region> RITrackerTable::routePayload(const ri_uuid_t& id)  const {
+std::pair<bool,EndPoint> RITrackerTable::routePayload(const ri_uuid_t& id)  const {
+	std::pair<bool,EndPoint> result;
 	auto piit = m_payloads_index.find(id);
 	if( m_payloads_index.end() != piit ) {
-		return piit->second->region;
+		result.first = true;
+		result.second = piit->second->region->bus;
+	} else {
+		result.first = false;
 	}
-	return nullptr;
+	return std::move(result);
 }
 
 // get region provide this service,this is round-robin
-std::pair<std::shared_ptr<Region>,std::string> RITrackerTable::robinRouteService(const std::string& svc) {
-	std::pair<std::shared_ptr<Region>,std::string> result(nullptr,"");
+std::pair<bool,EndPoint> RITrackerTable::robinRouteService(const std::string& svc) {
+	std::pair<bool,EndPoint> result;
+	result.first = false;
+
 	auto siit = m_services_index.find(svc);
 	if( siit != m_services_index.end() ) {
 		auto& l = siit->second;
 		if( ! l.empty() ) {
-			result.first = l.front()->region;
-			result.second = l.front()->service.address;
+			result.first = true;
+			result.second = l.front()->service.endpoint;
 			l.splice(l.end(),l,l.begin());		// move first to end
 		}
 	}

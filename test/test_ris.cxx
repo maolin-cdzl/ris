@@ -218,38 +218,38 @@ static void region_rm_payloads(const std::shared_ptr<RegionSession>& region,std:
 }
 
 static void get_tracker_region_version(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,uint32_t* version) {
-	RegionInfo reginfo;
-	if( 1 == tracker->getRegion(&reginfo,reg)) {
-		*version = reginfo.version;
+	auto region = tracker->getRegion(reg);
+	if( region ) {
+		*version = region->version;
 	} else {
 		*version = 0;
 	}
 }
 
 static void check_tracker_statistics(const std::shared_ptr<TrackerSession>& tracker,size_t region_count,size_t service_count,size_t payload_count) {
-	RouteInfoStatistics stat;
-	ASSERT_EQ(1,tracker->getStatistics(&stat));
-	ASSERT_EQ(region_count,stat.region_size);
-	ASSERT_EQ(service_count,stat.service_size);
-	ASSERT_EQ(payload_count,stat.payload_size);
+	auto stat = tracker->getStatistics();
+	ASSERT_TRUE( stat != nullptr );
+	ASSERT_EQ(region_count,stat->regions.size());
+	ASSERT_EQ(service_count,stat->services.size());
+	ASSERT_EQ(payload_count,stat->payload_size);
 
 //	std::cout << "Checked tracker with " << region_count << " regions, " << service_count << " services, " << payload_count << " payloads" << std::endl;
 }
 
 static void check_tracker_region(const std::shared_ptr<TrackerSession>& tracker,const ri_uuid_t& reg,const std::list<std::string>& services,const std::list<std::string>& payloads) {
-	RegionInfo reginfo;
-	ASSERT_EQ(1,tracker->getRegion(&reginfo,reg));
+	auto region = tracker->getRegion(reg);
+	ASSERT_TRUE( region != nullptr );
 
 	for(auto it=services.begin(); it != services.end(); ++it) {
-		RouteInfo ri;
-		ASSERT_EQ(1,tracker->getServiceRouteInfo(&ri,*it));
-		ASSERT_EQ(reginfo.uuid,ri.region);
+		auto ri = tracker->getServiceRouteInfo(*it);
+		ASSERT_TRUE( ri != nullptr );
 	}
 
 	for(auto it=payloads.begin(); it != payloads.end(); ++it) {
-		RouteInfo ri;
-		ASSERT_EQ(1,tracker->getPayloadRouteInfo(&ri,*it));
-		ASSERT_EQ(reginfo.uuid,ri.region);
+		auto ri = tracker->getPayloadRouteInfo(*it);
+		ASSERT_TRUE( ri != nullptr );
+		ASSERT_EQ(region->bus.address,ri->endpoint.address);
+		ASSERT_EQ(region->bus.identity,ri->endpoint.identity);
 	}
 
 //	std::cout << "Checked region " << reg << " with " << services.size() << " services, " << payloads.size() << " payloads" << std::endl;
@@ -270,7 +270,7 @@ TEST_F(RISTest,Functional) {
 	sleep(10);
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
 	check_tracker_region(tracker,getRegion(0).name,services,payloads);
@@ -313,7 +313,7 @@ TEST_F(RISTest,BusyRegion) {
 	}
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 	sleep(1);
 	check_tracker_statistics(tracker,1,services.size(),payloads.size());
@@ -349,7 +349,7 @@ TEST_F(RISTest,MultiRegion) {
 
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 
 	sleep(6);
@@ -380,19 +380,18 @@ TEST_F(RISTest,RobinService) {
 
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 	sleep(6);
 
 	std::list<std::string> addrs;
 	for(size_t i=0; i < REGION_COUNT; ++i) {
-		RouteInfo ri;
-		ASSERT_EQ(1,tracker->getServiceRouteInfo(&ri,"test-service"));
+		auto ri = tracker->getServiceRouteInfo("test-service");
+		ASSERT_TRUE( ri != nullptr );
 //		std::cout << ri.address << std::endl;
-		ASSERT_EQ(addrs.end(),std::find(addrs.begin(),addrs.end(),ri.address));
-		addrs.push_back(ri.address);
+		ASSERT_EQ(addrs.end(),std::find(addrs.begin(),addrs.end(),ri->endpoint.address));
+		addrs.push_back(ri->endpoint.address);
 	}
-
 }
 
 TEST_F(RISTest,RegionOffline) {
@@ -423,7 +422,7 @@ TEST_F(RISTest,RegionOffline) {
 
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 	sleep(6);
 	check_tracker_statistics(tracker,REGION_COUNT,service_count,payload_count);
@@ -465,7 +464,7 @@ TEST_F(RISTest,TrackerEffect) {
 	}
 
 	auto tracker = std::make_shared<TrackerSession>();
-	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address,500));
+	ASSERT_EQ(0,tracker->connect(getTracker(0).api_address));
 
 	sleep(6);
 	check_tracker_statistics(tracker,REGION_COUNT,all_services.size(),all_payloads.size());
@@ -474,8 +473,8 @@ TEST_F(RISTest,TrackerEffect) {
 	const uint64_t start = time_now();
 	auto it = all_payloads.begin();
 	for(size_t i=QUERY_TIMES; i != 0; --i) {
-		tracker->getPayloadRouteInfo(&ri,*it);
-		ASSERT_FALSE(ri.region.empty());
+		auto ri = tracker->getPayloadRouteInfo(*it);
+		ASSERT_TRUE(ri != nullptr);
 		++it;
 	}
 

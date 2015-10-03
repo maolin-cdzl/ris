@@ -4,44 +4,45 @@
 #include <list>
 #include <czmq.h>
 
+#include "ris/ritypes.h"
+
 struct RouteInfo {
 	std::string		target;
-	std::string		region;
-	std::string		address;
+	EndPoint		endpoint;
 };
 
 struct RouteInfoStatistics {
-	size_t			region_size;
-	size_t			service_size;
-	size_t			payload_size;
-};
-
-struct RegionInfo {
-	std::string			uuid;
-	std::string			idc;
-	std::string			bus_address;
-	std::string			snapshot_address;
-	uint32_t			version;
+	std::list<Region>		regions;
+	std::list<std::string>	services;
+	size_t					payload_size;
 };
 
 class TrackerSession {
 public:
-	TrackerSession();
+	TrackerSession(uint64_t t=1000);
 	~TrackerSession();
 
-	int connect(const std::string& api_address,uint64_t timeout=1000);
+	inline uint64_t timeout() const {
+		return m_timeout;
+	}
+	inline void timeout(uint64_t t) {
+		m_timeout = t;
+	}
+
+	int connect(const std::string& api_address);
 	void disconnect();
 
-	int getStatistics(RouteInfoStatistics* statistics);
+	std::shared_ptr<RouteInfoStatistics> getStatistics();
 
-	int getRegion(RegionInfo* region,const std::string& uuid);
+	std::shared_ptr<Region> getRegion(const std::string& uuid);
 
-	int getServiceRouteInfo(RouteInfo* ri,const std::string& svc);
+	std::shared_ptr<RouteInfo> getServiceRouteInfo(const std::string& svc);
 
-	int getPayloadRouteInfo(RouteInfo* ri,const std::string& payload);
+	std::shared_ptr<RouteInfo> getPayloadRouteInfo(const std::string& payload);
 
-	int getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::list<std::string>& payloads);
+	std::list<RouteInfo> getPayloadsRouteInfo(const std::list<std::string>& payloads);
 private:
 	zsock_t*				m_req;
+	uint64_t				m_timeout;
 };
 

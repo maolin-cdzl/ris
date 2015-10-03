@@ -1,19 +1,20 @@
 syntax = "proto3";
+import "ris.proto";
 package snapshot;
 
 message SyncSignalReq {
 }
 
 message SyncSignalRep {
-	string				uuid = 1;
+	string				requester	= 1;
 }
 
 message SnapshotReq {
-	string				uuid = 1;
+	string				requester	= 1;
 }
 
 message SnapshotRep {
-	int32				result = 1;
+	int32				result		= 1;
 }
 
 message SnapshotBegin {
@@ -23,22 +24,11 @@ message SnapshotEnd {
 }
 
 message RegionBegin {
-	string				uuid = 1;
-	uint32				version = 2;
-	string				idc = 3;
-	string				bus_address = 4;
-	string				snapshot_address = 5;
+	ris.RegionRuntime		rt			= 1;
+	ris.Region				region		= 2;
 }
 
 message RegionEnd {
-	string				uuid = 1;
+	ris.RegionRuntime		rt			= 1;
 }
 
-message Service {
-	string				name = 1;
-	string				address = 2;
-}
-
-message Payload {
-	string				uuid = 1;
-}

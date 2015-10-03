@@ -23,7 +23,7 @@ int SnapshotClientWorker::start(const std::function<void(int)>& completed,const 
 	
 	zsock_t* sock = nullptr;
 	do {
-		m_uuid = new_short_identity();
+		m_requester = new_short_identity();
 		sock = zsock_new(ZMQ_DEALER);
 		CHECK_NOTNULL(sock);
 		zsock_set_identity(sock,new_short_identity().c_str());
@@ -33,7 +33,7 @@ int SnapshotClientWorker::start(const std::function<void(int)>& completed,const 
 		}
 
 		snapshot::SnapshotReq msg;
-		msg.set_uuid(m_uuid);
+		msg.set_requester(m_requester);
 		if( -1 == zpb_send(sock,msg,true) ) {
 			LOG(ERROR) << "SnapshotClientWorker send SnapshotReq failed";
 			break;
@@ -69,7 +69,7 @@ void SnapshotClientWorker::stop() {
 	m_builder.reset();
 	m_completed = nullptr;
 	m_last_region.clear();
-	m_uuid.clear();
+	m_requester.clear();
 }
 
 int SnapshotClientWorker::pullSnapshotBegin(zsock_t* sock) {
@@ -97,22 +97,15 @@ int SnapshotClientWorker::pullRegionBegin(zsock_t* sock) {
 			break;
 		}
 
-		Region region;
-		region.id = msg.uuid();
-		region.version = msg.version();
-		region.idc = msg.idc();
-		region.bus_address = msg.bus_address();
-		region.snapshot_address = msg.snapshot_address();
-
-		const ri_time_t now = ri_time_now();
-		region.timeval = now;
+		Region region(msg.region());
+		region.version = msg.rt().version();
 
 		DLOG(INFO) << "SnapshotClientWorker recv RegionBegin: " << region.id << "(" << region.version << ")"; 
 		if( -1 == m_builder->addRegion(region) ) {
 			LOG(ERROR) << "SnapshotClientWorker addRegion failed,region: " <<  region.id << "(" << region.version << ")";
 			break;
 		}
-		m_last_region = msg.uuid();
+		m_last_region = region.id;
 		m_reader.rebind(std::bind<int>(&SnapshotClientWorker::pullRegionBody,this,std::placeholders::_1),"pullRegionBody");
 		m_timer.delay(3000);
 		return 0;
@@ -133,14 +126,10 @@ int SnapshotClientWorker::pullRegionOrFinish(zsock_t* sock) {
 		}
 		if( msg->GetDescriptor() == snapshot::RegionBegin::descriptor() ) {
 			auto p = std::dynamic_pointer_cast<snapshot::RegionBegin>(msg);
-			Region region;
-			region.id = p->uuid();
-			region.version = p->version();
-			region.idc = p->idc();
-			region.bus_address = p->bus_address();
-			region.snapshot_address = p->snapshot_address();
+			Region region(p->region());
+			region.version = p->rt().version();
 
-			if( region.id.empty() || region.idc.empty() || region.bus_address.empty() || region.snapshot_address.empty() ) {
+			if( ! region.good() ) {
 				LOG(ERROR) << "RegionBegin is uncompleted";
 				break;
 			}
@@ -153,7 +142,7 @@ int SnapshotClientWorker::pullRegionOrFinish(zsock_t* sock) {
 				LOG(ERROR) << "SnapshotClientWorker addRegion failed,region: " <<  region.id << "(" << region.version << ")";
 				break;
 			}
-			m_last_region = p->uuid();
+			m_last_region = region.id;
 			m_reader.rebind(std::bind<int>(&SnapshotClientWorker::pullRegionBody,this,std::placeholders::_1),"pullRegionBody");
 			m_timer.delay(3000);
 		} else if( msg->GetDescriptor() == snapshot::SnapshotEnd::descriptor() ) {
@@ -164,7 +153,7 @@ int SnapshotClientWorker::pullRegionOrFinish(zsock_t* sock) {
 		} else if( msg->GetDescriptor() == snapshot::SyncSignalReq::descriptor() ) {
 			DLOG(INFO) << "SnapshotClientWorker recv sync signal";
 			snapshot::SyncSignalRep sync;
-			sync.set_uuid(m_uuid);
+			sync.set_requester(m_requester);
 
 			zpb_send(m_reader.socket(),sync,true);
 			m_timer.delay(3000);
@@ -186,25 +175,26 @@ int SnapshotClientWorker::pullRegionBody(zsock_t* sock) {
 			LOG(ERROR) << "SnapshotClientWorker recv Service or Payload failed";
 			break;
 		}
-		const ri_time_t now = ri_time_now();
-		if( msg->GetDescriptor() == snapshot::Payload::descriptor() ) {
-			auto p = std::dynamic_pointer_cast<snapshot::Payload>(msg);
-			Payload pl;
-			pl.id = p->uuid();
-			pl.timeval = now;
-
+		if( msg->GetDescriptor() == ris::Payload::descriptor() ) {
+			auto p = std::dynamic_pointer_cast<ris::Payload>(msg);
+			Payload pl(*p);
+			if( !pl.good() ) {
+				LOG(ERROR) << "payload not good";
+				break;
+			}
 			DLOG(INFO) << "SnapshotClientWorker recv Payload: " << pl.id; 
 			if( -1 == m_builder->addPayload(m_last_region,pl) ) {
 				LOG(ERROR) << "Snapshot addPayload failed: " << pl.id;
 				break;
 			}
 			m_timer.delay(3000);
-		} else if( msg->GetDescriptor() == snapshot::Service::descriptor() ) {
-			auto p = std::dynamic_pointer_cast<snapshot::Service>(msg);
-			Service svc;
-			svc.name = p->name();
-			svc.address = p->address();
-			svc.timeval = ri_time_now();
+		} else if( msg->GetDescriptor() == ris::Service::descriptor() ) {
+			auto p = std::dynamic_pointer_cast<ris::Service>(msg);
+			Service svc(*p);
+			if( !svc.good() ) {
+				LOG(ERROR) << "service not good";
+				break;
+			}
 
 			DLOG(INFO) << "SnapshotClientWorker recv Service: " << svc.name; 
 			if( -1 == m_builder->addService(m_last_region,svc) ) {
@@ -215,15 +205,16 @@ int SnapshotClientWorker::pullRegionBody(zsock_t* sock) {
 		} else if( msg->GetDescriptor() == snapshot::RegionEnd::descriptor() ) {
 			DLOG(INFO) << "SnapshotClientWorker recv RegionEnd: ";
 			auto p = std::dynamic_pointer_cast<snapshot::RegionEnd>(msg);
-			if( p->uuid() != m_last_region )
+			if( p->rt().uuid() != m_last_region ) {
 				break;
+			}
 			m_last_region.clear();
 			m_reader.rebind(std::bind<int>(&SnapshotClientWorker::pullRegionOrFinish,this,std::placeholders::_1),"pullRegionOrFinish");
 			m_timer.delay(3000);
 		} else if( msg->GetDescriptor() == snapshot::SyncSignalReq::descriptor() ) {
 			DLOG(INFO) << "SnapshotClientWorker recv sync signal";
 			snapshot::SyncSignalRep sync;
-			sync.set_uuid(m_uuid);
+			sync.set_requester(m_requester);
 
 			zpb_send(m_reader.socket(),sync,true);
 			m_timer.delay(3000);

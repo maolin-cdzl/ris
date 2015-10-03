@@ -35,31 +35,36 @@ snapshot_package_t DuplicateRegionGenerator::build() {
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	for(size_t i=0; i < 2; ++i) {
 		auto begin = std::make_shared<snapshot::RegionBegin>();
-		begin->set_uuid(uuid);
-		begin->set_version(1);
-		begin->set_idc("test_idc");
-		begin->set_bus_address("tcp://test:8888");
-		begin->set_snapshot_address("tcp://test:9999");
+		begin->mutable_rt()->set_uuid(uuid);
+		begin->mutable_rt()->set_version(1);
+		begin->mutable_region()->set_uuid(uuid);
+		begin->mutable_region()->set_idc("test_idc");
+		begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+		begin->mutable_region()->mutable_bus()->set_identity(uuid + "-bus");
+		begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+		begin->mutable_region()->mutable_snapshot()->set_identity(uuid + "-snapshot");
 		package.push_back(begin);
 
 		for(size_t i=0; i < 10; ++i) {
 			std::stringstream ss;
 			ss << "service-" << i;
 
-			auto svc = std::make_shared<snapshot::Service>();
+			auto svc = std::make_shared<ris::Service>();
 			svc->set_name(ss.str());
-			svc->set_address("tcp://test:6666");
+			svc->mutable_endpoint()->set_address("tcp://test:6666");
+			svc->mutable_endpoint()->set_identity(uuid + svc->name());
 			package.push_back(svc);
 		}
 
 		for(size_t i=0; i < 10; ++i) {
-			auto payload = std::make_shared<snapshot::Payload>();
+			auto payload = std::make_shared<ris::Payload>();
 			payload->set_uuid(newUUID());
 			package.push_back(payload);
 		}
 
 		auto end = std::make_shared<snapshot::RegionEnd>();
-		end->set_uuid(uuid);
+		end->mutable_rt()->set_uuid(uuid);
+		end->mutable_rt()->set_version(1);
 		package.push_back(end);
 	}
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
@@ -84,31 +89,37 @@ snapshot_package_t DuplicatePayloadGenerator::build() {
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
-	begin->set_uuid(uuid);
-	begin->set_version(1);
-	begin->set_idc("test_idc");
-	begin->set_bus_address("tcp://test:8888");
-	begin->set_snapshot_address("tcp://test:9999");
+	begin->mutable_rt()->set_uuid(uuid);
+	begin->mutable_rt()->set_version(1);
+	begin->mutable_region()->set_uuid(uuid);
+	begin->mutable_region()->set_idc("test_idc");
+	begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+	begin->mutable_region()->mutable_bus()->set_identity(uuid + "-bus");
+	begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+	begin->mutable_region()->mutable_snapshot()->set_identity(uuid + "-snapshot");
 	package.push_back(begin);
 
 	for(size_t i=0; i < 10; ++i) {
 		std::stringstream ss;
 		ss << "service-" << i;
 
-		auto svc = std::make_shared<snapshot::Service>();
+		auto svc = std::make_shared<ris::Service>();
 		svc->set_name(ss.str());
-		svc->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_identity("tcp://test:6666");
 		package.push_back(svc);
 	}
 
 	for(size_t i=0; i < 10; ++i) {
-		auto payload = std::make_shared<snapshot::Payload>();
+		auto payload = std::make_shared<ris::Payload>();
 		payload->set_uuid("Duplicated");
 		package.push_back(payload);
 	}
 
 	auto end = std::make_shared<snapshot::RegionEnd>();
-	end->set_uuid(uuid);
+	end->mutable_rt()->set_uuid(uuid);
+	end->mutable_rt()->set_version(1);
+
 	package.push_back(end);
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
 	return std::move(package);
@@ -132,28 +143,32 @@ snapshot_package_t DuplicateServiceGenerator::build() {
 	const std::string uuid = newUUID();
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
-	begin->set_uuid(uuid);
-	begin->set_version(1);
-	begin->set_idc("test_idc");
-	begin->set_bus_address("tcp://test:8888");
-	begin->set_snapshot_address("tcp://test:9999");
+	begin->mutable_rt()->set_uuid(uuid);
+	begin->mutable_rt()->set_version(1);
+	begin->mutable_region()->set_uuid(uuid);
+	begin->mutable_region()->set_idc("test_idc");
+	begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+	begin->mutable_region()->mutable_bus()->set_identity(uuid + "-bus");
+	begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+	begin->mutable_region()->mutable_snapshot()->set_identity(uuid + "-snapshot");
 	package.push_back(begin);
 
 	for(size_t i=0; i < 10; ++i) {
-		auto svc = std::make_shared<snapshot::Service>();
+		auto svc = std::make_shared<ris::Service>();
 		svc->set_name("Duplicate");
-		svc->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_address("tcp://test:6666");
 		package.push_back(svc);
 	}
 
 	for(size_t i=0; i < 10; ++i) {
-		auto payload = std::make_shared<snapshot::Payload>();
+		auto payload = std::make_shared<ris::Payload>();
 		payload->set_uuid(newUUID());
 		package.push_back(payload);
 	}
 
 	auto end = std::make_shared<snapshot::RegionEnd>();
-	end->set_uuid(uuid);
+	end->mutable_rt()->set_uuid(uuid);
+	end->mutable_rt()->set_version(1);
 	package.push_back(end);
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
 	return std::move(package);
@@ -176,31 +191,37 @@ snapshot_package_t UnmatchedRegionGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
-	begin->set_uuid( newUUID() );
-	begin->set_version(1);
-	begin->set_idc("test_idc");
-	begin->set_bus_address("tcp://test:8888");
-	begin->set_snapshot_address("tcp://test:9999");
+
+	begin->mutable_rt()->set_uuid(newUUID());
+	begin->mutable_rt()->set_version(1);
+	begin->mutable_region()->set_uuid(begin->rt().uuid());
+	begin->mutable_region()->set_idc("test_idc");
+	begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+	begin->mutable_region()->mutable_bus()->set_identity(begin->region().uuid() + "-bus");
+	begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+	begin->mutable_region()->mutable_snapshot()->set_identity( begin->region().uuid() + "-snapshot");
 	package.push_back(begin);
 
 	for(size_t i=0; i < 10; ++i) {
 		std::stringstream ss;
 		ss << "service-" << i;
 
-		auto svc = std::make_shared<snapshot::Service>();
+		auto svc = std::make_shared<ris::Service>();
 		svc->set_name(ss.str());
-		svc->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_identity("tcp://test:6666");
 		package.push_back(svc);
 	}
 
 	for(size_t i=0; i < 10; ++i) {
-		auto payload = std::make_shared<snapshot::Payload>();
+		auto payload = std::make_shared<ris::Payload>();
 		payload->set_uuid(newUUID());
 		package.push_back(payload);
 	}
 
 	auto end = std::make_shared<snapshot::RegionEnd>();
-	end->set_uuid( newUUID() );
+	end->mutable_rt()->set_uuid( newUUID() );
+	end->mutable_rt()->set_version( 1 );
 	package.push_back(end);
 	package.push_back( std::make_shared<snapshot::SnapshotEnd>() );
 	return std::move(package);
@@ -224,25 +245,29 @@ snapshot_package_t UncompletedRegionGenerator::build() {
 	snapshot_package_t package;
 	package.push_back( std::make_shared<snapshot::SnapshotBegin>() );
 	auto begin = std::make_shared<snapshot::RegionBegin>();
-	begin->set_uuid( newUUID() );
-	begin->set_version(1);
-	begin->set_idc("test_idc");
-	begin->set_bus_address("tcp://test:8888");
-	begin->set_snapshot_address("tcp://test:9999");
+	const ri_uuid_t uuid = newUUID();
+	begin->mutable_rt()->set_uuid(uuid);
+	begin->mutable_rt()->set_version(1);
+	begin->mutable_region()->set_uuid(uuid);
+	begin->mutable_region()->set_idc("test_idc");
+	begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+	begin->mutable_region()->mutable_bus()->set_identity(uuid + "-bus");
+	begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+	begin->mutable_region()->mutable_snapshot()->set_identity(uuid + "-snapshot");
 	package.push_back(begin);
 
 	for(size_t i=0; i < 10; ++i) {
 		std::stringstream ss;
 		ss << "service-" << i;
 
-		auto svc = std::make_shared<snapshot::Service>();
+		auto svc = std::make_shared<ris::Service>();
 		svc->set_name(ss.str());
-		svc->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_address("tcp://test:6666");
 		package.push_back(svc);
 	}
 
 	for(size_t i=0; i < 10; ++i) {
-		auto payload = std::make_shared<snapshot::Payload>();
+		auto payload = std::make_shared<ris::Payload>();
 		payload->set_uuid(newUUID());
 		package.push_back(payload);
 	}
@@ -302,31 +327,36 @@ void SnapshotGenerator::generate_region(snapshot_package_t& package) {
 
 	const std::string uuid = newUUID();
 	auto begin = std::make_shared<snapshot::RegionBegin>();
-	begin->set_uuid(uuid);
-	begin->set_version(version_random(m_generator));
-	begin->set_idc("test_idc");
-	begin->set_bus_address("tcp://test:8888");
-	begin->set_snapshot_address("tcp://test:9999");
+	begin->mutable_rt()->set_uuid(uuid);
+	begin->mutable_rt()->set_version(1);
+	begin->mutable_region()->set_uuid(uuid);
+	begin->mutable_region()->set_idc("test_idc");
+	begin->mutable_region()->mutable_bus()->set_address("tcp://test:8888");
+	begin->mutable_region()->mutable_bus()->set_identity(uuid + "-bus");
+	begin->mutable_region()->mutable_snapshot()->set_address("tcp://test:9999");
+	begin->mutable_region()->mutable_snapshot()->set_identity(uuid + "-snapshot");
 	package.push_back(begin);
 
 	for(size_t i=0; i < service_size; ++i) {
 		std::stringstream ss;
 		ss << "service-" << i;
 
-		auto svc = std::make_shared<snapshot::Service>();
+		auto svc = std::make_shared<ris::Service>();
 		svc->set_name(ss.str());
-		svc->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_address("tcp://test:6666");
+		svc->mutable_endpoint()->set_identity("tcp://test:6666");
 		package.push_back(svc);
 	}
 
 	for(size_t i=0; i < payload_size; ++i) {
-		auto payload = std::make_shared<snapshot::Payload>();
+		auto payload = std::make_shared<ris::Payload>();
 		payload->set_uuid(newUUID());
 		package.push_back(payload);
 	}
 
 	auto end = std::make_shared<snapshot::RegionEnd>();
-	end->set_uuid(uuid);
+	end->mutable_rt()->set_uuid(uuid);
+	end->mutable_rt()->set_version(1);
 	package.push_back(end);
 }
 

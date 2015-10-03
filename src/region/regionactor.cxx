@@ -71,7 +71,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		LOG(INFO) << "RIRegionActor initialize...";
 
 		auto pub = std::make_shared<RIPublisher>( m_loop );
-		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
+		if( -1 == pub->start(m_ctx->pub_address) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
 			break;
 		}
@@ -189,7 +189,7 @@ int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& 
 int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	CHECK(p);
-	int err = m_table->addService(p->name(),p->address());
+	int err = m_table->addService(Service(p->svc()));
 
 	if( p->rep() ) {
 		region::api::Result result;
@@ -218,7 +218,7 @@ int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& m
 int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	CHECK(p);
-	int err = m_table->addPayload(p->uuid());
+	int err = m_table->addPayload(Payload(p->payload()));
 
 	if( p->rep() ) {
 		region::api::Result result;

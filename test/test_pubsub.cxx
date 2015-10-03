@@ -39,14 +39,14 @@ static PubTaskCounter make_pub_tasks(const std::shared_ptr<RIPublisher>& pub,std
 		region.id = newUUID();
 		region.idc = "test";
 		region.version = 1000;
-		region.bus_address = "unexists";
-		region.snapshot_address = "unexists";
+		region.bus.address = "unexists";
+		region.snapshot.address = "unexists";
 		regions.push_back(region);
 	}
 	for(size_t i=0; i < service_count ; ++i) {
 		Service svc;
 		svc.name = newUUID();
-		svc.address = "unexists";
+		svc.endpoint.address = "unexists";
 		services.push_back(svc);
 	}
 	for(size_t i=0; i < payload_count; ++i) {

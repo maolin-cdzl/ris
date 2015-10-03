@@ -4,8 +4,9 @@
 #include "zmqx/zprotobuf++.h"
 #include "zmqx/zhelper.h"
 
-TrackerSession::TrackerSession() :
-	m_req(nullptr)
+TrackerSession::TrackerSession(uint64_t t) :
+	m_req(nullptr),
+	m_timeout(t)
 {
 }
 
@@ -13,7 +14,7 @@ TrackerSession::~TrackerSession() {
 	disconnect();
 }
 
-int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
+int TrackerSession::connect(const std::string& api_address) {
 	if( m_req )
 		return -1;
 
@@ -31,7 +32,7 @@ int TrackerSession::connect(const std::string& api_address,uint64_t timeout) {
 			break;
 		}
 		
-		if( zmq_wait_readable(m_req,timeout) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -55,18 +56,17 @@ void TrackerSession::disconnect() {
 	}
 }
 
-int TrackerSession::getStatistics(RouteInfoStatistics* statistics) {
-	CHECK_NOTNULL( statistics );
-	if( nullptr == m_req )
-		return -1;
+std::shared_ptr<RouteInfoStatistics> TrackerSession::getStatistics() {
 
 	do {
+		if( nullptr == m_req )
+			break;
 		tracker::api::StatisticsReq req;
 		if( -1 == zpb_send(m_req,req,true)  ) {
 			LOG(ERROR) << "Error when send request to tracker";
 			break;
 		}
-		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -74,27 +74,31 @@ int TrackerSession::getStatistics(RouteInfoStatistics* statistics) {
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
 
-		statistics->region_size = rep.region_count();
-		statistics->service_size = rep.service_count();
+		auto statistics = std::make_shared<RouteInfoStatistics>();
+		for(auto it=rep.regions().begin(); it != rep.regions().end(); ++it) {
+			statistics->regions.push_back(Region(*it));
+		}
+		for(auto it=rep.services().begin(); it != rep.services().end(); ++it) {
+			statistics->services.push_back(*it);
+		}
 		statistics->payload_size = rep.payload_count();
-		return 1;
+		return std::move(statistics);
 	} while(0);
 
-	return -1;
+	return nullptr;
 }
 
-int TrackerSession::getRegion(RegionInfo* region,const std::string& uuid) {
-	if( nullptr == m_req )
-		return -1;
-
+std::shared_ptr<Region> TrackerSession::getRegion(const std::string& uuid) {
 	do {
+		if( nullptr == m_req )
+			break;
 		tracker::api::RegionReq req;
 		req.set_uuid(uuid);
 		if( -1 == zpb_send(m_req,req,true)  ) {
 			LOG(ERROR) << "Error when send request to tracker";
 			break;
 		}
-		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -103,29 +107,17 @@ int TrackerSession::getRegion(RegionInfo* region,const std::string& uuid) {
 			break;
 
 		if( rep.has_region() ) {
-			region->uuid = rep.region().uuid();
-			region->idc = rep.region().idc();
-			region->bus_address = rep.region().bus_address();
-			region->snapshot_address = rep.region().snapshot_address();
-			region->version = rep.region().version();
-			return 1;
-		} else {
-			region->uuid.clear();
-			region->idc.clear();
-			region->bus_address.clear();
-			region->snapshot_address.clear();
-			region->version = 0;
-			return 0;
+			return std::make_shared<Region>(rep.region());
 		}
 	} while(0);
 
-	return -1;
+	return nullptr;
 }
 
-int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
-	if( nullptr == m_req )
-		return -1;
+std::shared_ptr<RouteInfo> TrackerSession::getServiceRouteInfo(const std::string& svc) {
 	do {
+		if( nullptr == m_req )
+			break;
 		tracker::api::ServiceRouteReq req;
 		req.set_svc(svc);
 
@@ -133,7 +125,7 @@ int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
 			LOG(ERROR) << "Error when send request to tracker";
 			break;
 		}
-		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -141,25 +133,21 @@ int TrackerSession::getServiceRouteInfo(RouteInfo* ri,const std::string& svc) {
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
 
-		if( rep.has_route() ) {
+		if( rep.has_route() && svc == rep.route().target() ) {
+			auto ri = std::make_shared<RouteInfo>();
 			ri->target = rep.route().target();
-			ri->region = rep.route().region();
-			ri->address = rep.route().address();
-			return 1;
-		} else {
-			ri->target.clear();
-			ri->region.clear();
-			ri->address.clear();
-			return 0;
+			ri->endpoint.address = rep.route().endpoint().address();
+			ri->endpoint.identity = rep.route().endpoint().identity();
+			return std::move(ri);
 		}
 	} while(0);
-	return -1;
+	return nullptr;
 }
 
-int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload) {
-	if( nullptr == m_req )
-		return -1;
+std::shared_ptr<RouteInfo> TrackerSession::getPayloadRouteInfo(const std::string& payload) {
 	do {
+		if( nullptr == m_req )
+			break;
 		tracker::api::PayloadRouteReq req;
 		req.set_payload(payload);
 
@@ -167,7 +155,7 @@ int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload
 			LOG(ERROR) << "Error when send request to tracker";
 			break;
 		}
-		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -175,25 +163,22 @@ int TrackerSession::getPayloadRouteInfo(RouteInfo* ri,const std::string& payload
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
 
-		if( rep.has_route() ) {
+		if( rep.has_route() && payload == rep.route().target() ) {
+			auto ri = std::make_shared<RouteInfo>();
 			ri->target = rep.route().target();
-			ri->region = rep.route().region();
-			ri->address = rep.route().address();
-			return 1;
-		} else {
-			ri->target.clear();
-			ri->region.clear();
-			ri->address.clear();
-			return 0;
+			ri->endpoint.address = rep.route().endpoint().address();
+			ri->endpoint.identity = rep.route().endpoint().identity();
+			return std::move(ri);
 		}
 	} while(0);
-	return -1;
+	return nullptr;
 }
 
-int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::list<std::string>& payloads) {
-	if( nullptr == m_req )
-		return -1;
+std::list<RouteInfo> TrackerSession::getPayloadsRouteInfo(const std::list<std::string>& payloads) {
+	std::list<RouteInfo> ris;
 	do {
+		if( nullptr == m_req )
+			break;
 		tracker::api::PayloadsRouteReq req;
 		for(auto it=payloads.begin(); it != payloads.end(); ++it) {
 			req.add_payloads(*it);
@@ -203,7 +188,7 @@ int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::li
 			LOG(ERROR) << "Error when send request to tracker";
 			break;
 		}
-		if( zmq_wait_readable(m_req,1000) <= 0 ) {
+		if( zmq_wait_readable(m_req,m_timeout) <= 0 ) {
 			LOG(ERROR) << "Error when waiting req readable";
 			break;
 		}
@@ -211,22 +196,17 @@ int TrackerSession::getPayloadsRouteInfo(std::list<RouteInfo>& ris,const std::li
 		if( -1 == zpb_recv(rep,m_req) )
 			break;
 
-		ris.clear();
-		if( rep.routes_size() > 0 ) {
-			for(size_t i=0; i < (size_t) rep.routes_size(); ++i) {
-				RouteInfo ri;
-				auto& route = rep.routes(i);
-				ri.target = route.target();
-				ri.region = route.region();
-				ri.address = route.address();
-				ris.push_back(ri);
+		for(auto it=rep.routes().begin(); it != rep.routes().end(); ++it) {
+			RouteInfo ri;
+			ri.target = it->target();
+			if( it->has_endpoint() ) {
+				ri.endpoint.address = it->endpoint().address();
+				ri.endpoint.identity = it->endpoint().identity();
 			}
-			return rep.routes_size();
-		} else {
-			return 0;
+			ris.push_back(ri);
 		}
 	} while(0);
-	return -1;
+	return std::move(ris);
 }
 
 

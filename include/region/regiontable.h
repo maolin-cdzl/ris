@@ -63,9 +63,9 @@ public:
 		m_sec_repub_payload = sec;
 	}
 
-	int addService(const std::string& name,const std::string& address);
+	int addService(const Service& svc);
 	int rmService(const std::string& svc);
-	int addPayload(const ri_uuid_t& pl);
+	int addPayload(const Payload& pl);
 	int rmPayload(const ri_uuid_t& pl);
 
 	virtual snapshot_package_t buildSnapshot();

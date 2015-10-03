@@ -28,11 +28,11 @@ int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::s
 	do {
 		busend = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(busend);
-		zsock_set_identity(busend,new_short_identity().c_str());
 		if( -1 == zsock_bind(busend,"%s",busend_address.c_str()) ) {
 			LOG(FATAL) << "Busend socket can not bind to: " << busend_address;
 			break;
 		}
+		zsock_set_identity(busend,zsock_endpoint(busend));
 
 		m_bus_reader = std::make_shared<ZLoopReader>(m_loop);
 		CHECK(m_bus_reader);

@@ -127,23 +127,23 @@ int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Messa
 	CHECK(p);
 
 	snapshot::SnapshotRep rep;
-	auto it = m_workers.find(p->uuid());
+	auto it = m_workers.find(p->requester());
 	if( it != m_workers.end() ) {
-		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->uuid();
+		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->requester();
 		rep.set_result(-1);
 		zpb_send(sock,envelope,rep);
 	} else if( m_workers.size() < m_capacity ) {
 		rep.set_result(0);
 		if( 0 == zpb_send(sock,envelope,rep) ) {
-			LOG(INFO) << "Accept client snapshot request: " << p->uuid();
+			LOG(INFO) << "Accept client snapshot request: " << p->requester();
 
 			auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
 			const size_t left = worker->sendItems(sock,envelope,m_period_count);
 			if( left == 0 ) {
-				LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
+				LOG(INFO) << "Send all snapshot item to client done. " << p->requester();
 			} else {
-				LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
-				m_workers.insert( std::make_pair(p->uuid(),worker) );
+				LOG(INFO) << "Send part items to client " << p->requester() << " " << m_period_count << "/" << left;
+				m_workers.insert( std::make_pair(p->requester(),worker) );
 				snapshot::SyncSignalReq sync;
 				zpb_send(sock,envelope,sync);
 			}
@@ -160,19 +160,19 @@ int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Messa
 int SnapshotService::onSyncSignal(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<snapshot::SyncSignalRep>(msg);
 	CHECK(p);
-	auto it = m_workers.find(p->uuid());
+	auto it = m_workers.find(p->requester());
 	if( it != m_workers.end() ) {
 		const size_t left = it->second->sendItems(sock,envelope,m_period_count);
 		if( left == 0 ) {
-			LOG(INFO) << "Send all snapshot item to client done. " << p->uuid();
+			LOG(INFO) << "Send all snapshot item to client done. " << p->requester();
 			m_workers.erase(it);
 		} else {
-			LOG(INFO) << "Send part items to client " << p->uuid() << " " << m_period_count << "/" << left;
+			LOG(INFO) << "Send part items to client " << p->requester() << " " << m_period_count << "/" << left;
 			snapshot::SyncSignalReq sync;
 			zpb_send(sock,envelope,sync);
 		}
 	} else {
-		LOG(WARNING) << "Recv unknown client id: " << p->uuid();
+		LOG(WARNING) << "Recv unknown client id: " << p->requester();
 	}
 	return 0;
 }

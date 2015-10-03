@@ -19,7 +19,7 @@ int RegionFactory::start(const std::function<void(const ri_uuid_t&,const std::sh
 	do {
 		m_product = std::make_shared<RegionProduct>();
 		m_client = std::make_shared<SnapshotClient>(m_loop);
-		if( -1 == m_client->start(std::bind(&RegionFactory::onSnapshotCompleted,this,std::placeholders::_1),m_product,region.snapshot_address) ) {
+		if( -1 == m_client->start(std::bind(&RegionFactory::onSnapshotCompleted,this,std::placeholders::_1),m_product,region.snapshot.address) ) {
 			break;
 		}
 		m_subcacher = std::make_shared<RegionSubCacher>(region);

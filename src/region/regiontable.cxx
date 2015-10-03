@@ -13,8 +13,10 @@ RIRegionTable::RIRegionTable(const std::shared_ptr<RegionCtx>& ctx,zloop_t* loop
 {
 	m_region.id = ctx->uuid;
 	m_region.idc = ctx->idc;
-	m_region.bus_address = ctx->bus_address;
-	m_region.snapshot_address = ctx->snapshot_address;
+	m_region.bus.address = ctx->bus_address;
+	m_region.bus.identity = ctx->bus_identity;
+	m_region.snapshot.address = ctx->snapshot_address;
+	m_region.snapshot.identity = ctx->snapshot_identity;
 	m_region.version = 0;
 	m_region.timeval = 0;
 }
@@ -23,14 +25,17 @@ RIRegionTable::~RIRegionTable() {
 	stop();
 }
 
-int RIRegionTable::addService(const std::string& name,const std::string& address) {
-	if( m_services_idx.end() == m_services_idx.find(name) ) {
+int RIRegionTable::addService(const Service& svc) {
+	if( !svc.good() ) {
+		LOG(ERROR) << "service not good";
+		return -1;
+	}
+	if( m_services_idx.end() == m_services_idx.find(svc.name) ) {
 		++m_region.version;
-		Service svc(name,address,ri_time_now());
 		auto it = m_services.insert(m_services.end(),svc);
-		m_services_idx.insert( std::make_pair(name,it) );
+		m_services_idx.insert( std::make_pair(svc.name,it) );
 
-		LOG(INFO) << "new service: " << name << "|" << address << " version: " << m_region.version;
+		LOG(INFO) << "new service: " << svc.name << "|" << svc.endpoint.address << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
 			m_observer->onService(m_region.id,m_region.version,svc);
 		}
@@ -59,16 +64,19 @@ int RIRegionTable::rmService(const std::string& svc) {
 	}
 }
 
-int RIRegionTable::addPayload(const ri_uuid_t& pl) {
-	if( m_payloads_idx.end() == m_payloads_idx.find(pl) ) {
+int RIRegionTable::addPayload(const Payload& pl) {
+	if( !pl.good() ) {
+		LOG(ERROR) << "Payload not good";
+		return -1;
+	}
+	if( m_payloads_idx.end() == m_payloads_idx.find(pl.id) ) {
 		++m_region.version;
-		Payload payload(pl,ri_time_now());
-		auto it = m_payloads.insert(m_payloads.end(),payload);
-		m_payloads_idx.insert( std::make_pair(pl,it) );
+		auto it = m_payloads.insert(m_payloads.end(),pl);
+		m_payloads_idx.insert( std::make_pair(pl.id,it) );
 
-		LOG(INFO) << "new payload: " << pl << " version: " << m_region.version;
+		LOG(INFO) << "new payload: " << pl.id << " version: " << m_region.version;
 		if( m_observer != nullptr ) {
-			m_observer->onPayload(m_region.id,m_region.version,payload);
+			m_observer->onPayload(m_region.id,m_region.version,pl);
 		}
 		return 0;
 	} else {

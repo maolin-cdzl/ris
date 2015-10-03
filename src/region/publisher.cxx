@@ -101,22 +101,22 @@ int RIPublisher::pubRemoveRegion(const ri_uuid_t& reg) {
 }
 
 int RIPublisher::pubService(const ri_uuid_t& region,uint32_t version,const Service& svc) {
-	auto p = svc.toPublish(version);
+	auto p = svc.toPublish(region,version);
 	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubRemoveService(const ri_uuid_t& region,uint32_t version,const std::string& svc) {
-	auto p = Service::toPublishRm(version,svc);
+	auto p = Service::toPublishRm(region,version,svc);
 	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubPayload(const ri_uuid_t& region,uint32_t version,const Payload& pl) {
-	auto p = pl.toPublish(version);
+	auto p = pl.toPublish(region,version);
 	return zpb_pub_send(m_pub,region,*p);
 }
 
 int RIPublisher::pubRemovePayload(const ri_uuid_t& region,uint32_t version,const ri_uuid_t& pl) {
-	auto p = Payload::toPublishRm(version,pl);
+	auto p = Payload::toPublishRm(region,version,pl);
 	return zpb_pub_send(m_pub,region,*p);
 }
 
