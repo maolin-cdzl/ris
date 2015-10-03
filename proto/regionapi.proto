@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "ris.proto";
 package region.api;
 
 message HandShake {
@@ -12,23 +13,22 @@ message Result {
 }
 
 message AddService {
-	string		name = 1;
-	string		address = 2;
-	bool		rep = 3;
+	ris.Service	svc		= 1;
+	bool		rep		= 2;
 }
 
 message RmService {
-	string		name = 1;
-	bool		rep = 3;
+	string		name		= 1;
+	bool		rep			= 2;
 }
 
 message AddPayload {
-	string		uuid = 1;
-	bool		rep = 3;
+	ris.Payload	payload		= 1;
+	bool		rep			= 2;
 }
 
 message RmPayload {
-	string		uuid = 1;
-	bool		rep = 3;
+	string		uuid		= 1;
+	bool		rep			= 2;
 }
 

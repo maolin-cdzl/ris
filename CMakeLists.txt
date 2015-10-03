@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -fPIC -Wall -fvisibility=hidden ${CMAKE_CXX_FLAG
 set(PROTOBUF_IMPORT_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/proto)
 
 set(RIS_PROTO 
+	${CMAKE_CURRENT_SOURCE_DIR}/proto/ris.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/bus.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/pub.proto 
 	${CMAKE_CURRENT_SOURCE_DIR}/proto/snapshot.proto 
@@ -36,11 +37,13 @@ target_link_libraries(risproto PUBLIC
 
 # configure snapshot
 add_library(snapshot STATIC
+	src/snapshot/snapshotctx.cxx
 	src/snapshot/snapshotservice.cxx
 	src/snapshot/snapshotserviceworker.cxx
 	src/snapshot/snapshotclient.cxx
 	src/snapshot/snapshotclientworker.cxx
 	src/snapshot/snapshotfeature.cxx
+	include/snapshot/snapshotctx.h
 	include/snapshot/snapshotable.h
 	include/snapshot/snapshotclient.h
 	include/snapshot/snapshotclientworker.h
@@ -243,6 +246,7 @@ target_include_directories(trackercli
 
 
 target_link_libraries(trackercli LINK_PUBLIC
+	ris
 	risproto
 	zmqx
 	zmq
@@ -262,6 +266,7 @@ target_include_directories(trackercli_static
 
 
 target_link_libraries(trackercli_static LINK_PUBLIC
+	ris
 	risproto
 	zmqx
 	zmq
@@ -356,6 +361,32 @@ target_link_libraries(ribrokeractor PUBLIC
 	zmq
 	gflags
 	glog
+)
+
+# busbroker
+add_executable(busbroker
+	src/busbroker/busbrokerctx.cxx
+	src/busbroker/busworker.cxx
+	src/busbroker/main.cxx
+	include/busbroker/busbrokerctx.h
+	include/busbroker/busworker.h
+)
+
+target_include_directories(busbroker
+	PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+	PUBLIC $<TARGET_PROPERTY:risproto,INTERFACE_INCLUDE_DIRECTORIES>
+	PUBLIC $<TARGET_PROPERTY:zmqx,INTERFACE_INCLUDE_DIRECTORIES>
+)
+
+target_link_libraries(busbroker LINK_PUBLIC
+	risproto
+	zmqx
+	trackercli_static
+	zmq
+	czmq
+	gflags
+	glog
+	config++
 )
 
 # test project

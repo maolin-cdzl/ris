@@ -1,36 +1,34 @@
 syntax = "proto3";
+import "ris.proto";
+
 package pub;
 
-message Region {
-	string			uuid = 1;
-	uint32			version = 2;
-	string			idc = 3;
-	string			bus_address = 4;
-	string			snapshot_address = 5;
+message PubRegion {
+	ris.RegionRuntime	rt		= 1;
+	ris.Region			region	= 2;
 }
 
-message RmRegion {
-	string			uuid = 1;
+message PubRmRegion {
+	string				uuid	= 1;
 }
 
-message Service {
-	uint32			version = 1;
-	string			name = 2;
-	string			address = 3;
+message PubService {
+	ris.RegionRuntime	rt		= 1;
+	ris.Service			service = 2;
 }
 
-message RmService {
-	uint32			version = 1;
-	string			name = 2;
+message PubRmService {
+	ris.RegionRuntime	rt		= 1;
+	string				name	= 2;
 }
 
-message Payload {
-	uint32			version = 1;
-	string			uuid = 2;
+message PubPayload {
+	ris.RegionRuntime	rt		= 1;
+	ris.Payload			payload	= 2;
 }
 
-message RmPayload {
-	uint32			version = 1;
-	string			uuid = 2;
+message PubRmPayload {
+	ris.RegionRuntime	rt		= 1;
+	string				uuid	= 2;
 }
 

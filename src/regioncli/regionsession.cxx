@@ -66,7 +66,7 @@ int RegionSession::newPayload(const std::string& uuid,uint32_t* version) {
 		if( uuid.empty() )
 			break;
 		region::api::AddPayload msg;
-		msg.set_uuid(uuid);
+		msg.mutable_payload()->set_uuid(uuid);
 		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
@@ -116,8 +116,8 @@ int RegionSession::newService(const std::string& name,const std::string& address
 		if( name.empty() || address.empty() )
 			break;
 		region::api::AddService msg;
-		msg.set_name(name);
-		msg.set_address(address);
+		msg.mutable_svc()->set_name(name);
+		msg.mutable_svc()->mutable_endpoint()->set_address(address);
 		msg.set_rep( true );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
@@ -165,7 +165,7 @@ int RegionSession::asyncNewPayload(const std::string& uuid) {
 		if( uuid.empty() )
 			break;
 		region::api::AddPayload msg;
-		msg.set_uuid(uuid);
+		msg.mutable_payload()->set_uuid(uuid);
 		msg.set_rep( false );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;
@@ -198,8 +198,8 @@ int RegionSession::asyncNewService(const std::string& name,const std::string& ad
 		if( name.empty() || address.empty() )
 			break;
 		region::api::AddService msg;
-		msg.set_name(name);
-		msg.set_address(address);
+		msg.mutable_svc()->set_name(name);
+		msg.mutable_svc()->mutable_endpoint()->set_address(address);
 		msg.set_rep( false );
 		if( -1 == zpb_send(m_req,msg,true) )
 			break;

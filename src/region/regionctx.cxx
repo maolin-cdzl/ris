@@ -9,27 +9,38 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 			const libconfig::Setting& region = cfg.lookup("region");
 			ctx->uuid = region["id"].c_str();
 			ctx->idc = region["idc"].c_str();
-			ctx->api_address = region["api_address"].c_str();
-			ctx->bus_address = region["bus_address"].c_str();
 			ctx->pub_address = region["pub_address"].c_str();
-			if( region.exists("bind_pub") ) {
-				ctx->bind_pub = region["bind_pub"];
-			} else {
-				ctx->bind_pub = false;
+
+			// endpoint bus, for busbroker connect
+			if( ! region.lookupValue("bus_address",ctx->bus_address) ) {
+				ctx->bus_address = "tcp://*:6500";
 			}
-			if( region.exists("bus_api_address") ) {
-				ctx->bus_api_address = region["bus_api_address"].c_str();
-			} else {
-				ctx->bus_api_address = "inproc://busapi." + ctx->uuid ;
+			if( ! region.lookupValue("bus_identity",ctx->bus_identity) ) {
+				ctx->bus_identity = ctx->uuid + "-bus";
 			}
-			if( region.exists("bus_hwm") ) {
-				ctx->bus_hwm = region["bus_hwm"];
-			} else {
+
+			// endpoint api, for client publish carries
+			if( ! region.lookupValue("api_identity",ctx->api_identity) ) {
+				ctx->api_identity = ctx->uuid + "-api";
+			}
+			if( ! region.lookupValue("api_address",ctx->api_address) ) {
+				ctx->api_address = "inproc://" + ctx->api_identity;
+			}
+
+			// endpoint worker, for client worker pick message
+			if( ! region.lookupValue("worker_identity",ctx->worker_identity) ) {
+				ctx->worker_identity = ctx->uuid + "-worker";
+			}
+			if( ! region.lookupValue("worker_address",ctx->worker_address) ) {
+				ctx->worker_address = "inproc://" + ctx->worker_identity;
+			}
+
+			// high water mark
+			if( ! region.lookupValue("bus_hwm",(unsigned long long&)ctx->bus_hwm) ) {
 				ctx->bus_hwm = 5000;
 			}
 
-			const libconfig::Setting& snapshot = cfg.lookup("region.snapshot");
-			ctx->snapshot_address = snapshot["address"].c_str();
+			ctx->snapshot = SnapshotCtx::load(region["snapshot"]);
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;

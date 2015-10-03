@@ -69,6 +69,8 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 
 		rep = zsock_new(ZMQ_ROUTER);
+		CHECK_NOTNULL(rep);
+		zsock_set_identity(rep,m_ctx->api_identity.c_str());
 		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "Error when binding rep socket to: " << m_ctx->api_address;
 			break;
@@ -103,7 +105,7 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 
 		auto ssvc = std::make_shared<SnapshotService>();
-		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
+		if( -1 == ssvc->start(feature,m_ctx->snapshot) ) {
 			LOG(FATAL) << "Tracker start snapshot service failed";
 			break;
 		}
@@ -172,8 +174,14 @@ int RITrackerActor::onHandShake(const std::shared_ptr<google::protobuf::Message>
 int RITrackerActor::onStaticsReq(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<tracker::api::StatisticsReq>(msg);
 	tracker::api::StatisticsRep rep;
-	rep.set_region_count( m_table->region_size() );
-	rep.set_service_count( m_table->service_size() );
+
+	auto regions = m_table->regions();
+	auto services = m_table->services();
+
+	for(auto it=regions.begin(); it != regions.end(); ++it) {
+		(*it)->toProtobuf(rep.add_regions());
+	}
+	std::copy(services.begin(),services.end(),google::protobuf::RepeatedFieldBackInserter(rep.mutable_services()));
 	rep.set_payload_count( m_table->payload_size() );
 	zpb_send(sock,envelope,rep);
 	return 0;
@@ -184,12 +192,7 @@ int RITrackerActor::onRegionReq(const std::shared_ptr<google::protobuf::Message>
 	tracker::api::RegionRep rep;
 	auto region = m_table->getRegion(p->uuid());
 	if( region ) {
-		auto pr = rep.mutable_region();
-		pr->set_uuid( region->id );
-		pr->set_version( region->version );
-		pr->set_idc( region->idc );
-		pr->set_bus_address( region->bus_address );
-		pr->set_snapshot_address( region->snapshot_address );
+		region->toProtobuf( rep.mutable_region() );
 	}
 	zpb_send(sock,envelope,rep);
 	return 0;
@@ -203,8 +206,7 @@ int RITrackerActor::onServiceRouteReq(const std::shared_ptr<google::protobuf::Me
 	ri->set_target(p->svc());
 	auto result = m_table->robinRouteService( p->svc() );
 	if( result.first ) {
-		ri->set_region(result.first->id);
-		ri->set_address(result.second);
+		result.second.toProtobuf(ri->mutable_endpoint());
 	}
 	zpb_send(sock,envelope,rep);
 	return 0;
@@ -216,10 +218,9 @@ int RITrackerActor::onPayloadRouteReq(const std::shared_ptr<google::protobuf::Me
 
 	auto ri = rep.mutable_route();
 	ri->set_target(p->payload());
-	auto region = m_table->routePayload(p->payload());
-	if( region ) {
-		ri->set_region(region->id);
-		ri->set_address(region->bus_address);
+	auto result = m_table->routePayload(p->payload());
+	if( result.first ) {
+		result.second.toProtobuf(ri->mutable_endpoint());
 	}
 	zpb_send(sock,envelope,rep);
 	return 0;
@@ -234,10 +235,9 @@ int RITrackerActor::onPayloadsRouteReq(const std::shared_ptr<google::protobuf::M
 		auto ri = rep.add_routes();
 		ri->set_target(payload);
 
-		auto region = m_table->routePayload(payload);
-		if( region ) {
-			ri->set_region(region->id);
-			ri->set_address(region->bus_address);
+		auto result = m_table->routePayload(payload);
+		if( result.first ) {
+			result.second.toProtobuf(ri->mutable_endpoint());
 		}
 	}
 

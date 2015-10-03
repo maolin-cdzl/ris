@@ -22,7 +22,7 @@ protected:
 		ctx->api_address = "inproc://region-test";
 		ctx->bus_address = "tcp://127.0.0.1:6600";
 		ctx->pub_address = "tcp://127.0.0.1:2015";
-		ctx->snapshot_address = "tcp://127.0.0.1:6500";
+		ctx->snapshot = std::make_shared<SnapshotCtx>("tcp://127.0.0.1:6500","snapshotsvc");
 	}
 	static void TearDownTestCase() {
 		ctx.reset();
@@ -48,15 +48,15 @@ TEST_F(RegionTableTest,Functional) {
 
 	ASSERT_EQ(0,table->start(observer));
 
-	ASSERT_EQ(0,table->addService("service-1","tcp://127.0.0.1:*"));
-	ASSERT_EQ(0,table->addService("service-2","tcp://127.0.0.1:*"));
-	ASSERT_EQ(0,table->addService("service-3","tcp://127.0.0.1:*"));
-	ASSERT_EQ(-1,table->addService("service-1","tcp://127.0.0.1:*"));
+	ASSERT_EQ(0,table->addService(Service("service-1","tcp://127.0.0.1:*","svc-1")));
+	ASSERT_EQ(0,table->addService(Service("service-2","tcp://127.0.0.1:*","svc-2")));
+	ASSERT_EQ(0,table->addService(Service("service-3","tcp://127.0.0.1:*","svc-3")));
+	ASSERT_EQ(-1,table->addService(Service("service-1","tcp://127.0.0.1:*","svc-1")));
 
-	ASSERT_EQ(0,table->addPayload("payload-1"));
-	ASSERT_EQ(0,table->addPayload("payload-2"));
-	ASSERT_EQ(0,table->addPayload("payload-3"));
-	ASSERT_EQ(-1,table->addPayload("payload-1"));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-1")));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-2")));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-3")));
+	ASSERT_EQ(-1,table->addPayload(Payload("payload-1")));
 
 	ASSERT_EQ(size_t(3),table->service_size());
 	ASSERT_EQ(size_t(3),table->payload_size());
@@ -89,14 +89,14 @@ TEST_F(RegionTableTest,Repub) {
 	EXPECT_CALL(*observer,onRmPayload(testing::_,testing::_,testing::_)).Times(0);
 
 
-	ASSERT_EQ(0,table->addService("service-1","tcp://127.0.0.1:*"));
-	ASSERT_EQ(0,table->addService("service-2","tcp://127.0.0.1:*"));
-	ASSERT_EQ(0,table->addService("service-3","tcp://127.0.0.1:*"));
-	ASSERT_EQ(-1,table->addService("service-1","tcp://127.0.0.1:*"));
+	ASSERT_EQ(0,table->addService(Service("service-1","tcp://127.0.0.1:*","svc-1")));
+	ASSERT_EQ(0,table->addService(Service("service-2","tcp://127.0.0.1:*","svc-2")));
+	ASSERT_EQ(0,table->addService(Service("service-3","tcp://127.0.0.1:*","svc-3")));
+	ASSERT_EQ(-1,table->addService(Service("service-1","tcp://127.0.0.1:*","svc-4")));
 
-	ASSERT_EQ(0,table->addPayload("payload-1"));
-	ASSERT_EQ(0,table->addPayload("payload-2"));
-	ASSERT_EQ(0,table->addPayload("payload-3"));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-1")));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-2")));
+	ASSERT_EQ(0,table->addPayload(Payload("payload-3")));
 
 	ASSERT_EQ(size_t(3),table->service_size());
 	ASSERT_EQ(size_t(3),table->payload_size());

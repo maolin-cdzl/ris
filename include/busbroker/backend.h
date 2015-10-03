@@ -1,15 +1,13 @@
 #pragma once
 
-#include <string>
 #include <czmq.h>
 #include "zmqx/zrunner.h"
-
 #include "busbroker/busbrokerctx.h"
 
-class BusWorker {
+class BusBackend {
 public:
-	BusWorker(const std::shared_ptr<BusBrokerCtx>& ctx);
-	~BusWorker();
+	BusBackend(const std::shared_ptr<BusBrokerCtx>& ctx);
+	~BusBackend();
 
 	int start();
 	void stop();
@@ -17,8 +15,7 @@ public:
 private:
 	void run(zsock_t* pipe);
 private:
-	std::shared_ptr<BusBrokerCtx>	m_ctx;
-	ZRunner				m_runner;
+	std::shared_ptr<BusBrokerCtx>			m_ctx;
+	ZRunner									m_runner;
 };
-
 

@@ -1,0 +1,29 @@
+syntax = "proto3";
+package ris;
+
+message EndPoint {
+	string			address		= 1;
+	string			identity	= 2;
+}
+
+message Region {
+	string			uuid		= 1;
+	string			idc			= 2;
+	EndPoint		bus			= 3;
+	EndPoint		snapshot	= 4;
+}
+
+message RegionRuntime {
+	string			uuid		= 1;
+	uint32			version		= 2;
+}
+
+message Service {
+	string			name		= 1;
+	EndPoint		endpoint	= 2;
+}
+
+message Payload {
+	string			uuid		= 1;
+}
+

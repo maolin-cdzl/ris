@@ -31,10 +31,10 @@ public:
 	std::shared_ptr<Region> getRegion(const ri_uuid_t& id)  const;
 
 	// get region carry this payload
-	std::shared_ptr<Region> routePayload(const ri_uuid_t& id)  const;
+	std::pair<bool,EndPoint> routePayload(const ri_uuid_t& id)  const;
 
 	// get region provide this service,this is round-robin
-	std::pair<std::shared_ptr<Region>,std::string> robinRouteService(const std::string& svc);
+	std::pair<bool,EndPoint> robinRouteService(const std::string& svc);
 
 	int merge(const std::shared_ptr<IRegionLRUReader>& reader);
 public:

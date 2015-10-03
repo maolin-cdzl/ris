@@ -71,7 +71,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		LOG(INFO) << "RIRegionActor initialize...";
 
 		auto pub = std::make_shared<RIPublisher>( m_loop );
-		if( -1 == pub->start(m_ctx->pub_address,m_ctx->bind_pub) ) {
+		if( -1 == pub->start(m_ctx->pub_address) ) {
 			LOG(FATAL) << "can not start pub on: " << m_ctx->pub_address;
 			break;
 		}
@@ -83,7 +83,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto bus = std::make_shared<BusProcesser>(m_loop);
-		if( -1 == bus->start(m_table,m_ctx->bus_address,m_ctx->bus_api_address,m_ctx->bus_hwm) ) {
+		if( -1 == bus->start(m_table,m_ctx) ) {
 			LOG(FATAL) << "Can not start bus processer";
 			break;
 		}
@@ -96,7 +96,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto ssvc = std::make_shared<SnapshotService>();
-		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
+		if( -1 == ssvc->start(feature,m_ctx->snapshot) ) {
 			LOG(FATAL) << "Start SnapshotService failed";
 			break;
 		}
@@ -108,6 +108,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		rep = zsock_new(ZMQ_ROUTER);
+		zsock_set_identity(rep,m_ctx->api_identity.c_str());
 		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
 			break;
@@ -189,7 +190,12 @@ int RIRegionActor::defaultOpt(const std::shared_ptr<google::protobuf::Message>& 
 int RIRegionActor::addService(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddService>(msg);
 	CHECK(p);
-	int err = m_table->addService(p->name(),p->address());
+
+	Service svc(p->svc());
+	if( svc.endpoint.identity.empty() ) {
+		svc.endpoint.identity = m_ctx->uuid + "-" + svc.name;
+	}
+	int err = m_table->addService(svc);
 
 	if( p->rep() ) {
 		region::api::Result result;
@@ -218,7 +224,7 @@ int RIRegionActor::rmService(const std::shared_ptr<google::protobuf::Message>& m
 int RIRegionActor::addPayload(const std::shared_ptr<google::protobuf::Message>& msg,zsock_t* sock,const std::shared_ptr<ZEnvelope>& envelope) {
 	auto p = std::dynamic_pointer_cast<region::api::AddPayload>(msg);
 	CHECK(p);
-	int err = m_table->addPayload(p->uuid());
+	int err = m_table->addPayload(Payload(p->payload()));
 
 	if( p->rep() ) {
 		region::api::Result result;

@@ -1,4 +1,5 @@
 syntax = "proto3";
+import "ris.proto";
 package tracker.api;
 
 message Error {
@@ -6,18 +7,10 @@ message Error {
 	string			what = 2;
 }
 
-message Region {
-	string			uuid = 1;
-	uint32			version = 2;
-	string			idc = 3;
-	string			bus_address = 4;
-	string			snapshot_address = 5;
-}
 
 message RouteInfo {
-	string			target = 1;
-	string			region = 2;
-	string			address = 3;	
+	string				target		= 1;
+	ris.EndPoint		endpoint	= 2;
 }
 
 message HandShake {
@@ -27,33 +20,33 @@ message StatisticsReq {
 }
 
 message StatisticsRep {
-	uint32 region_count = 1;
-	uint32 service_count = 2;
-	uint32 payload_count = 3;
+	repeated ris.Region		regions = 1;
+	repeated string			services = 2;
+	uint32					payload_count = 3;
 }
 
 message RegionReq {
-	string uuid = 1;
+	string			uuid		= 1;
 }
 
 message RegionRep {
-	Region region = 1;
+	ris.Region		region		= 1;
 }
 
 message ServiceRouteReq {
-	string			svc = 1;
+	string			svc			= 1;
 }
 
 message ServiceRouteRep {
-	RouteInfo route = 1;
+	RouteInfo		route		= 1;
 }
 
 message PayloadRouteReq {
-	string			payload = 1;
+	string			payload		= 1;
 }
 
 message PayloadRouteRep {
-	RouteInfo route = 1;
+	RouteInfo		route		= 1;
 }
 
 message PayloadsRouteReq {
