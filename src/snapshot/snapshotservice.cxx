@@ -6,10 +6,7 @@
 
 SnapshotService::SnapshotService() :
 	m_running(false),
-	m_actor(nullptr),
-	m_capacity(0),
-	m_period_count(0),
-	m_tv_timeout(0)
+	m_actor(nullptr)
 {
 }
 
@@ -18,17 +15,14 @@ SnapshotService::~SnapshotService() {
 	stop();
 }
 
-int SnapshotService::start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::string& address,size_t capacity,size_t period_count,ri_time_t timeout) {
+int SnapshotService::start(const std::shared_ptr<ISnapshotable>& snapshotable,const std::shared_ptr<SnapshotCtx>& ctx) {
 	if( nullptr != m_actor )
 		return -1;
 
 	m_snapshotable = snapshotable;
-	m_address = address;
-	m_capacity = capacity;
-	m_period_count = period_count;
-	m_tv_timeout = timeout;
+	m_ctx = ctx;
 
-	LOG(INFO) << "SnapshotService start listen on: " << address << ", capacity " << capacity << ", period count " << period_count << ", timeout " << timeout;
+	LOG(INFO) << "SnapshotService start listen on: " << m_ctx->address << ", capacity " << m_ctx->capacity << ", period count " << m_ctx->period_count << ", timeout " << m_ctx->timeout;
 
 	m_actor = zactor_new(&SnapshotService::actorAdapter,this);
 	if( m_actor ) {
@@ -63,18 +57,18 @@ void SnapshotService::run(zsock_t* pipe) {
 
 		router = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(router);
-		zsock_set_identity(router,new_short_identity().c_str());
+		zsock_set_identity(router,m_ctx->identity.c_str());
 #ifndef NDEBUG
 		zsock_set_router_mandatory(router,1);
 #endif
 
-		if( (size_t) zsock_sndhwm(router) < m_capacity * m_period_count * 2 ) {
-			LOG(INFO) << "Set router socket send hwm from " << zsock_sndhwm(router) << " to " << m_capacity * m_period_count * 2;
-			zsock_set_sndhwm(router,m_capacity * m_period_count * 2);
+		if( (size_t) zsock_sndhwm(router) < m_ctx->capacity * m_ctx->period_count * 2 ) {
+			LOG(INFO) << "Set router socket send hwm from " << zsock_sndhwm(router) << " to " << m_ctx->capacity * m_ctx->period_count * 2;
+			zsock_set_sndhwm(router,m_ctx->capacity * m_ctx->period_count * 2);
 		}
 
-		if( -1 == zsock_bind(router,"%s",m_address.c_str()) ) {
-			LOG(FATAL) << "SnapshotService can not bind to " << m_address;
+		if( -1 == zsock_bind(router,"%s",m_ctx->address.c_str()) ) {
+			LOG(FATAL) << "SnapshotService can not bind to " << m_ctx->address;
 			break;
 		}
 
@@ -132,17 +126,17 @@ int SnapshotService::onSnapshotReq(const std::shared_ptr<google::protobuf::Messa
 		LOG(WARNING) << "Client repeated send request while sync is processing: " << p->requester();
 		rep.set_result(-1);
 		zpb_send(sock,envelope,rep);
-	} else if( m_workers.size() < m_capacity ) {
+	} else if( m_workers.size() < m_ctx->capacity ) {
 		rep.set_result(0);
 		if( 0 == zpb_send(sock,envelope,rep) ) {
 			LOG(INFO) << "Accept client snapshot request: " << p->requester();
 
 			auto worker = std::make_shared<SnapshotServiceWorker>(m_snapshotable->buildSnapshot());
-			const size_t left = worker->sendItems(sock,envelope,m_period_count);
+			const size_t left = worker->sendItems(sock,envelope,m_ctx->period_count);
 			if( left == 0 ) {
 				LOG(INFO) << "Send all snapshot item to client done. " << p->requester();
 			} else {
-				LOG(INFO) << "Send part items to client " << p->requester() << " " << m_period_count << "/" << left;
+				LOG(INFO) << "Send part items to client " << p->requester() << " " << m_ctx->period_count << "/" << left;
 				m_workers.insert( std::make_pair(p->requester(),worker) );
 				snapshot::SyncSignalReq sync;
 				zpb_send(sock,envelope,sync);
@@ -162,12 +156,12 @@ int SnapshotService::onSyncSignal(const std::shared_ptr<google::protobuf::Messag
 	CHECK(p);
 	auto it = m_workers.find(p->requester());
 	if( it != m_workers.end() ) {
-		const size_t left = it->second->sendItems(sock,envelope,m_period_count);
+		const size_t left = it->second->sendItems(sock,envelope,m_ctx->period_count);
 		if( left == 0 ) {
 			LOG(INFO) << "Send all snapshot item to client done. " << p->requester();
 			m_workers.erase(it);
 		} else {
-			LOG(INFO) << "Send part items to client " << p->requester() << " " << m_period_count << "/" << left;
+			LOG(INFO) << "Send part items to client " << p->requester() << " " << m_ctx->period_count << "/" << left;
 			snapshot::SyncSignalReq sync;
 			zpb_send(sock,envelope,sync);
 		}
@@ -190,7 +184,7 @@ int SnapshotService::onPipeReadable(zsock_t* reader) {
 int SnapshotService::onTimer() {
 	const ri_time_t now = ri_time_now();
 	for(auto it=m_workers.begin(); it != m_workers.end();) {
-		if( now - it->second->lastSend() > m_tv_timeout ) {
+		if( now - it->second->lastSend() > m_ctx->timeout ) {
 			LOG(WARNING) << "Client timeout: " << it->first;
 			it = m_workers.erase(it);
 		} else {

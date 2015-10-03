@@ -22,7 +22,7 @@ protected:
 		ctx->api_address = "inproc://region-test";
 		ctx->bus_address = "tcp://127.0.0.1:6600";
 		ctx->pub_address = "tcp://127.0.0.1:2015";
-		ctx->snapshot_address = "tcp://127.0.0.1:6500";
+		ctx->snapshot = std::make_shared<SnapshotCtx>("tcp://127.0.0.1:6500","snapshotsvc");
 	}
 	static void TearDownTestCase() {
 		ctx.reset();

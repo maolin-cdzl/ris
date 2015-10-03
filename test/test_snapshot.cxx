@@ -24,7 +24,8 @@ void snapshot_testcase(size_t repeat_count) {
 	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
 
-	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS));
+	auto sctx = std::make_shared<SnapshotCtx>(SS_SERVER_ADDRESS,"snapshotsvc");
+	ASSERT_EQ(0,server->start(snapshotable,sctx));
 	ASSERT_EQ(0,repeater->start(repeat_count,builder,SS_SERVER_ADDRESS));
 
 
@@ -55,7 +56,8 @@ void snapshot_partfail_testcase(size_t repeat_count) {
 
 	int result;
 
-	result = server->start(snapshotable,SS_SERVER_ADDRESS);
+	auto sctx = std::make_shared<SnapshotCtx>(SS_SERVER_ADDRESS,"snapshotsvc");
+	result = server->start(snapshotable,sctx);
 	ASSERT_EQ(0,result);
 
 	result = repeater->start(repeat_count,builder,SS_SERVER_ADDRESS);
@@ -88,7 +90,8 @@ void snapshot_fail_testcase() {
 	EXPECT_CALL(*builder,addPayload(testing::_,testing::_)).Times(PayloadNumber(generator)).WillRepeatedly(testing::Return(0));
 	EXPECT_CALL(*builder,addService(testing::_,testing::_)).Times(ServiceNumber(generator)).WillRepeatedly(testing::Return(0));
 
-	ASSERT_EQ(0,server->start(snapshotable,SS_SERVER_ADDRESS));
+	auto sctx = std::make_shared<SnapshotCtx>(SS_SERVER_ADDRESS,"snapshotsvc");
+	ASSERT_EQ(0,server->start(snapshotable,sctx));
 	ASSERT_EQ(0,repeater->start(1,builder,SS_SERVER_ADDRESS));
 
 	while( repeater->running() ) {

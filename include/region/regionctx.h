@@ -3,6 +3,8 @@
 #include <string>
 #include <memory>
 
+#include "snapshot/snapshotctx.h"
+
 class RegionCtx {
 public:
 	std::string					uuid;
@@ -15,12 +17,11 @@ public:
 	std::string					bus_address;
 	std::string					bus_identity;
 
-	std::string					bus_api_address;
-	std::string					bus_api_identity;
+	std::string					worker_address;
+	std::string					worker_identity;
 	size_t						bus_hwm;
 
-	std::string					snapshot_address;
-	std::string					snapshot_identity;
+	std::shared_ptr<SnapshotCtx>	snapshot;
 
 	RegionCtx() = default;
 

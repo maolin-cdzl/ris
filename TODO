@@ -4,3 +4,4 @@ TODO:
 2. Tracker 根据通知获取 Region 路由信息时,需要添加临时黑名单,避免频繁尝试无法获取路由信息的 Region.
 3. BusBroker 中的 BusBackend 需要添加机制取消到失效的 region 的连接.
 4. 检查snapshot中region begin和end 中版本号也得一致.
+5. snapshotservice 要求 snapshotable 线程安全,这有问题.

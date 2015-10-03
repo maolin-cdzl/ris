@@ -69,6 +69,8 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 
 		rep = zsock_new(ZMQ_ROUTER);
+		CHECK_NOTNULL(rep);
+		zsock_set_identity(rep,m_ctx->api_identity.c_str());
 		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "Error when binding rep socket to: " << m_ctx->api_address;
 			break;
@@ -103,7 +105,7 @@ void RITrackerActor::run(zsock_t* pipe) {
 		}
 
 		auto ssvc = std::make_shared<SnapshotService>();
-		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
+		if( -1 == ssvc->start(feature,m_ctx->snapshot) ) {
 			LOG(FATAL) << "Tracker start snapshot service failed";
 			break;
 		}

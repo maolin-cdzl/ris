@@ -19,14 +19,6 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 				ctx->bus_identity = ctx->uuid + "-bus";
 			}
 
-			// endpoint snapshot, for snapshot service
-			if( ! region.lookupValue("snapshot_address",ctx->snapshot_address) ) {
-				ctx->snapshot_address = "tcp://*:6502";
-			}
-			if( ! region.lookupValue("snapshot_identity",ctx->snapshot_identity) ) {
-				ctx->snapshot_identity = ctx->uuid + "-snapshot";
-			}
-
 			// endpoint api, for client publish carries
 			if( ! region.lookupValue("api_identity",ctx->api_identity) ) {
 				ctx->api_identity = ctx->uuid + "-api";
@@ -35,12 +27,12 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 				ctx->api_address = "inproc://" + ctx->api_identity;
 			}
 
-			// endpoint busapi, for client worker pick message
-			if( ! region.lookupValue("bus_api_identity",ctx->bus_api_identity) ) {
-				ctx->bus_api_identity = ctx->uuid + "-busapi";
+			// endpoint worker, for client worker pick message
+			if( ! region.lookupValue("worker_identity",ctx->worker_identity) ) {
+				ctx->worker_identity = ctx->uuid + "-worker";
 			}
-			if( ! region.lookupValue("bus_api_address",ctx->bus_api_address) ) {
-				ctx->bus_api_address = "inproc://" + ctx->bus_api_identity;
+			if( ! region.lookupValue("worker_address",ctx->worker_address) ) {
+				ctx->worker_address = "inproc://" + ctx->worker_identity;
 			}
 
 			// high water mark
@@ -48,7 +40,7 @@ static std::shared_ptr<RegionCtx> loadRegionCtx(libconfig::Config& cfg) {
 				ctx->bus_hwm = 5000;
 			}
 
-
+			ctx->snapshot = SnapshotCtx::load(region["snapshot"]);
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;

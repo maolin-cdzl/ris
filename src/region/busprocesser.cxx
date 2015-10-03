@@ -16,23 +16,23 @@ BusProcesser::~BusProcesser() {
 	stop();
 }
 
-int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::string& busend_address,const std::string& workerend_address,size_t hwm) {
+int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::shared_ptr<RegionCtx>& ctx) {
 	if( m_bus_reader || m_worker_reader )
 		return -1;
 
 	CHECK(table);
-	CHECK_GT(hwm,1);
+	CHECK_GT(ctx->bus_hwm,1);
 
 	zsock_t* busend = nullptr;
 	zsock_t* workerend = nullptr;
 	do {
 		busend = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(busend);
-		if( -1 == zsock_bind(busend,"%s",busend_address.c_str()) ) {
-			LOG(FATAL) << "Busend socket can not bind to: " << busend_address;
+		zsock_set_identity(busend,ctx->bus_identity.c_str());
+		if( -1 == zsock_bind(busend,"%s",ctx->bus_address.c_str()) ) {
+			LOG(FATAL) << "Busend socket can not bind to: " << ctx->bus_address;
 			break;
 		}
-		zsock_set_identity(busend,zsock_endpoint(busend));
 
 		m_bus_reader = std::make_shared<ZLoopReader>(m_loop);
 		CHECK(m_bus_reader);
@@ -43,10 +43,10 @@ int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::s
 
 		workerend = zsock_new(ZMQ_ROUTER);
 		CHECK_NOTNULL(workerend);
-		zsock_set_identity(workerend,new_short_identity().c_str());
+		zsock_set_identity(workerend,ctx->worker_identity.c_str());
 		zsock_set_router_mandatory(workerend,1);
-		if( -1 == zsock_bind(workerend,"%s",workerend_address.c_str()) ) {
-			LOG(FATAL) << "Workerend socket can not bind to: " << workerend;
+		if( -1 == zsock_bind(workerend,"%s",ctx->worker_address.c_str()) ) {
+			LOG(FATAL) << "Workerend socket can not bind to: " << ctx->worker_address;
 			break;
 		}
 		m_worker_reader = std::make_shared<ZLoopReader>(m_loop);
@@ -55,7 +55,7 @@ int BusProcesser::start(const std::shared_ptr<RIRegionTable>& table,const std::s
 			LOG(FATAL) << "Can not start worker reader";
 		}
 		m_table = table;
-		m_hwm = hwm;
+		m_hwm = ctx->bus_hwm;
 		return 0;
 	} while(0);
 

@@ -83,7 +83,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto bus = std::make_shared<BusProcesser>(m_loop);
-		if( -1 == bus->start(m_table,m_ctx->bus_address,m_ctx->bus_api_address,m_ctx->bus_hwm) ) {
+		if( -1 == bus->start(m_table,m_ctx) ) {
 			LOG(FATAL) << "Can not start bus processer";
 			break;
 		}
@@ -96,7 +96,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		auto ssvc = std::make_shared<SnapshotService>();
-		if( -1 == ssvc->start(feature,m_ctx->snapshot_address) ) {
+		if( -1 == ssvc->start(feature,m_ctx->snapshot) ) {
 			LOG(FATAL) << "Start SnapshotService failed";
 			break;
 		}
@@ -108,6 +108,7 @@ void RIRegionActor::run(zsock_t* pipe) {
 		}
 
 		rep = zsock_new(ZMQ_ROUTER);
+		zsock_set_identity(rep,m_ctx->api_identity.c_str());
 		if( -1 == zsock_bind(rep,"%s",m_ctx->api_address.c_str()) ) {
 			LOG(FATAL) << "can not bind Rep on: " << m_ctx->api_address;
 			break;

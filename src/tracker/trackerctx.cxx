@@ -19,16 +19,11 @@ static std::shared_ptr<TrackerCtx> loadTrackerCtx(libconfig::Config& cfg) {
 				ctx->api_identity = "tracker-" + uuid + "-api";
 			}
 
-			if( ! tracker.lookupValue("snapshot_address",ctx->snapshot_address) ) {
-				ctx->snapshot_address = "tcp://*:6602";
-			}
-			if( ! tracker.lookupValue("snapshot_identity",ctx->snapshot_identity) ) {
-				ctx->snapshot_identity = "tracker-" + uuid + "-snapshot";
-			}
-
 			if( ! tracker.lookupValue("factory_timeout",(unsigned long long&)ctx->factory_timeout) ) {
 				ctx->factory_timeout = 30000;
 			}
+
+			ctx->snapshot = SnapshotCtx::load(tracker["snapshot"]);
 		} catch( const libconfig::SettingNotFoundException& e ) {
 			LOG(FATAL) << "Can not found Region setting: " << e.what();
 			break;

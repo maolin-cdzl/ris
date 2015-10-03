@@ -9,6 +9,7 @@
 #include "zmqx/zenvelope.h"
 #include "zmqx/zloopreader.h"
 #include "ris/bus.pb.h"
+#include "region/regionctx.h"
 #include "region/regiontable.h"
 
 
@@ -17,7 +18,7 @@ public:
 	BusProcesser(zloop_t* loop);
 	~BusProcesser();
 
-	int start(const std::shared_ptr<RIRegionTable>& table,const std::string& busend_address,const std::string& workerend_address,size_t hwm=5000);
+	int start(const std::shared_ptr<RIRegionTable>& table,const std::shared_ptr<RegionCtx>& ctx);
 	void stop();
 
 private:

@@ -37,11 +37,13 @@ target_link_libraries(risproto PUBLIC
 
 # configure snapshot
 add_library(snapshot STATIC
+	src/snapshot/snapshotctx.cxx
 	src/snapshot/snapshotservice.cxx
 	src/snapshot/snapshotserviceworker.cxx
 	src/snapshot/snapshotclient.cxx
 	src/snapshot/snapshotclientworker.cxx
 	src/snapshot/snapshotfeature.cxx
+	include/snapshot/snapshotctx.h
 	include/snapshot/snapshotable.h
 	include/snapshot/snapshotclient.h
 	include/snapshot/snapshotclientworker.h
